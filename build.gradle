@@ -1,5 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'application'
+apply from: 'core/gradle/gradle/plugins.jar.gradle'
 
 configurations {
 	pluginjar
@@ -29,36 +31,25 @@ project.ext {
 dependencies {
 	compile		project(":syncany-lib")
 	compile		project(":syncany-util")	
+	compile		project(':syncany-cli')
+
 	compile		"commons-net:commons-net:2.2"    
-	
-	compile			project(':syncany-lib')
-	compile			project(':syncany-cli')
-    	
-	compile			"commons-beanutils:commons-beanutils:1.9.0"
-	
-	compile			"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	compile			"org.eclipse.jetty:jetty-server:9.1.0.RC2"
-	
-	compile			"net.sf.corn:corn-cps:1.1.2"
-	
-	compile			"org.apache.httpcomponents:httpclient:4.3.4"
-	compile			"org.simpleframework:simple-xml:2.7.1"
-	compile			"com.google.guava:guava:15.0"
-	compile 		"commons-io:commons-io:2.4"	
-	compile			"io.undertow:undertow-websockets-jsr:1.0.15.Final"
+	compile		"commons-beanutils:commons-beanutils:1.9.0"
+	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
+	compile		"org.eclipse.jetty:jetty-server:9.1.0.RC2"
+	compile		"net.sf.corn:corn-cps:1.1.2"
+	compile		"org.apache.httpcomponents:httpclient:4.3.4"
+	compile		"org.simpleframework:simple-xml:2.7.1"
+	compile		"com.google.guava:guava:15.0"
+	compile 	"commons-io:commons-io:2.4"	
+	compile		"io.undertow:undertow-websockets-jsr:1.0.15.Final"
 
-	pluginjar	"commons-net:commons-net:2.2"
+	pluginjar	"io.undertow:undertow-websockets-jsr:1.0.15.Final"
 
-	testCompile	project(path: ":syncany-lib", configuration: "tests")      
-	testCompile	project(path: ":syncany-util", configuration: "tests")
-	testCompile	"junit:junit:4.9"
-	testCompile	"org.apache.ftpserver:ftpserver-core:1.0.6"   
+	testCompile		project(path: ":syncany-lib", configuration: "tests")      
+	testCompile		project(path: ":syncany-util", configuration: "tests")
+	testCompile		"junit:junit:4.9"
 }
-
-apply from: 'core/gradle/gradle/plugins.jar.gradle'
-
-// Application Plugin ////////////////////////////////////////////////////////////
-apply plugin: 'application'
 
 // Application plugin specific parameter
 mainClassName     = "org.syncany.gui.Launcher"
