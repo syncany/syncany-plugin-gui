@@ -23,11 +23,11 @@ import org.syncany.config.LocalEventBus;
 import org.syncany.gui.Launcher;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.StatusEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.StatusFolderResponse;
+import org.syncany.operations.daemon.messages.StatusStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.api.ExternalEvent;
 import org.syncany.operations.daemon.messages.api.Response;
-import org.syncany.operations.daemon.messages.events.StatusEndSyncExternalEvent;
-import org.syncany.operations.daemon.messages.events.StatusStartSyncExternalEvent;
 
 import com.google.common.eventbus.Subscribe;
 
