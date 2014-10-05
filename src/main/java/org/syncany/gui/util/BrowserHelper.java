@@ -38,8 +38,7 @@ public class BrowserHelper {
 				// this doesn't support showing urls in the form of "page.html#nameLink"
 				rt.exec("rundll32 url.dll,FileProtocolHandler " + url);
 			}
-			//TODO add mac osx env detection
-			else if (EnvironmentUtil.isMaxOsX()) {
+			else if (EnvironmentUtil.isMacOSX()) {
 				rt.exec("open " + url);
 			}
 			else if (EnvironmentUtil.isUnixLikeOperatingSystem()) {

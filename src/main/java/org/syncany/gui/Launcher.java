@@ -85,7 +85,7 @@ public class Launcher {
 
 		if (!daemonRunning){
 			String executable = null;
-			if (EnvironmentUtil.isMaxOsX()){
+			if (EnvironmentUtil.isMacOSX()){
 				executable = "/usr/local/bin/sy";
 			}
 			else if (EnvironmentUtil.isWindows()){
@@ -103,7 +103,7 @@ public class Launcher {
 
 		if (daemonRunning){
 			String executable = null;
-			if (EnvironmentUtil.isMaxOsX()){
+			if (EnvironmentUtil.isMacOSX()){
 				executable = "/usr/local/bin/sy";
 			}
 			else if (EnvironmentUtil.isWindows()){
