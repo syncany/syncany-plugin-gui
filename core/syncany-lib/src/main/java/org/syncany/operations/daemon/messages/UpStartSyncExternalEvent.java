@@ -21,7 +21,7 @@ public class UpStartSyncExternalEvent extends SyncExternalEvent {
 	public UpStartSyncExternalEvent() {
 		// Nothing
 	}
-	
+
 	public UpStartSyncExternalEvent(String root) {
 		super(root);
 	}

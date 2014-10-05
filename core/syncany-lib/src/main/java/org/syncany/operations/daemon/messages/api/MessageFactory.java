@@ -44,7 +44,7 @@ public class MessageFactory {
 	private static final Logger logger = Logger.getLogger(MessageFactory.class.getSimpleName());
 	private static final Pattern MESSAGE_TYPE_PATTERN = Pattern.compile("\\<([^>\\s]+)");
 	private static final int MESSAGE_TYPE_PATTERN_GROUP = 1;
-	
+
 	private static final Serializer serializer;
 	
 	static {
@@ -114,7 +114,7 @@ public class MessageFactory {
 		String parentPackage = thisPackage.substring(0, thisPackage.lastIndexOf("."));
 		String camelCaseMessageType = StringUtil.toCamelCase(requestType);
 		String fqMessageClassName = parentPackage + "." + camelCaseMessageType;
-		
+
 		// Try to load!
 		try {		
 			Class<? extends Message> MessageClass = Class.forName(fqMessageClassName).asSubclass(Message.class);

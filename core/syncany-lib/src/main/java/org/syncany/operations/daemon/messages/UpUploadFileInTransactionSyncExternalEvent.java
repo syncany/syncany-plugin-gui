@@ -22,10 +22,10 @@ public class UpUploadFileInTransactionSyncExternalEvent extends SyncExternalEven
 	private long currentFileSize;
 	private int totalFileCount;
 	private long totalFileSize;
-	
+
 	public UpUploadFileInTransactionSyncExternalEvent() {
 		// Nothing
-	}
+	}	
 	
 	public UpUploadFileInTransactionSyncExternalEvent(String root, int currentFileIndex, int totalFileCount, long currentFileSize, long totalFileSize) {
 		super(root);
