@@ -1,7 +1,6 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'application'
-apply from: 'core/gradle/gradle/plugins.jar.gradle'
 
 configurations {
 	pluginjar
@@ -179,3 +178,5 @@ task(runGui, dependsOn: 'classes', type: JavaExec) {
 	jvmArgs = getOsName().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
 	classpath = sourceSets.main.runtimeClasspath
 }
+
+apply from: 'core/gradle/gradle/plugins.jar.gradle'
