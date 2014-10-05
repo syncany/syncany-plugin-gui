@@ -19,9 +19,12 @@ package org.syncany.gui;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Display;
+import org.syncany.config.Config;
 import org.syncany.config.Logging;
 import org.syncany.config.UserConfig;
 import org.syncany.gui.util.I18n;
@@ -35,13 +38,12 @@ import org.syncany.util.PidFileUtil;
  *
  */
 public class Launcher {
-	private static final Logger log = Logger.getLogger(Launcher.class.getSimpleName());
+	private static final Logger logger = Logger.getLogger(Launcher.class.getSimpleName());
 	
 	public static MainGUI window;
 
 	static {
 		Logging.init();
-		//Logging.disableLogging();
 	}
 
 	public static void main(String[] args) {
@@ -49,7 +51,7 @@ public class Launcher {
 			startDeamon();
 		}
 		catch (IOException | InterruptedException e) {
-			log.warning("Unable to start daemon");
+			logger.warning("Unable to start daemon");
 		}
 
 		startApplication();
@@ -65,10 +67,10 @@ public class Launcher {
 			shutDownDaemon();
 		}
 		catch (IOException e) {
-			log.warning("Unable to stop daemon: " + e);
+			logger.warning("Unable to stop daemon: " + e);
 		}
 		catch (InterruptedException e) {
-			log.warning("Unable to stop daemon: " + e);
+			logger.warning("Unable to stop daemon: " + e);
 		}
 		stopGUI();
 		System.exit(0);
@@ -80,37 +82,25 @@ public class Launcher {
 
 	public static void startDeamon() throws IOException, InterruptedException {
 		File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
-
 		boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
 
 		if (!daemonRunning){
-			String executable = null;
-			if (EnvironmentUtil.isMacOSX()){
-				executable = "/usr/local/bin/sy";
-			}
-			else if (EnvironmentUtil.isWindows()){
-				executable = "c:\\windows\\sy.bat";
-			}
-			Process daemonProceee = new ProcessBuilder(executable, "daemon", "start").start();
-			daemonProceee.waitFor();
+			File launchScript = getLaunchScript();
+
+			Process daemonProcees = new ProcessBuilder(launchScript.getAbsolutePath(), "daemon", "start").start();
+			daemonProcees.waitFor();
 		}
 	}
-	
+
 	public static void shutDownDaemon() throws IOException, InterruptedException {
 		File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
-
 		boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
 
 		if (daemonRunning){
-			String executable = null;
-			if (EnvironmentUtil.isMacOSX()){
-				executable = "/usr/local/bin/sy";
-			}
-			else if (EnvironmentUtil.isWindows()){
-				executable = "c:\\windows\\sy.bat";
-			}
-			Process daemonProceee = new ProcessBuilder(executable, "daemon", "stop").start();
-			daemonProceee.waitFor();
+			File launchScript = getLaunchScript();
+
+			Process daemonProcees = new ProcessBuilder(launchScript.getAbsolutePath(), "daemon", "stop").start();
+			daemonProcees.waitFor();			
 		}
 	}
 	
@@ -125,14 +115,42 @@ public class Launcher {
 		// Shutdown hook to release swt resources
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
-				log.info("Releasing SWT Resources");
+				logger.info("Releasing SWT Resources");
 				SWTResourceManager.dispose();
 			}
 		});
 
-		log.info("Starting Graphical User Interface");
+		logger.info("Starting Graphical User Interface");
 
 		window = new MainGUI();
 		window.open();
+	}
+	
+	private static File getLaunchScript() {		
+		File appLibDir = getJarFromClass(Config.class);
+		File appHomeDir = appLibDir.getParentFile();
+		File appBinDir = new File(appHomeDir, "bin");
+		
+		String appLaunchScriptName = (EnvironmentUtil.isWindows()) ? "sy.bat" : "sy";			
+		File appLaunchScript = new File(appBinDir, appLaunchScriptName);
+		
+		return appLaunchScript;		
+	}
+	
+	private static File getJarFromClass(Class<?> searchClass) {
+		try {
+			URL pluginClassLocation = searchClass.getResource('/' + searchClass.getName().replace('.', '/') + ".class");
+			String pluginClassLocationStr = pluginClassLocation.toString();
+			logger.log(Level.INFO, "Plugin class is at " + pluginClassLocation);
+	
+			int indexStartAfterSchema = "jar:file:".length();
+			int indexEndAtExclamationPoint = pluginClassLocationStr.indexOf("!");
+			File searchClassJarFile = new File(pluginClassLocationStr.substring(indexStartAfterSchema, indexEndAtExclamationPoint));
+			
+			return searchClassJarFile;
+		}
+		catch (Exception e) {
+			throw new RuntimeException("Cannot find application home; Cannot run GUI from outside a JAR.", e);
+		}
 	}
 }

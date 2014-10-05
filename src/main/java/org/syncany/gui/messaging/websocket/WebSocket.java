@@ -34,7 +34,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,22 +70,22 @@ public class WebSocket {
 	private static final Logger logger = Logger.getLogger(WebSocket.class.getSimpleName());
 	private final static String PROTOCOL = "wss://";
 	private final static String ENDPOINT = "/api/ws";
-	
+
 	private WebSocketChannel webSocketChannel;
-	private LocalEventBus bus = LocalEventBus.getInstance();
-	
+	private LocalEventBus eventBus = LocalEventBus.getInstance();
+
 	private DaemonConfigTO daemonConfig = null;
-	
-	public void init(){
+
+	public void init() {
 		File daemonConfigFile = new File(UserConfig.getUserConfigDir(), UserConfig.DAEMON_FILE);
-		
+
 		if (daemonConfigFile.exists()) {
 			try {
 				daemonConfig = DaemonConfigTO.load(daemonConfigFile);
 				List<UserTO> users = readWebSocketServerUsers(daemonConfig);
-				bus.register(this);
+				eventBus.register(this);
 				LocalEventBus.getInstance().register(this);
-				if (users.size() > 0){
+				if (users.size() > 0) {
 					start(users.get(0).getUsername(), users.get(0).getPassword());
 				}
 			}
@@ -98,72 +97,72 @@ public class WebSocket {
 			}
 		}
 	}
-	
+
 	private List<UserTO> readWebSocketServerUsers(DaemonConfigTO daemonConfigTO) {
 		List<UserTO> users = daemonConfigTO.getUsers();
-		
+
 		if (users == null) {
 			users = new ArrayList<UserTO>();
 		}
-		
+
 		// Add CLI credentials
 		if (daemonConfigTO.getPortTO() != null) {
 			users.add(daemonConfigTO.getPortTO().getUser());
 		}
-		
+
 		return users;
 	}
 
 	private void start(final String username, final String password) throws Exception {
-        SSLContext sslContext = UserConfig.createUserSSLContext();        
-        Xnio xnio = Xnio.getInstance(this.getClass().getClassLoader());
-        Pool<ByteBuffer> buffer = new ByteBufferSlicePool(BufferAllocator.BYTE_BUFFER_ALLOCATOR, 1024, 1024);
-    	
-        OptionMap workerOptions = OptionMap.builder()
-	        .set(Options.WORKER_IO_THREADS, 2)
-	        .set(Options.WORKER_TASK_CORE_THREADS, 30)
-	        .set(Options.WORKER_TASK_MAX_THREADS, 30)
-	        .set(Options.SSL_PROTOCOL, sslContext.getProtocol())
-	        .set(Options.SSL_PROVIDER, sslContext.getProvider().getName())
-	        .set(Options.TCP_NODELAY, true)
-	        .set(Options.CORK, true)
-	        .getMap();
-        
-        XnioWorker worker = xnio.createWorker(workerOptions);
-        XnioSsl xnioSsl = new JsseXnioSsl(xnio, OptionMap.create(Options.USE_DIRECT_BUFFERS, true), sslContext);
-        URI uri = new URI(PROTOCOL + daemonConfig.getWebServer().getBindAddress() + ":" + daemonConfig.getWebServer().getBindPort() + ENDPOINT);
-        
-        WebSocketClientNegotiation neg = new WebSocketClientNegotiation(new ArrayList<String>(), new ArrayList<WebSocketExtension>()) {
-        	@Override
-        	public void beforeRequest(Map<String, String> headers) {
-        		headers.put("Authorization", "Basic " + Base64.encodeBase64String(StringUtil.toBytesUTF8(username + ":" + password)));
-        	}
-        };        
+		SSLContext sslContext = UserConfig.createUserSSLContext();
+		Xnio xnio = Xnio.getInstance(this.getClass().getClassLoader());
+		Pool<ByteBuffer> buffer = new ByteBufferSlicePool(BufferAllocator.BYTE_BUFFER_ALLOCATOR, 1024, 1024);
 
-        webSocketChannel = WebSocketClient.connect(worker, xnioSsl, buffer, workerOptions, uri, WebSocketVersion.V13, neg).get();
-        webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
-            @Override
-            protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
-            	Message m;
+		OptionMap workerOptions = OptionMap.builder()
+				.set(Options.WORKER_IO_THREADS, 2)
+				.set(Options.WORKER_TASK_CORE_THREADS, 30)
+				.set(Options.WORKER_TASK_MAX_THREADS, 30)
+				.set(Options.SSL_PROTOCOL, sslContext.getProtocol())
+				.set(Options.SSL_PROVIDER, sslContext.getProvider().getName())
+				.set(Options.TCP_NODELAY, true)
+				.set(Options.CORK, true)
+				.getMap();
+
+		XnioWorker worker = xnio.createWorker(workerOptions);
+		XnioSsl xnioSsl = new JsseXnioSsl(xnio, OptionMap.create(Options.USE_DIRECT_BUFFERS, true), sslContext);
+		URI uri = new URI(PROTOCOL + daemonConfig.getWebServer().getBindAddress() + ":" + daemonConfig.getWebServer().getBindPort() + ENDPOINT);
+
+		WebSocketClientNegotiation neg = new WebSocketClientNegotiation(new ArrayList<String>(), new ArrayList<WebSocketExtension>()) {
+			@Override
+			public void beforeRequest(Map<String, String> headers) {
+				headers.put("Authorization", "Basic " + Base64.encodeBase64String(StringUtil.toBytesUTF8(username + ":" + password)));
+			}
+		};
+
+		webSocketChannel = WebSocketClient.connect(worker, xnioSsl, buffer, workerOptions, uri, WebSocketVersion.V13, neg).get();
+		webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
+			@Override
+			protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+				Message m;
 				try {
 					m = MessageFactory.toMessage(message.getData());
-					bus.post(m);
+					eventBus.post(m);
 				}
 				catch (Exception e) {
-					logger.log(Level.WARNING, "Unable to parse message: "+e);
+					logger.log(Level.WARNING, "Unable to parse message: " + e);
 				}
-            }
+			}
 
-            @Override
-            protected void onError(WebSocketChannel channel, Throwable error) {
-            	logger.log(Level.WARNING, "Error: "+error.getMessage());
-            	markAsDeconnected();
-            }
-        });
-        webSocketChannel.resumeReceives();
-        
+			@Override
+			protected void onError(WebSocketChannel channel, Throwable error) {
+				logger.log(Level.WARNING, "Error: " + error.getMessage());
+				markAsDeconnected();
+			}
+		});
+		
+		webSocketChannel.resumeReceives();
 	}
-	
+
 	protected void markAsDeconnected() {
 		try {
 			Thread.sleep(5000);
@@ -179,28 +178,28 @@ public class WebSocket {
 	}
 
 	@Subscribe
-	public void requestSubscription(Request request){
+	public void requestSubscription(Request request) {
 		//String message = "<listWatchesManagementRequest><id>1</id></listWatchesManagementRequest>";
-		try{
+		try {
 			postMessage(MessageFactory.toXml(request));
 		}
-		catch (Exception e){
+		catch (Exception e) {
 			logger.log(Level.WARNING, "Unable to transform request to XML");
 		}
 	}
-	
-	private void postMessage(String message){
+
+	private void postMessage(String message) {
 		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
-			
+
 			@Override
 			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
 				throwable.printStackTrace();
 			}
-			
+
 			@Override
 			public void complete(WebSocketChannel channel, Void context) {
 				System.out.println("complete");
 			}
-		});  
+		});
 	}
 }

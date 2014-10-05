@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.plugins.simplegui;
+package org.syncany.plugins.gui;
 
 import org.syncany.plugins.Plugin;
 
@@ -23,8 +23,8 @@ import org.syncany.plugins.Plugin;
  * @author vwiencek
  *
  */
-public class SimpleguiPlugin extends Plugin {
-	public SimpleguiPlugin() {
-		super("simplegui");
+public class GuiPlugin extends Plugin {
+	public GuiPlugin() {
+		super("gui");
 	}
 }

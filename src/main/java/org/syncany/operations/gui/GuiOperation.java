@@ -21,7 +21,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.syncany.config.Config;
-import org.syncany.config.LocalEventBus;
 import org.syncany.gui.Launcher;
 import org.syncany.operations.Operation;
 import org.syncany.operations.OperationResult;
@@ -32,9 +31,7 @@ import org.syncany.operations.OperationResult;
 public class GuiOperation extends Operation {	
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	
 
-	private LocalEventBus eventBus;
-
-	public GuiOperation(){
+	public GuiOperation() {
 		this(null);
 	}
 	

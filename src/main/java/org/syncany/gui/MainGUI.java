@@ -1,6 +1,5 @@
 package org.syncany.gui;
 
-import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.events.DisposeEvent;
@@ -16,13 +15,6 @@ import org.syncany.gui.tray.TrayIconFactory;
 public class MainGUI {
 	private static final Logger logger = Logger.getLogger(MainGUI.class.getSimpleName());
 
-	/**
-	 * Unique client identification
-	 * Used to allow identification in communications
-	 * between client and daemon server
-	 **/
-	private static String clientId = UUID.randomUUID().toString();
-	
 	private WebSocket client;
 	
 	private Shell shell;
@@ -62,10 +54,6 @@ public class MainGUI {
 				display.sleep();
 			}
 		}
-	}
-
-	public static String getClientIdentification() {
-		return clientId;
 	}
 	
 	/**
