@@ -21,7 +21,7 @@ public class DownDownloadFileSyncExternalEvent extends SyncExternalEvent {
 	private String fileDescription;
 	private int currentFileIndex;
 	private int maxFileCount;
-
+	
 	public DownDownloadFileSyncExternalEvent() {
 		// Nothing
 	}

@@ -52,5 +52,5 @@ public class EnvironmentUtil {
 
 	public static boolean symlinksSupported() {
 		return isUnixLikeOperatingSystem();
-	}	
+	}
 }
