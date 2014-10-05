@@ -21,13 +21,10 @@ import org.syncany.operations.OperationOptions;
 import org.syncany.operations.OperationResult;
 import org.syncany.operations.gui.GuiOperation;
 
-
 /**
- * @author vwiencek
- *
+ * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public class GuiCommand extends Command {
-
 	@Override
 	public int execute(String[] operationArgs) throws Exception {
 		GuiOperation operation = new GuiOperation(null);
@@ -52,6 +49,6 @@ public class GuiCommand extends Command {
 
 	@Override
 	public void printResults(OperationResult result) {
-		// TODO Auto-generated method stub
+		// Nothing
 	}
 }

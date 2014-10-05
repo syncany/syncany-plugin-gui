@@ -23,7 +23,7 @@ import net.sf.corn.cps.ResourceFilter;
  */
 public class I18n implements Serializable {
     private static final long serialVersionUID = -4871656417610600492L;
-	private static final Logger log = Logger.getLogger(I18n.class.getSimpleName());
+	private static final Logger logger = Logger.getLogger(I18n.class.getSimpleName());
     
     private static final HashMap<Locale, Properties> bundles = new HashMap<Locale, Properties>();
 	private static final List<String> BUNDLE_NAMES = new ArrayList<String>();
@@ -99,7 +99,7 @@ public class I18n implements Serializable {
 				ap.load(url.openStream());
 			}
 			catch (IOException e) {
-				log.warning("error loading file " + url.toString());
+				logger.warning("error loading file " + url.toString());
 			}
 		}
 		
@@ -155,7 +155,7 @@ public class I18n implements Serializable {
 		} 
         catch (NullPointerException e) {
 			if (key != null && !key.isEmpty()) {
-				log.warning(Locale.getDefault() + " : key " + key + " not translated");
+				logger.warning(Locale.getDefault() + " : key " + key + " not translated");
 			}
 			return key;
 		}

@@ -135,8 +135,8 @@ public class UnityTrayIcon extends TrayIcon {
 	}
 
 	private void startUnityProcess() throws IOException {
-		String baseUrl = "http://127.0.0.1:" + StaticResourcesWebServer.WEBSERVER_POR;
-		String scriptUrl = baseUrl + "/scripts/unitytray.py";
+		String baseUrl = "http://127.0.0.1:" + StaticResourcesWebServer.WEBSERVER_PORT;
+		String scriptUrl = baseUrl + "/org/syncany/gui/tray/unitytray.py";
 		String webSocketUri = "ws://127.0.0.1:" + WEBSOCKET_SERVER_PORT;
 
 		Object[] args = new Object[] {

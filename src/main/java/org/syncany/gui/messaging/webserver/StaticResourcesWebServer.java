@@ -14,14 +14,14 @@ import org.eclipse.jetty.util.resource.Resource;
 /**
  * Static resources web server
  * Used to access python script and resources to python script
+ * 
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
  */
 public class StaticResourcesWebServer {
-	private static final Logger log = Logger.getLogger(StaticResourcesWebServer.class.getSimpleName());
+	private static final Logger logger = Logger.getLogger(StaticResourcesWebServer.class.getSimpleName());
 
 	private static StaticResourcesWebServer instance;
-	public static int WEBSERVER_POR = 51601; 
+	public static int WEBSERVER_PORT = 51601; 
 
 	private Server server;
 
@@ -34,7 +34,7 @@ public class StaticResourcesWebServer {
 			@Override
 			public void run() {
 				try {
-					server = new Server(WEBSERVER_POR);
+					server = new Server(WEBSERVER_PORT);
 					server.addLifeCycleListener(new Listener() {
 						@Override
 						public void lifeCycleStarted(LifeCycle event) {
@@ -79,7 +79,7 @@ public class StaticResourcesWebServer {
 					server.join();
 				}
 				catch (Exception e) {
-					log.warning("Exception " + e.getMessage());
+					logger.warning("Exception " + e.getMessage());
 				}
 			}
 		}, "staticWebServer");
@@ -92,7 +92,7 @@ public class StaticResourcesWebServer {
 			server.destroy();
 		}
 		catch (Exception e) {
-			log.warning("Exception " + e.getMessage());
+			logger.warning("Exception " + e.getMessage());
 		}
 	}
 

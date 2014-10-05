@@ -17,9 +17,9 @@ repositories {
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.1.10-alpha"	
+	pluginVersion = "0.1.12-alpha"	
 	pluginDate = new Date()
-	pluginAppMinVersion = "0.1.10-alpha"
+	pluginAppMinVersion = "0.1.11-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
 	
@@ -43,7 +43,12 @@ dependencies {
 	compile 	"commons-io:commons-io:2.4"	
 	compile		"io.undertow:undertow-websockets-jsr:1.0.15.Final"
 
-	pluginjar	"io.undertow:undertow-websockets-jsr:1.0.15.Final"
+	pluginjar	"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
+	pluginjar	"commons-net:commons-net:2.2"    
+	pluginjar	"commons-beanutils:commons-beanutils:1.9.0"
+	pluginjar	"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
+	pluginjar	"org.eclipse.jetty:jetty-server:9.1.0.RC2"
+	pluginjar	"net.sf.corn:corn-cps:1.1.2"
 
 	testCompile		project(path: ":syncany-lib", configuration: "tests")      
 	testCompile		project(path: ":syncany-util", configuration: "tests")

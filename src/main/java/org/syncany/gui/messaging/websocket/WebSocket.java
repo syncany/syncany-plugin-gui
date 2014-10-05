@@ -45,7 +45,6 @@ import org.syncany.config.LocalEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
-import org.syncany.gui.Launcher;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
@@ -166,20 +165,15 @@ public class WebSocket {
 	protected void markAsDeconnected() {
 		try {
 			Thread.sleep(5000);
-			Launcher.startDeamon();
 			init();
-		}
-		catch (IOException e) {
-			logger.log(Level.WARNING, "Unable to start daemon");
-		}
+		}		
 		catch (InterruptedException e) {
-			logger.log(Level.WARNING, "Unable to start daemon");
+			logger.log(Level.WARNING, "Unable to reconnect to daemon");
 		}
 	}
 
 	@Subscribe
 	public void requestSubscription(Request request) {
-		//String message = "<listWatchesManagementRequest><id>1</id></listWatchesManagementRequest>";
 		try {
 			postMessage(MessageFactory.toXml(request));
 		}
@@ -190,7 +184,6 @@ public class WebSocket {
 
 	private void postMessage(String message) {
 		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
-
 			@Override
 			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
 				throwable.printStackTrace();

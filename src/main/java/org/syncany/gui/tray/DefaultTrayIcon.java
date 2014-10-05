@@ -42,7 +42,6 @@ import org.syncany.util.EnvironmentUtil;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
  */
 public class DefaultTrayIcon extends TrayIcon {
 	private TrayItem trayItem;
@@ -106,8 +105,8 @@ public class DefaultTrayIcon extends TrayIcon {
 		statusTextItem.setEnabled(false);
 
 		new MenuItem(menu, SWT.SEPARATOR);
-
-		/**
+		
+		/*
 		MenuItem connectItem = new MenuItem(menu, SWT.PUSH);
 		connectItem.setText("New sync folder");
 		connectItem.addSelectionListener(new SelectionAdapter() {
@@ -125,7 +124,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				showSettings();
 			}
 		});
-		**/
+		*/
 
 		if (watches != null && watches.size() > 0) {
 			for (final File file : watches){
@@ -161,7 +160,7 @@ public class DefaultTrayIcon extends TrayIcon {
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
 
-		new MenuItem(menu, SWT.SEPARATOR);
+		//new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem donateItem = new MenuItem(menu, SWT.PUSH);
 		donateItem.setText(messages.get("tray.menuitem.donate"));

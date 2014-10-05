@@ -27,10 +27,9 @@ import org.syncany.util.EnvironmentUtil;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
  */
 public class TrayIconFactory {
-	public TrayIcon createTrayIcon(Shell shell) {
+	public static TrayIcon createTrayIcon(Shell shell) {
 		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
 			return new UnityTrayIcon(shell);
 		}
@@ -39,7 +38,7 @@ public class TrayIconFactory {
 		}
 	}
 
-	private boolean isUnity() {
+	private static boolean isUnity() {
 		ProcessBuilder processBuilder = new ProcessBuilder("/bin/ps", "--no-headers", "-C", "unity-panel-service");
 
 		try {

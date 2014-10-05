@@ -26,10 +26,19 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.swt.widgets.Shell;
-import org.syncany.gui.Launcher;
+import org.syncany.config.LocalEventBus;
+import org.syncany.gui.events.ExitGuiInternalEvent;
 import org.syncany.gui.util.BrowserHelper;
 import org.syncany.gui.util.I18n;
+import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.StatusFolderResponse;
+import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
+import org.syncany.operations.daemon.messages.api.ExternalEvent;
+import org.syncany.operations.daemon.messages.api.Response;
 import org.syncany.operations.status.StatusOperationResult;
+
+import com.google.common.eventbus.Subscribe;
 
 /**
  * @author pheckel
@@ -38,6 +47,9 @@ import org.syncany.operations.status.StatusOperationResult;
 public abstract class TrayIcon {
 	private static int REFRESH_TIME = 1000;
 
+	private LocalEventBus eventBus;
+	private Thread systemTrayAnimationThread;
+	
 	private Shell shell;
 	private AtomicBoolean syncing = new AtomicBoolean(false);
 	private AtomicBoolean paused = new AtomicBoolean(false);
@@ -52,49 +64,47 @@ public abstract class TrayIcon {
 		put("tray.menuitem.website", I18n.getString("tray.menuitem.website"));
 	}};
 	
-	public enum TrayIcons {
-		TRAY_NO_OVERLAY("/images/tray/tray.png"), 
-		TRAY_IN_SYNC("/images/tray/tray-in-sync.png"), 
-		TRAY_PAUSE_SYNC("/images/tray/tray-sync-pause.png"), 
-		TRAY_SYNCING1("/images/tray/tray-syncing1.png"), 
-		TRAY_SYNCING2("/images/tray/tray-syncing2.png"), 
-		TRAY_SYNCING3("/images/tray/tray-syncing3.png"), 
-		TRAY_SYNCING4("/images/tray/tray-syncing4.png"), 
-		TRAY_SYNCING5("/images/tray/tray-syncing5.png"), 
-		TRAY_SYNCING6("/images/tray/tray-syncing6.png"), 
-		TRAY_UP_TO_DATE("/images/tray/tray-uptodate.png");
-
-		private String fileName;
-
-		TrayIcons(String filenName) {
-			this.fileName = filenName;
-		}
-
-		public String getFileName() {
-			return fileName;
-		}
-
-		public static TrayIcons get(int idx) {
-			switch (idx + 1) {
-			default:
-			case 1:
-				return TRAY_SYNCING1;
-			case 2:
-				return TRAY_SYNCING2;
-			case 3:
-				return TRAY_SYNCING3;
-			case 4:
-				return TRAY_SYNCING4;
-			case 5:
-				return TRAY_SYNCING5;
-			case 6:
-				return TRAY_SYNCING6;
-			}
-		}
-	}
-
 	public TrayIcon(Shell shell) {
 		this.shell = shell;
+		
+		this.eventBus = LocalEventBus.getInstance();		
+		this.eventBus.register(this);
+		
+		startAnimationThread();
+	}
+
+	private void startAnimationThread() {
+		systemTrayAnimationThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					while (true) {
+						while (paused.get() || !syncing.get()) {
+							try {
+								Thread.sleep(500);
+							}
+							catch (InterruptedException e) {
+							}
+						}
+
+						int i = 0;
+
+						while (syncing.get()) {
+							try {
+								setTrayImage(TrayIcons.get(i));
+								i++;
+								if (i == 6)
+									i = 0;
+								Thread.sleep(REFRESH_TIME);
+							}
+							catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						}
+						setTrayImage(TrayIcons.TRAY_IN_SYNC);
+					}
+				}
+			});
+		
 		systemTrayAnimationThread.start();
 	}
 
@@ -102,14 +112,6 @@ public abstract class TrayIcon {
 		return shell;
 	}
 
-	protected void pause(File folder) {
-		//ClientCommandFactory.handlePauseWatch(folder.getAbsolutePath());
-	}
-	
-	protected void resume(File folder) {
-		//ClientCommandFactory.handleResumeWatch(folder.getAbsolutePath());
-	}
-	
 	protected void showFolder(File folder) {
 		try {
 			if (folder.exists() && folder.isDirectory()) {
@@ -122,15 +124,15 @@ public abstract class TrayIcon {
 	}
 
 	protected void showDonate() {
-		BrowserHelper.browse("http://www.syncany.org/donate");
+		BrowserHelper.browse("https://www.syncany.org/donate.html");
 	}
 
 	protected void showWebsite() {
-		BrowserHelper.browse("http://www.syncany.org");
+		BrowserHelper.browse("https://www.syncany.org");
 	}
 
 	protected void quit() {
-		Launcher.stopApplication();
+		eventBus.post(new ExitGuiInternalEvent());
 	}
 
 	public void makeSystemTrayStartSync() {
@@ -153,43 +155,32 @@ public abstract class TrayIcon {
 		paused.set(false);
 	}
 
-	private Thread systemTrayAnimationThread = new Thread(new Runnable() {
-		@Override
-		public void run() {
-			while (true) {
-				while (paused.get() || !syncing.get()) {
-					try {
-						Thread.sleep(500);
-					}
-					catch (InterruptedException e) {
-					}
-				}
-
-				int i = 0;
-
-				while (syncing.get()) {
-					try {
-						setTrayImage(TrayIcons.get(i));
-						i++;
-						if (i == 6)
-							i = 0;
-						Thread.sleep(REFRESH_TIME);
-					}
-					catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-				setTrayImage(TrayIcons.TRAY_IN_SYNC);
-			}
-		}
-	});
-
 	protected void showSettings() {
 		// show settings
 	}
 
 	protected void showWizard() {
 		// start wizard
+	}
+
+	@Subscribe
+	public void handleResponse(Response message){
+		if (message instanceof ListWatchesManagementResponse){
+			updateWatchedFolders(((ListWatchesManagementResponse)message).getWatches());
+		}
+		else if (message instanceof StatusFolderResponse){
+			updateWatchedFoldersStatus(((StatusFolderResponse)message).getResult());
+		}
+	}
+	
+	@Subscribe
+	public void handleExternalEvent(ExternalEvent message) {
+		if (message instanceof UpStartSyncExternalEvent) {
+			makeSystemTrayStartSync();
+		}
+		else if (message instanceof UpEndSyncExternalEvent) {
+			makeSystemTrayStopSync();
+		}
 	}
 
 	// Abstract methods

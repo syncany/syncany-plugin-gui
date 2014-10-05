@@ -15,36 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.gui;
+package org.syncany.gui.events;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.syncany.operations.daemon.messages.api.InternalEvent;
 
-import org.syncany.config.Config;
-import org.syncany.gui.Launcher;
-import org.syncany.operations.Operation;
-import org.syncany.operations.OperationResult;
-
-
-/**
- * @author Vincent Wiencek <vwiencek@gmail.com>
- */
-public class GuiOperation extends Operation {	
-	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	
-
-	public GuiOperation() {
-		this(null);
-	}
-	
-	public GuiOperation(Config config) {
-		super(config);		
-	}
-
-	@Override
-	public OperationResult execute() throws Exception {
-		logger.log(Level.INFO, "Starting GUI operation ...");
-		
-		new Launcher();		
-		return null;
-	}
+public abstract class GuiInternalEvent extends InternalEvent {
+	// Marker
 }
