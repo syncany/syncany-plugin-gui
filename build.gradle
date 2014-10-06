@@ -1,6 +1,5 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: 'application'
 
 configurations {
 	pluginjar
@@ -65,26 +64,7 @@ dependencies {
 	testCompile		"junit:junit:4.9"
 }
 
-// Application plugin specific parameter
-mainClassName     = "org.syncany.gui.Launcher"
-applicationName   = "syncany"
-
-applicationDistribution.from("${rootProject.projectDir}/") {
-	include "AUTHORS.md", "CHANGELOG.md", "LICENSE.md", "README.md"
-}
-
-distTar {
-	baseName = "syncany"
-	version = "$applicationVersionFull"
-	compression = Compression.GZIP
-	extension = "tar.gz"	
-}
-
-distZip {
-	baseName = "syncany"
-	version = "$applicationVersionFull"
-}
-
+/*
 // Windows EXE File ////////////////////////////////////////////////////////////
 apply plugin: 'launch4j'
 buildscript {
@@ -157,7 +137,7 @@ task installerGui(dependsOn: ["installApp", "launch4j"]) << {
 		commandLine "iscc ${innoSetupDir}/setup.iss".split()
 	}
 }
-
+*/
 // Task to determine SWT library ///////////////////////////////////////////////
 
 public String getOs() {
