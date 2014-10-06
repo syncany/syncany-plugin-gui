@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.messaging.websocket;
+package org.syncany.gui.messaging;
 
 import io.undertow.websockets.WebSocketExtension;
 import io.undertow.websockets.client.WebSocketClient;
@@ -65,8 +65,8 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class WebSocket {
-	private static final Logger logger = Logger.getLogger(WebSocket.class.getSimpleName());
+public class DaemonWebSocketClient {
+	private static final Logger logger = Logger.getLogger(DaemonWebSocketClient.class.getSimpleName());
 	private final static String PROTOCOL = "wss://";
 	private final static String ENDPOINT = "/api/ws";
 

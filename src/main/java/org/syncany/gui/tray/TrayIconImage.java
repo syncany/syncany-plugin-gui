@@ -17,21 +17,21 @@
  */
 package org.syncany.gui.tray;
 
-public enum TrayIcons {
-	TRAY_NO_OVERLAY("/images/tray/tray.png"), 
-	TRAY_IN_SYNC("/images/tray/tray-in-sync.png"), 
-	TRAY_PAUSE_SYNC("/images/tray/tray-sync-pause.png"), 
-	TRAY_SYNCING1("/images/tray/tray-syncing1.png"), 
-	TRAY_SYNCING2("/images/tray/tray-syncing2.png"), 
-	TRAY_SYNCING3("/images/tray/tray-syncing3.png"), 
-	TRAY_SYNCING4("/images/tray/tray-syncing4.png"), 
-	TRAY_SYNCING5("/images/tray/tray-syncing5.png"), 
-	TRAY_SYNCING6("/images/tray/tray-syncing6.png"), 
-	TRAY_UP_TO_DATE("/images/tray/tray-uptodate.png");
+public enum TrayIconImage {
+	TRAY_NO_OVERLAY("tray.png"), 
+	TRAY_IN_SYNC("tray-in-sync.png"), 
+	TRAY_PAUSE_SYNC("tray-sync-pause.png"), 
+	TRAY_SYNCING1("tray-syncing1.png"), 
+	TRAY_SYNCING2("tray-syncing2.png"), 
+	TRAY_SYNCING3("tray-syncing3.png"), 
+	TRAY_SYNCING4("tray-syncing4.png"), 
+	TRAY_SYNCING5("tray-syncing5.png"), 
+	TRAY_SYNCING6("tray-syncing6.png"), 
+	TRAY_UP_TO_DATE("tray-uptodate.png");
 
 	private String fileName;
 
-	TrayIcons(String filenName) {
+	TrayIconImage(String filenName) {
 		this.fileName = filenName;
 	}
 
@@ -39,7 +39,7 @@ public enum TrayIcons {
 		return fileName;
 	}
 
-	public static TrayIcons get(int idx) {
+	public static TrayIconImage get(int idx) {
 		switch (idx + 1) {
 		default:
 		case 1:

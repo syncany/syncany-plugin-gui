@@ -48,27 +48,31 @@ public class DefaultTrayIcon extends TrayIcon {
 	private Menu menu;
 	private MenuItem statusTextItem;
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
-
-	@SuppressWarnings("serial")
-	private Map<TrayIcons, Image> images = new HashMap<TrayIcons, Image>() {
-		{
-			for (TrayIcons ti : TrayIcons.values()) {
-				put(ti, SWTResourceManager.getImage(ti.getFileName(), false));
-			}
-		}
-	};
+	private Map<TrayIconImage, Image> images;
 
 	public DefaultTrayIcon(final Shell shell) {
 		super(shell);
+		
+		fillImageCache();
 		buildTray();
 	}
 
+	private void fillImageCache() {
+		images = new HashMap<TrayIconImage, Image>();
+		String trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/"; 
+				
+		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
+			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
+			images.put(trayIconImage, SWTResourceManager.getImage(trayImageFileName, false));
+		}
+	}
+	
 	private void buildTray() {
 		Tray tray = Display.getDefault().getSystemTray();
 
 		if (tray != null) {
-			trayItem = new TrayItem(tray, SWT.NONE);
-			setTrayImage(TrayIcons.TRAY_IN_SYNC);
+			trayItem = new TrayItem(tray, SWT.NONE);				
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 
 			buildMenuItems(null);
 			addMenuListeners();
@@ -224,10 +228,10 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	protected void setTrayImage(final TrayIcons image) {
+	protected void setTrayImage(final TrayIconImage trayIconImage) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				trayItem.setImage(images.get(image));
+				trayItem.setImage(images.get(trayIconImage));
 			}
 		});
 	}

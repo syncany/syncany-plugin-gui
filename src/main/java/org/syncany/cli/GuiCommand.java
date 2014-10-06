@@ -17,9 +17,15 @@
  */
 package org.syncany.cli;
 
-import org.syncany.operations.OperationOptions;
+import static java.util.Arrays.asList;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+
+import org.syncany.gui.tray.TrayIconType;
 import org.syncany.operations.OperationResult;
 import org.syncany.operations.gui.GuiOperation;
+import org.syncany.operations.gui.GuiOperationOptions;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -27,8 +33,11 @@ import org.syncany.operations.gui.GuiOperation;
 public class GuiCommand extends Command {
 	@Override
 	public int execute(String[] operationArgs) throws Exception {
-		GuiOperation operation = new GuiOperation(null);
+		GuiOperationOptions operationOptions = parseOptions(operationArgs);
+
+		GuiOperation operation = new GuiOperation(operationOptions);
 		operation.execute();
+		
 		return 0;
 	}
 
@@ -43,8 +52,23 @@ public class GuiCommand extends Command {
 	}
 
 	@Override
-	public OperationOptions parseOptions(String[] operationArgs) throws Exception {
-		return null;
+	public GuiOperationOptions parseOptions(String[] operationArgs) throws Exception {
+		GuiOperationOptions operationOptions = new GuiOperationOptions();
+
+		OptionParser parser = new OptionParser();	
+		parser.allowsUnrecognizedOptions();
+		
+		OptionSpec<String> optionTray = parser.acceptsAll(asList("t", "tray")).withRequiredArg();
+		
+		OptionSet options = parser.parse(operationArgs);	
+		
+		// --tray
+		if (options.has(optionTray)) {
+			TrayIconType trayType = TrayIconType.valueOf(options.valueOf(optionTray).toUpperCase());
+			operationOptions.setTrayType(trayType);
+		}
+		
+		return operationOptions;
 	}
 
 	@Override

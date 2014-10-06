@@ -35,7 +35,6 @@ dependencies {
 	compile		"commons-net:commons-net:2.2"    
 	compile		"commons-beanutils:commons-beanutils:1.9.0"
 	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	compile		"org.eclipse.jetty:jetty-server:9.1.0.RC2"
 	compile		"net.sf.corn:corn-cps:1.1.2"
 	compile		"org.apache.httpcomponents:httpclient:4.3.4"
 	compile		"org.simpleframework:simple-xml:2.7.1"
@@ -47,7 +46,6 @@ dependencies {
 	pluginjar	"commons-net:commons-net:2.2"    
 	pluginjar	"commons-beanutils:commons-beanutils:1.9.0"
 	pluginjar	"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	pluginjar	"org.eclipse.jetty:jetty-server:9.1.0.RC2"
 	pluginjar	"net.sf.corn:corn-cps:1.1.2"
 
 	testCompile		project(path: ":syncany-lib", configuration: "tests")      

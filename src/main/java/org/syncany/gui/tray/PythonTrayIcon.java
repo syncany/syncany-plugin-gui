@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
-import org.syncany.gui.messaging.webserver.StaticResourcesWebServer;
-import org.syncany.gui.messaging.webserver.StaticResourcesWebServer.ServerStartedListener;
 import org.syncany.operations.status.StatusOperationResult;
 
 /**
@@ -36,37 +34,28 @@ import org.syncany.operations.status.StatusOperationResult;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class UnityTrayIcon extends TrayIcon {
-	private static final Logger logger = Logger.getLogger(UnityTrayIcon.class.getSimpleName());
+public class PythonTrayIcon extends TrayIcon {
+	private static final Logger logger = Logger.getLogger(PythonTrayIcon.class.getSimpleName());
 	private static int WEBSOCKET_SERVER_PORT = 51600;
 
 	private StaticResourcesWebServer staticWebServer;
 	private static Process unityProcess;
 
-	public UnityTrayIcon(Shell shell) {
+	public PythonTrayIcon(Shell shell) {
 		super(shell);
 		
-		startWebSocketServer();
 		startWebServer();
-	}
-
-	private void startWebSocketServer() {
-
+		startTray();
 	}
 
 	private void startWebServer() {
 		staticWebServer = new StaticResourcesWebServer();
-		staticWebServer.startService(new ServerStartedListener() {
-			@Override
-			public void serverStarted() {
-				startTray();
-			}
-		});
+		staticWebServer.start();
 	}
 
 	private void startTray() {
 		try {
-			startUnityProcess();
+			startPythonProcess();
 		}
 		catch (IOException e) {
 			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);
@@ -76,8 +65,7 @@ public class UnityTrayIcon extends TrayIcon {
 	@Override
 	protected void quit() {
 		try {
-			staticWebServer.stopService();
-			//webSocketClient.stop();
+			staticWebServer.stop();
 		}
 		catch (Exception e) {
 			logger.warning("Exception while quitting application " + e);
@@ -134,7 +122,7 @@ public class UnityTrayIcon extends TrayIcon {
 		t.start();
 	}
 
-	private void startUnityProcess() throws IOException {
+	private void startPythonProcess() throws IOException {
 		String baseUrl = "http://127.0.0.1:" + StaticResourcesWebServer.WEBSERVER_PORT;
 		String scriptUrl = baseUrl + "/org/syncany/gui/tray/unitytray.py";
 		String webSocketUri = "ws://127.0.0.1:" + WEBSOCKET_SERVER_PORT;
@@ -182,7 +170,7 @@ public class UnityTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	protected void setTrayImage(TrayIcons image) {
+	protected void setTrayImage(TrayIconImage image) {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("action", "update_tray_icon");
 		parameters.put("imageFileName", image.getFileName());

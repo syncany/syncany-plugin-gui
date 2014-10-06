@@ -45,7 +45,7 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
-	private static int REFRESH_TIME = 1000;
+	private static int REFRESH_TIME = 500;
 
 	private LocalEventBus eventBus;
 	private Thread systemTrayAnimationThread;
@@ -80,7 +80,7 @@ public abstract class TrayIcon {
 					while (true) {
 						while (paused.get() || !syncing.get()) {
 							try {
-								Thread.sleep(500);
+								Thread.sleep(200);
 							}
 							catch (InterruptedException e) {
 							}
@@ -90,7 +90,7 @@ public abstract class TrayIcon {
 
 						while (syncing.get()) {
 							try {
-								setTrayImage(TrayIcons.get(i));
+								setTrayImage(TrayIconImage.get(i));
 								i++;
 								if (i == 6)
 									i = 0;
@@ -100,7 +100,7 @@ public abstract class TrayIcon {
 								e.printStackTrace();
 							}
 						}
-						setTrayImage(TrayIcons.TRAY_IN_SYNC);
+						setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 					}
 				}
 			});
@@ -143,12 +143,12 @@ public abstract class TrayIcon {
 	public void makeSystemTrayStopSync() {
 		syncing.set(false);
 		paused.set(false);
-		setTrayImage(TrayIcons.TRAY_IN_SYNC);
+		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 	}
 
 	public void pauseSyncing() {
 		paused.set(true);
-		setTrayImage(TrayIcons.TRAY_PAUSE_SYNC);
+		setTrayImage(TrayIconImage.TRAY_PAUSE_SYNC);
 	}
 
 	public void resumeSyncing() {
@@ -184,7 +184,7 @@ public abstract class TrayIcon {
 	}
 
 	// Abstract methods
-	protected abstract void setTrayImage(TrayIcons image);
+	protected abstract void setTrayImage(TrayIconImage image);
 
 	public abstract void updateWatchedFolders(List<File> folders);
 
