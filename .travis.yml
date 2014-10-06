@@ -21,19 +21,25 @@ before_install:
 - sudo apt-get update
 - sudo apt-get install -y -q lftp
 - lftp -v
+- mkdir ~/.gradle
+- echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
+
+install:
+  # Disable default travis behavior 'gradle assemble'
+  - ./gradlew -v
 
 script:
-- core/gradlew pluginJar -Pos=linux -Parch=x86
+- ./gradlew pluginJar -Pos=linux -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- core/gradlew pluginJar -Pos=linux -Parch=x86_64
+- ./gradlew pluginJar -Pos=linux -Parch=x86_64
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- core/gradlew pluginJar -Pos=windows -Parch=x86
+- ./gradlew pluginJar -Pos=windows -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- core/gradlew pluginJar -Pos=windows -Parch=x86_64
+- ./gradlew pluginJar -Pos=windows -Parch=x86_64
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- core/gradlew pluginJar -Pos=macosx -Parch=x86
+- ./gradlew pluginJar -Pos=macosx -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- core/gradlew pluginJar -Pos=macosx -Parch=x86_64
+- ./gradlew pluginJar -Pos=macosx -Parch=x86_64
 
 after_success:
 - core/gradle/lftp/lftpuploadplugin.sh
