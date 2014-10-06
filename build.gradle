@@ -4,10 +4,10 @@ apply plugin: 'application'
 
 configurations {
 	pluginjar
-	pluginjar_windows_x86
-	pluginjar_windows_x86_64
 	pluginjar_linux_x86
 	pluginjar_linux_x86_64
+	pluginjar_windows_x86
+	pluginjar_windows_x86_64
 	pluginjar_macosx_x86
 	pluginjar_macosx_x86_64
 }
@@ -31,12 +31,13 @@ project.ext {
 	
 	pluginVersionSnapshot = rootProject.ext.applicationVersionSnapshot
 	pluginVersionFull = "${pluginVersion}${pluginVersionSnapshot}"	
+	pluginNeedsOperatingSystemAndArchitecture = true
 }
 
 dependencies {
 	compile		project(":syncany-lib")
 	compile		project(":syncany-util")	
-	compile		project(':syncany-cli')
+	compile		project(":syncany-cli")
 
 	compile		"commons-net:commons-net:2.2"    
 	compile		"commons-beanutils:commons-beanutils:1.9.0"
@@ -51,11 +52,12 @@ dependencies {
 	pluginjar			"commons-net:commons-net:2.2"    
 	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
 	pluginjar			"net.sf.corn:corn-cps:1.1.2"
+	
 	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
 	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
 	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
 	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
-	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86:4.4"
+	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
 	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"	
 
 	testCompile		project(path: ":syncany-lib", configuration: "tests")      
@@ -205,43 +207,3 @@ task(runGui, dependsOn: 'classes', type: JavaExec) {
 }
 
 apply from: 'core/gradle/gradle/plugins.jar.gradle'
-
-tasks.addRule("Pattern: pluginDist-<os>-<arch>") { String taskName ->
-	if (taskName.startsWith("pluginDist")) {
-		task(taskName, type: Jar, dependsOn: [processResources, compileJava]) {
-			String pluginOs = taskName.split("-")[1]
-			String pluginArch = taskName.split("-")[2]
-			String pluginOsArch = getOsArch(pluginOs, pluginArch)
-	
-			from files(sourceSets.main.output.classesDir)
-			from files(sourceSets.main.output.resourcesDir)
-			from { 
-				configurations.pluginjar.collect { 
-					zipTree(it)
-				}
-			}
-			from {
-				configurations["pluginjar_" + pluginOsArch].collect { 
-					zipTree(it)
-				}			
-			}
-			exclude "META-INF/*.RSA", "META-INF/*.SF","META-INF/*.DSA" 
-	
-			// The exclude statement ignores detached signatures from other
-			// dependencies (JARs) and leaves them out when combining to one JAR
-
-			baseName = "syncany-plugin-${pluginId}-${pluginOsArch}"
-			version  = "${pluginVersionFull}"
-	
-			manifest {
-				attributes("Plugin-Id": "${pluginId}")
-				attributes("Plugin-Name": "${pluginName}")
-				attributes("Plugin-Version": "${pluginVersionFull}")
-				attributes("Plugin-Date": "${pluginDate}")		
-				attributes("Plugin-App-Min-Version": "${pluginAppMinVersion}")		
-				attributes("Plugin-Release": "${pluginRelease}")		
-				attributes("Plugin-Conflicts-With": "${pluginConflictsWith}")
-			}	
-		}
-	}
-}
