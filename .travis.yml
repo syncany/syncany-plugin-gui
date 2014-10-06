@@ -21,7 +21,7 @@ before_install:
 - sudo apt-get update
 - sudo apt-get install -y -q lftp
 - lftp -v
-- mkdir ~/.gradle
+- mkdir / 2> /dev/null || true
 - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
 install:
