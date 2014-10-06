@@ -23,7 +23,17 @@ before_install:
 - lftp -v
 
 script:
-- core/gradlew clean pluginJar
+- core/gradlew pluginJar -Dos=linux -Darch=x86
+- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+- core/gradlew pluginJar -Dos=linux -Darch=x86_64
+- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+- core/gradlew pluginJar -Dos=windows -Darch=x86
+- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+- core/gradlew pluginJar -Dos=windows -Darch=x86_64
+- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+- core/gradlew pluginJar -Dos=macosx -Darch=x86
+- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+- core/gradlew pluginJar -Dos=macosx -Darch=x86_64
 
 after_success:
 - core/gradle/lftp/lftpuploadplugin.sh
