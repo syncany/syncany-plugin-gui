@@ -29,6 +29,7 @@ install:
   - ./gradlew -v
 
 script:
+- ./gradlew clean
 - ./gradlew pluginJar -Pos=linux -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 - ./gradlew pluginJar -Pos=linux -Parch=x86_64
