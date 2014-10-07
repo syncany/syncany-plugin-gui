@@ -21,7 +21,8 @@ Launch Syncany GUI
         sy gui
 		
 For Ubuntu Unity users (from Ubuntu 13) you need to first install the following dependencies to get tray icon properly working
-		sudo apt-get install python-appindicator
-		sudo apt-get install python-pip
-		sudo pip install websocket-client
+	
+	sudo apt-get install python-appindicator
+	sudo apt-get install python-pip
+	sudo pip install websocket-client
       
