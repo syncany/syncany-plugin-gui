@@ -24,7 +24,7 @@ project.ext {
 	pluginName = "GUI"
 	pluginVersion = "0.1.12-alpha"	
 	pluginDate = new Date()
-	pluginAppMinVersion = "0.1.11-alpha"
+	pluginAppMinVersion = "0.1.12-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
 	
