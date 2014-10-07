@@ -15,10 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.events;
+package org.syncany.operations.daemon.messages;
 
-import org.syncany.operations.daemon.messages.api.InternalEvent;
-
-public abstract class GuiInternalEvent extends InternalEvent {
-	// Marker
+public class ExitGuiInternalEvent extends GuiInternalEvent {
+	// Nothing
 }

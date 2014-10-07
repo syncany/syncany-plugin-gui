@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,21 +70,24 @@ public class DaemonWebSocketClient {
 	private final static String ENDPOINT = "/api/ws";
 
 	private WebSocketChannel webSocketChannel;
-	private LocalEventBus eventBus = LocalEventBus.getInstance();
+	private LocalEventBus eventBus;
+	private DaemonConfigTO daemonConfig;
 
-	private DaemonConfigTO daemonConfig = null;
-
+	public DaemonWebSocketClient() {
+		this.eventBus = LocalEventBus.getInstance();
+		this.eventBus.register(this);
+	}
+	
 	public void init() {
 		File daemonConfigFile = new File(UserConfig.getUserConfigDir(), UserConfig.DAEMON_FILE);
 
 		if (daemonConfigFile.exists()) {
 			try {
-				daemonConfig = DaemonConfigTO.load(daemonConfigFile);
-				List<UserTO> users = readWebSocketServerUsers(daemonConfig);
-				eventBus.register(this);
-				LocalEventBus.getInstance().register(this);
-				if (users.size() > 0) {
-					start(users.get(0).getUsername(), users.get(0).getPassword());
+				daemonConfig = DaemonConfigTO.load(daemonConfigFile);				
+				UserTO firstDaemonUser = DaemonConfigHelper.getFirstDaemonUser(daemonConfig);
+				
+				if (firstDaemonUser != null) {
+					start(firstDaemonUser);
 				}
 			}
 			catch (ConfigException e) {
@@ -97,22 +99,7 @@ public class DaemonWebSocketClient {
 		}
 	}
 
-	private List<UserTO> readWebSocketServerUsers(DaemonConfigTO daemonConfigTO) {
-		List<UserTO> users = daemonConfigTO.getUsers();
-
-		if (users == null) {
-			users = new ArrayList<UserTO>();
-		}
-
-		// Add CLI credentials
-		if (daemonConfigTO.getPortTO() != null) {
-			users.add(daemonConfigTO.getPortTO().getUser());
-		}
-
-		return users;
-	}
-
-	private void start(final String username, final String password) throws Exception {
+	private void start(final UserTO daemonUser) throws Exception {
 		SSLContext sslContext = UserConfig.createUserSSLContext();
 		Xnio xnio = Xnio.getInstance(this.getClass().getClassLoader());
 		Pool<ByteBuffer> buffer = new ByteBufferSlicePool(BufferAllocator.BYTE_BUFFER_ALLOCATOR, 1024, 1024);
@@ -134,7 +121,7 @@ public class DaemonWebSocketClient {
 		WebSocketClientNegotiation neg = new WebSocketClientNegotiation(new ArrayList<String>(), new ArrayList<WebSocketExtension>()) {
 			@Override
 			public void beforeRequest(Map<String, String> headers) {
-				headers.put("Authorization", "Basic " + Base64.encodeBase64String(StringUtil.toBytesUTF8(username + ":" + password)));
+				headers.put("Authorization", "Basic " + Base64.encodeBase64String(StringUtil.toBytesUTF8(daemonUser.getUsername() + ":" + daemonUser.getPassword())));
 			}
 		};
 
@@ -191,7 +178,7 @@ public class DaemonWebSocketClient {
 
 			@Override
 			public void complete(WebSocketChannel channel, Void context) {
-				System.out.println("complete");
+				logger.log(Level.INFO, "WS message sent");
 			}
 		});
 	}

@@ -106,19 +106,19 @@ def do_update_menu(request):
 	menu.append(menu_item_status)
 
 	'''---'''
-	menu.append(gtk.SeparatorMenuItem())	
+	#menu.append(gtk.SeparatorMenuItem())	
 
 	'''New connection'''
-	menu_item_new = gtk.MenuItem("New sync folder")	
-	menu_item_new.connect("activate", menu_item_clicked, "tray_menu_clicked_new")
+	#menu_item_new = gtk.MenuItem("New sync folder")	
+	#menu_item_new.connect("activate", menu_item_clicked, "tray_menu_clicked_new")
 
-	menu.append(menu_item_new)
+	#menu.append(menu_item_new)
 	
 	'''Preferences'''
-	menu_item_prefs = gtk.MenuItem("Preferences")
-	menu_item_prefs.connect("activate", menu_item_clicked, "tray_menu_clicked_preferences")
+	#menu_item_prefs = gtk.MenuItem("Preferences")
+	#menu_item_prefs.connect("activate", menu_item_clicked, "tray_menu_clicked_preferences")
 	
-	menu.append(menu_item_prefs)
+	#menu.append(menu_item_prefs)
 	
 	'''---'''
 	menu.append(gtk.SeparatorMenuItem())	
@@ -154,7 +154,7 @@ def do_update_menu(request):
 
 	'''Quit'''
 	menu_item_quit = gtk.MenuItem("Exit")
-	menu_item_quit.connect("activate", menu_item_clicked, "tray_menu_clicked_quit")
+	menu_item_quit.connect("activate", menu_item_clicked, "<exitGuiInternalEvent></exitGuiInternalEvent>")
 		
 	menu.append(menu_item_quit)	
 	
@@ -174,7 +174,7 @@ def init_tray_icon():
 	global indicator
 
 	# Default image
-	image = fetch_image("/images/tray/tray.png")									
+	image = fetch_image("/tray.png")									
 
 	# Go!
 	do_print("Initializing indicator ...")
@@ -183,17 +183,17 @@ def init_tray_icon():
 	indicator.set_status(appindicator.STATUS_ACTIVE)
 	indicator.set_attention_icon("indicator-messages-new")	
 	
-def menu_item_clicked(widget, action):
-	do_print("Menu item '" + action + "' clicked.")
-	ws.send("{'action': '" + action + "'}")
+def menu_item_clicked(widget, message):
+	do_print("Menu item '" + message + "' clicked.")
+	ws.send(message)
 	
-	if action == "tray_menu_clicked_quit":
+	if message == "<exitGuiInternalEvent></exitGuiInternalEvent>":
 		time.sleep(2)
 		sys.exit(0)
 
 def menu_item_folder_clicked(widget, folder):
 	do_print("Folder item '" + folder + "' clicked.")
-	ws.send("{'action': 'tray_menu_clicked_folder', 'folder': '" + folder + "'}")
+	ws.send("<openFolderGuiInternalEvent><folder>" + folder + "</folder></openFolderGuiInternalEvent>")
 
 def do_kill():
 	# Note: this method cannot contain any do_print() calls since it is called
@@ -238,28 +238,32 @@ def on_ws_message(ws, message):
 		ws.send(response)
 
 def on_ws_error(ws, error):
-	print "WS error"
-	print error
+	do_print("WS error")
+	do_print(error)
 
 def on_ws_close(ws):
-	print "WS closed"
+	do_print("WS closed")
 	do_kill()
 
 def on_ws_open(ws):
-	print "WS open"
+	do_print("WS open")
 
 def ws_start_client():
 	global ws, wsUrl
 
+	do_print("Connecting to Web Socket " + wsUrl)
+	
 	ws = websocket.WebSocketApp(wsUrl,
 		on_message = on_ws_message,
 		on_error = on_ws_error,
 		on_close = on_ws_close,
-		header = [ "client_id: appindicator-tray" ])
+		#header = [ "Authorization: Basic " + basicAuth ]
+	)
 
 	ws.on_open = on_ws_open
 
-	ws.run_forever()					
+	ws.run_forever()
+	#ws.run_forever(sslopt = { "cert_reqs": ssl.CERT_NONE })											
 
 def main():
 	'''Init application and menu'''

@@ -30,7 +30,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.Config;
 import org.syncany.config.LocalEventBus;
 import org.syncany.config.UserConfig;
-import org.syncany.gui.events.ExitGuiInternalEvent;
 import org.syncany.gui.messaging.DaemonWebSocketClient;
 import org.syncany.gui.tray.TrayIcon;
 import org.syncany.gui.tray.TrayIconFactory;
@@ -39,6 +38,7 @@ import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.Operation;
 import org.syncany.operations.OperationResult;
 import org.syncany.operations.daemon.DaemonOperation;
+import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.PidFileUtil;
@@ -178,7 +178,12 @@ public class GuiOperation extends Operation {
 
 	public void disposeShell() {
 		if (shell != null && !shell.isDisposed()) {
-			shell.dispose();
+			Display.getDefault().syncExec(new Runnable() {				
+				@Override
+				public void run() {
+					shell.dispose();
+				}
+			});			
 		}
 	}	
 

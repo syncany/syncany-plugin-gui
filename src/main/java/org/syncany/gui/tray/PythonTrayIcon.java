@@ -17,6 +17,19 @@
  */
 package org.syncany.gui.tray;
 
+import static io.undertow.Handlers.path;
+import static io.undertow.Handlers.resource;
+import static io.undertow.Handlers.websocket;
+import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.handlers.resource.ClassPathResourceManager;
+import io.undertow.websockets.WebSocketConnectionCallback;
+import io.undertow.websockets.core.AbstractReceiveListener;
+import io.undertow.websockets.core.BufferedTextMessage;
+import io.undertow.websockets.core.StreamSourceFrameChannel;
+import io.undertow.websockets.core.WebSocketChannel;
+import io.undertow.websockets.spi.WebSocketHttpExchange;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -24,53 +37,94 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.config.LocalEventBus;
+import org.syncany.operations.daemon.messages.GuiInternalEvent;
+import org.syncany.operations.daemon.messages.api.Message;
+import org.syncany.operations.daemon.messages.api.MessageFactory;
+import org.syncany.operations.daemon.messages.api.Request;
 import org.syncany.operations.status.StatusOperationResult;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
  */
 public class PythonTrayIcon extends TrayIcon {
 	private static final Logger logger = Logger.getLogger(PythonTrayIcon.class.getSimpleName());
-	private static int WEBSOCKET_SERVER_PORT = 51600;
-
-	private StaticResourcesWebServer staticWebServer;
-	private static Process unityProcess;
+	private static int WEBSERVER_PORT = 51601;
+	
+	private Undertow webServer;
+	private Process pythonProcess;
+	private LocalEventBus eventBus;
 
 	public PythonTrayIcon(Shell shell) {
 		super(shell);
+		
+		this.eventBus = LocalEventBus.getInstance();
+		this.eventBus.register(this);
 		
 		startWebServer();
 		startTray();
 	}
 
-	private void startWebServer() {
-		staticWebServer = new StaticResourcesWebServer();
-		staticWebServer.start();
+	private void startWebServer() {	
+		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/");
+
+		HttpHandler pathHttpHandler = path()
+				.addPrefixPath("/api/ws", websocket(new InternalWebSocketHandler()))
+				.addPrefixPath("/api/rs", resource(new ClassPathResourceManager(TrayIcon.class.getClassLoader(), resourcesRoot)));
+		
+		webServer = Undertow
+			.builder()
+			.addHttpListener(WEBSERVER_PORT, "localhost")
+			.setHandler(pathHttpHandler)
+			.build();	
+		
+		webServer.start();
 	}
 
 	private void startTray() {
 		try {
-			startPythonProcess();
+			String webSocketUri = "ws://127.0.0.1:" + WEBSERVER_PORT + "/api/ws";
+			String webServerUrl = "http://127.0.0.1:" + WEBSERVER_PORT + "/api/rs";
+			String scriptUrl = webServerUrl + "/tray.py";
+
+			Object[] args = new Object[] {
+				webServerUrl,
+				webSocketUri, 
+				messages.toString(),
+				scriptUrl
+			};
+			
+			String startScript = String.format(
+				"import urllib2 ; " + 
+				"baseUrl   = '%s' ; " + 
+				"wsUrl     = '%s' ; " +
+				"i18n      = '%s' ; " +
+				"exec urllib2.urlopen('%s').read()", args);
+
+			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
+			ProcessBuilder processBuilder = new ProcessBuilder(command);
+
+			pythonProcess = processBuilder.start();
+
+			BufferedReader is = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+			BufferedReader es = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
+
+			launchLoggerThread(is, "Python Input Stream : ");
+			launchLoggerThread(es, "Python Error Stream : ");
 		}
-		catch (IOException e) {
+		catch (Exception e) {
 			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);
 		}
 	}
 
 	@Override
 	protected void quit() {
-		try {
-			staticWebServer.stop();
-		}
-		catch (Exception e) {
-			logger.warning("Exception while quitting application " + e);
-		}
-
+		webServer.stop();		
 		super.quit();
 	}
 
@@ -122,37 +176,6 @@ public class PythonTrayIcon extends TrayIcon {
 		t.start();
 	}
 
-	private void startPythonProcess() throws IOException {
-		String baseUrl = "http://127.0.0.1:" + StaticResourcesWebServer.WEBSERVER_PORT;
-		String scriptUrl = baseUrl + "/org/syncany/gui/tray/unitytray.py";
-		String webSocketUri = "ws://127.0.0.1:" + WEBSOCKET_SERVER_PORT;
-
-		Object[] args = new Object[] {
-			baseUrl,
-			webSocketUri, 
-			messages.toString(),
-			scriptUrl
-		};
-		
-		String startScript = String.format(
-			"import urllib2 ; " + 
-			"baseUrl = '%s' ; " + 
-			"wsUrl   = '%s' ; " +
-			"i18n    = '%s' ; " +
-			"exec urllib2.urlopen('%s').read()", args);
-
-		String[] command = new String[] { "/usr/bin/python", "-c", startScript };
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-
-		unityProcess = processBuilder.start();
-
-		BufferedReader is = new BufferedReader(new InputStreamReader(unityProcess.getInputStream()));
-		BufferedReader es = new BufferedReader(new InputStreamReader(unityProcess.getErrorStream()));
-
-		launchLoggerThread(is, "Python Input Stream : ");
-		launchLoggerThread(es, "Python Error Stream : ");
-	}
-
 	@Override
 	public void updateWatchedFolders(final List<File> folders) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -181,5 +204,58 @@ public class PythonTrayIcon extends TrayIcon {
 	public void updateWatchedFoldersStatus(StatusOperationResult result) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	private class InternalWebSocketHandler implements WebSocketConnectionCallback {
+		private WebSocketChannel pythonClientChannel;
+		
+		@Override
+		public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
+			// Validate origin header (security!)
+			String originHeader = exchange.getRequestHeader("Origin");
+			
+			if (originHeader != null && !originHeader.startsWith("http://127.0.0.1:" + WEBSERVER_PORT)) {
+				logger.log(Level.INFO, channel.toString() + " disconnected due to invalid origin header: " + originHeader);
+				exchange.close();
+			}
+			
+			logger.log(Level.INFO, "Valid origin header, setting up connection.");
+				
+			channel.getReceiveSetter().set(new AbstractReceiveListener() {
+				@Override
+				protected void onFullTextMessage(WebSocketChannel clientChannel, BufferedTextMessage message) {
+					handleWebSocketRequest(clientChannel, message.getData());
+				}
+
+				@Override
+				protected void onError(WebSocketChannel webSocketChannel, Throwable error) {
+					logger.log(Level.INFO, "Server error : " + error.toString());
+				}
+
+				@Override
+				protected void onClose(WebSocketChannel clientChannel, StreamSourceFrameChannel streamSourceChannel) throws IOException {
+					logger.log(Level.INFO, clientChannel.toString() + " disconnected");
+				}
+			});
+			
+			pythonClientChannel = channel;
+			channel.resumeReceives();
+		}
+		
+		private void handleWebSocketRequest(WebSocketChannel clientSocket, String messageStr) {
+			logger.log(Level.INFO, "Web socket message received: " + messageStr);
+
+			try {
+				Message message = MessageFactory.toMessage(messageStr);
+				
+				if (message instanceof GuiInternalEvent) {						
+					eventBus.post(message);
+				}
+			}
+			catch (Exception e) {
+				logger.log(Level.WARNING, "Invalid request received; cannot serialize to Request.", e);
+				//eventBus.post(new BadRequestResponse(-1, "Invalid request."));
+			}
+		}
 	}
 }

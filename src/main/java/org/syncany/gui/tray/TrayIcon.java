@@ -27,9 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.LocalEventBus;
-import org.syncany.gui.events.ExitGuiInternalEvent;
 import org.syncany.gui.util.BrowserHelper;
 import org.syncany.gui.util.I18n;
+import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.StatusFolderResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
