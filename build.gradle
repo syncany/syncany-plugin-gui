@@ -180,7 +180,7 @@ public String getSwtLibrary() {
 
 // syncany-gui tasks
 task(runGui, dependsOn: 'classes', type: JavaExec) {
-	main = "${mainClassName}"
+	main = "org.syncany.gui.Launcher"
 	//SWT need -XStartOnFirstThread to run on OSX
 	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
 	classpath = sourceSets.main.runtimeClasspath
