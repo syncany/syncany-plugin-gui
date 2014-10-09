@@ -31,10 +31,9 @@ import org.syncany.gui.util.I18n;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
-import org.syncany.operations.daemon.messages.LsRemoteStartSyncExternalEvent;
-import org.syncany.operations.daemon.messages.StatusStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
@@ -102,17 +101,7 @@ public abstract class TrayIcon {
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
 		syncing.set(true);
 		setStatusText("Starting indexing and upload ...");					
-	}
-	
-	@Subscribe
-	public void onStatusStartEventReceived(StatusStartSyncExternalEvent syncEvent) {
-		setStatusText("Checking for new or altered files ...");
-	}
-	
-	@Subscribe
-	public void onLsRemoteStartEventReceived(LsRemoteStartSyncExternalEvent syncEvent) {
-		setStatusText("Checking remote changes ...");
-	}
+	}	
 	
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
@@ -155,7 +144,19 @@ public abstract class TrayIcon {
 	}
 	
 	@Subscribe
-	public void onPostDownOperation(DownEndSyncExternalEvent downEndSyncEvent) {
+	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
+		syncing.set(true);
+		setStatusText("Checking for remote changes ...");					
+	}
+	
+	@Subscribe
+	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
+		syncing.set(false);
+		
+		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+		setStatusText("All files in sync");					
+
+		// Display notification
 		DownOperationResult downOperationResult = downEndSyncEvent.getResult();
 		ChangeSet changeSet = downOperationResult.getChangeSet();
 		
