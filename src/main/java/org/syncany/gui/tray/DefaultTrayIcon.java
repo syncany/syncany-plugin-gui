@@ -221,7 +221,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				trayItem.setToolTip(toolTip);
 				
 				toolTip.setVisible(true);
-				//toolTip.setAutoHide(true);
+				toolTip.setAutoHide(true);
 			}
 		});		
 	}

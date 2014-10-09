@@ -64,80 +64,6 @@ dependencies {
 	testCompile		"junit:junit:4.9"
 }
 
-/*
-// Windows EXE File ////////////////////////////////////////////////////////////
-apply plugin: 'launch4j'
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath "edu.sc.seis.gradle:launch4j:1.0.6"
-    }
-}
-
-project.ext {
-	clientExeFileName = "syncany.exe"
-}
-
-launch4j {
-    mainClassName   = "org.syncany.gui.Launcher"
-    icon            = "${rootProject.projectDir}/gradle/innosetup/setup-icon.ico"
-    launch4jCmd     = "launch4j"
-    outputDir       = "launch4j"
-    dontWrapJar     = false
-    headerType      = "gui"
-    outfile         = "${project.clientExeFileName}"
-    
-    jreMinVersion   = '1.7.0_10'
-    
-    copyright       = "Syncany"
-    
-    initialHeapSize = 512
-    maxHeapSize     = 1024
-    mutexName       = "syncany-gui"
-    windowTitle     = "Syncany Client"
-}
-
-// Windows Installer ///////////////////////////////////////////////////////////
-
-task installerGui(dependsOn: ["installApp", "launch4j"]) << {
-	def innoSetupDir = new File("${buildDir}/innosetup")
-
-	delete innoSetupDir	
-	innoSetupDir.mkdir();	
-	
-	copy {
-		from("${rootProject.projectDir}/gradle/innosetup/setup-left.bmp")
-		from("${rootProject.projectDir}/gradle/innosetup/setup-top.bmp")
-		from("${rootProject.projectDir}/gradle/innosetup/setup-info-before.rtf")		
-		from("${rootProject.projectDir}/gradle/innosetup/setup-info-after.rtf")		
-		from("${rootProject.projectDir}/gradle/innosetup/setup-icon.ico")		
-		into(innoSetupDir)
-	}
-
-	copy {
-		from("${rootProject.projectDir}/syncany-gui/build/launch4j/${project.clientExeFileName}")
-		into("${rootProject.projectDir}/syncany-gui/build/install/syncany")
-	}
-	
-	copy {
-		from("${rootProject.projectDir}/gradle/innosetup/setup.gui.iss.skel")
-		rename("setup.gui.iss.skel", "setup.iss")
-		expand([
-			applicationVersion: "${applicationVersion}",
-			applicationVersionFull: "${applicationVersionFull}",			
-		])
-		into(innoSetupDir)
-	}
-
-	exec {
-		workingDir rootProject.projectDir
-		commandLine "iscc ${innoSetupDir}/setup.iss".split()
-	}
-}
-*/
 // Task to determine SWT library ///////////////////////////////////////////////
 
 public String getOs() {
@@ -178,12 +104,21 @@ public String getSwtLibrary() {
 	return getSwtLibrary(getOs(), getArch())
 }
 
-// syncany-gui tasks
+apply from: 'core/gradle/gradle/plugins.jar.gradle'
+
+// GUI Tasks ///////////////////////////////////////////////////////////////////
+
 task(runGui, dependsOn: 'classes', type: JavaExec) {
 	main = "org.syncany.gui.Launcher"
-	//SWT need -XStartOnFirstThread to run on OSX
+	// SWT need -XStartOnFirstThread to run on OSX
 	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
 	classpath = sourceSets.main.runtimeClasspath
 }
 
-apply from: 'core/gradle/gradle/plugins.jar.gradle'
+task(runGuiPython, dependsOn: 'classes', type: JavaExec) {
+	main = "org.syncany.gui.Launcher"
+	args = ["--tray", "python"]
+	// SWT need -XStartOnFirstThread to run on OSX
+	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
+	classpath = sourceSets.main.runtimeClasspath
+}

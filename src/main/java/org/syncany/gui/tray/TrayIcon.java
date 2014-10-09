@@ -39,7 +39,6 @@ import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
-import org.syncany.operations.down.DownOperationResult;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -157,8 +156,7 @@ public abstract class TrayIcon {
 		setStatusText("All files in sync");					
 
 		// Display notification
-		DownOperationResult downOperationResult = downEndSyncEvent.getResult();
-		ChangeSet changeSet = downOperationResult.getChangeSet();
+		ChangeSet changeSet = downEndSyncEvent.getChanges();
 		
 		if (changeSet.hasChanges()) {
 			List<String> changeMessageParts = new ArrayList<>();
