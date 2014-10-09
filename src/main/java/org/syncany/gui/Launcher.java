@@ -9,7 +9,7 @@ public class Launcher {
 		/*Logging.init();
 		
 		GuiOperationOptions guiOperationOptions = new GuiOperationOptions();
-		guiOperationOptions.setTrayType(TrayIconType.PYTHON);
+		guiOperationOptions.setTrayType(TrayIconType.DEFAULT);
 		
 		new GuiOperation(guiOperationOptions).execute();*/
 	}	

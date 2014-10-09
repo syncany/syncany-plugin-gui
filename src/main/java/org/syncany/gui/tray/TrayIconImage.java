@@ -39,7 +39,7 @@ public enum TrayIconImage {
 		return fileName;
 	}
 
-	public static TrayIconImage get(int idx) {
+	public static TrayIconImage getSyncImage(int idx) {
 		switch (idx + 1) {
 		default:
 		case 1:

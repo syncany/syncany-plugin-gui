@@ -32,6 +32,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.ToolTip;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
 import org.syncany.gui.util.SWTResourceManager;
@@ -99,7 +100,7 @@ public class DefaultTrayIcon extends TrayIcon {
 			clearMenuItems();
 		}
 
-		menu = new Menu(getShell(), SWT.POP_UP);
+		menu = new Menu(shell, SWT.POP_UP);
 
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
 		statusTextItem.setText("All folders in sync");
@@ -205,5 +206,20 @@ public class DefaultTrayIcon extends TrayIcon {
 				trayItem.setImage(images.get(trayIconImage));
 			}
 		});
+	}
+
+	@Override
+	protected void displayNotification(final String subject, final String message) {
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				ToolTip toolTip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
+				toolTip.setText(message);
+				
+				trayItem.setImage(images.get(TrayIconImage.TRAY_NO_OVERLAY));
+				trayItem.setToolTip(toolTip);
+				
+				toolTip.setVisible(true);
+			}
+		});		
 	}
 }

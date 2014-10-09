@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,6 +44,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.LocalEventBus;
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
+import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
@@ -57,8 +57,16 @@ import org.syncany.operations.daemon.messages.api.MessageFactory;
  */
 public class PythonTrayIcon extends TrayIcon {
 	private static final Logger logger = Logger.getLogger(PythonTrayIcon.class.getSimpleName());
+
+	private static String WEBSERVER_HOST = "127.0.0.1";
 	private static int WEBSERVER_PORT = 51601;
-	
+	private static String WEBSERVER_PATH_HTTP = "/api/rs";
+	private static String WEBSERVER_PATH_WEBSOCKET = "/api/ws";
+	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
+	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
+	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
+	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; i18n = '%s'; exec urllib2.urlopen('%s').read()";
+
 	private Undertow webServer;
 	private Process pythonProcess;
 	private WebSocketChannel pythonClientChannel;
@@ -66,49 +74,34 @@ public class PythonTrayIcon extends TrayIcon {
 
 	public PythonTrayIcon(Shell shell) {
 		super(shell);
-		
+
 		this.eventBus = LocalEventBus.getInstance();
 		this.eventBus.register(this);
-		
+
 		startWebServer();
 		startTray();
 	}
 
-	private void startWebServer() {	
+	private void startWebServer() {
 		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/");
 
 		HttpHandler pathHttpHandler = path()
-				.addPrefixPath("/api/ws", websocket(new InternalWebSocketHandler()))
-				.addPrefixPath("/api/rs", resource(new ClassPathResourceManager(TrayIcon.class.getClassLoader(), resourcesRoot)));
-		
+				.addPrefixPath(WEBSERVER_PATH_WEBSOCKET, websocket(new InternalWebSocketHandler()))
+				.addPrefixPath(WEBSERVER_PATH_HTTP, resource(new ClassPathResourceManager(TrayIcon.class.getClassLoader(), resourcesRoot)));
+
 		webServer = Undertow
-			.builder()
-			.addHttpListener(WEBSERVER_PORT, "localhost")
-			.setHandler(pathHttpHandler)
-			.build();	
-		
+				.builder()
+				.addHttpListener(WEBSERVER_PORT, "localhost")
+				.setHandler(pathHttpHandler)
+				.build();
+
 		webServer.start();
 	}
 
 	private void startTray() {
 		try {
-			String webSocketUri = "ws://127.0.0.1:" + WEBSERVER_PORT + "/api/ws";
-			String webServerUrl = "http://127.0.0.1:" + WEBSERVER_PORT + "/api/rs";
-			String scriptUrl = webServerUrl + "/tray.py";
-
-			Object[] args = new Object[] {
-				webServerUrl,
-				webSocketUri, 
-				messages.toString(),
-				scriptUrl
-			};
-			
-			String startScript = String.format(
-				"import urllib2 ; " + 
-				"baseUrl   = '%s' ; " + 
-				"wsUrl     = '%s' ; " +
-				"i18n      = '%s' ; " +
-				"exec urllib2.urlopen('%s').read()", args);
+			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
+					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, messages.toString(), WEBSERVER_URL_SCRIPT });
 
 			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -128,27 +121,8 @@ public class PythonTrayIcon extends TrayIcon {
 
 	@Override
 	protected void exitApplication() {
-		webServer.stop();		
+		webServer.stop();
 		super.exitApplication();
-	}
-
-	protected void handleCommand(Map<String, Object> map) {
-		String command = (String) map.get("action");
-
-		switch (command) {
-		case "tray_menu_clicked_folder":
-			showFolder(new File((String) map.get("folder")));
-			break;
-		case "tray_menu_clicked_donate":
-			showDonate();
-			break;
-		case "tray_menu_clicked_website":
-			showWebsite();
-			break;
-		case "tray_menu_clicked_quit":
-			exitApplication();
-			break;
-		}
 	}
 
 	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix) {
@@ -171,7 +145,7 @@ public class PythonTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	public void setWatchedFolders(List<File> folders) {		
+	public void setWatchedFolders(List<File> folders) {
 		sendWebSocketMessage(new UpdateWatchesGuiInternalEvent(new ArrayList<>(folders)));
 	}
 
@@ -185,17 +159,22 @@ public class PythonTrayIcon extends TrayIcon {
 		sendWebSocketMessage(new UpdateTrayIconGuiInternalEvent(image.getFileName()));
 	}
 	
-	public void sendWebSocketMessage(Message message) {		
+	@Override
+	protected void displayNotification(String subject, String message) {
+		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
+	}
+
+	public void sendWebSocketMessage(Message message) {
 		if (pythonClientChannel != null) {
-			try {				
+			try {
 				String messageStr = MessageFactory.toXml(message);
 				logger.log(Level.INFO, "Sending message: " + messageStr);
 
 				WebSockets.sendText(messageStr, pythonClientChannel, null);
 			}
 			catch (Exception e) {
-				logger.log(Level.WARNING, "Cannot send message. Failed to create/send message.", e);			
-			}				
+				logger.log(Level.WARNING, "Cannot send message. Failed to create/send message.", e);
+			}
 		}
 	}
 
@@ -204,28 +183,28 @@ public class PythonTrayIcon extends TrayIcon {
 
 		try {
 			Message message = MessageFactory.toMessage(messageStr);
-			
+
 			if (message instanceof ClickTrayMenuFolderGuiInternalEvent) {
 				ClickTrayMenuFolderGuiInternalEvent folderClickEvent = (ClickTrayMenuFolderGuiInternalEvent) message;
 				showFolder(new File(folderClickEvent.getFolder()));
 			}
 			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
-				
+
 				switch (clickEvent.getAction()) {
 				case DONATE:
 					showDonate();
 					break;
-					
+
 				case WEBSITE:
 					showWebsite();
 					break;
-					
-				case EXIT:		
+
+				case EXIT:
 					exitApplication();
 					break;
 				}
-			}			
+			}
 			else {
 				logger.log(Level.WARNING, "UNKNOWN MESSAGE. IGNORING.");
 			}
@@ -235,20 +214,20 @@ public class PythonTrayIcon extends TrayIcon {
 			//eventBus.post(new BadRequestResponse(-1, "Invalid request."));
 		}
 	}
-	
-	private class InternalWebSocketHandler implements WebSocketConnectionCallback {				
+
+	private class InternalWebSocketHandler implements WebSocketConnectionCallback {
 		@Override
 		public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
 			// Validate origin header (security!)
 			String originHeader = exchange.getRequestHeader("Origin");
-			
-			if (originHeader != null && !originHeader.startsWith("http://127.0.0.1:" + WEBSERVER_PORT)) {
+
+			if (originHeader != null && !originHeader.startsWith("http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT)) {
 				logger.log(Level.INFO, channel.toString() + " disconnected due to invalid origin header: " + originHeader);
 				exchange.close();
 			}
-			
+
 			logger.log(Level.INFO, "Valid origin header, setting up connection.");
-				
+
 			channel.getReceiveSetter().set(new AbstractReceiveListener() {
 				@Override
 				protected void onFullTextMessage(WebSocketChannel clientChannel, BufferedTextMessage message) {
@@ -265,9 +244,9 @@ public class PythonTrayIcon extends TrayIcon {
 					logger.log(Level.INFO, clientChannel.toString() + " disconnected");
 				}
 			});
-			
+
 			pythonClientChannel = channel;
 			channel.resumeReceives();
-		}		
+		}
 	}
 }

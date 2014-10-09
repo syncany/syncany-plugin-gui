@@ -55,20 +55,22 @@ def fetch_image(relativeUrl):
 def do_notify(request):
 	do_print("Creating notification ...")
 
-	if request["image"] == "":
-		image = fetch_image("/logo48.png")
-	else:
-		image = request["image"]
+	subject = request.find("subject").text
+	message = request.find("message").text
+	image = fetch_image("/tray.png")
 	
-	# Alterantive using 'notify-send'
-	# os.system("notify-send -t 2000 -i '{0}' '{1}' '{2}'".format(image, request["summary"], request["body"]))
+	try:
+		gtk.gdk.threads_enter()
+		pynotify.init("Syncany")
+		notification = pynotify.Notification(subject, message, image)
+		notification.show()
+		gtk.gdk.threads_leave()
+	except:
+		do_print(sys.exc_info())
+		do_print("Displaying notifcation via pynotify failed; trying notify-send ...")
 
-	gtk.gdk.threads_enter()
-	pynotify.init("Syncany")
-	notification = pynotify.Notification(request["summary"], request["body"], image)
-	notification.show()
-	gtk.gdk.threads_leave()
-
+		os.system("notify-send -t 2000 -i '{0}' '{1}' '{2}'".format(image, request["summary"], request["body"]))
+		
 	return None		
 	
 def do_update_icon(request):
@@ -209,7 +211,7 @@ def on_ws_message(ws, message):
 		
 		last_request = time.time()
 		
-		if messageType == "display_notification":
+		if messageType == "displayNotificationGuiInternalEvent":
 			response = do_notify(request)
 		
 		elif messageType == "updateWatchesGuiInternalEvent":
@@ -251,13 +253,11 @@ def ws_start_client():
 		on_message = on_ws_message,
 		on_error = on_ws_error,
 		on_close = on_ws_close,
-		#header = [ "Authorization: Basic " + basicAuth ]
 	)
 
 	ws.on_open = on_ws_open
 
 	ws.run_forever()
-	#ws.run_forever(sslopt = { "cert_reqs": ssl.CERT_NONE })											
 
 def main():
 	'''Init application and menu'''
@@ -277,7 +277,7 @@ def main():
 if __name__ == "__main__":
 	# Global variables
 	imagesMap = dict()
-	status_text = "Synced"
+	status_text = "All files in sync"
 	
 	updating_count = 0
 	indicator = None

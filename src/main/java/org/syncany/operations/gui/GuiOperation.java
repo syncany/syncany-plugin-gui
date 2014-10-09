@@ -135,7 +135,7 @@ public class GuiOperation extends Operation {
 			trayIcon = TrayIconFactory.createTrayIcon(shell);
 		}
 		
-		trayIcon.getShell(); // Dummy call to avoid 'don't use' warning
+		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning
 	}
 	
 	public void startDaemon() {
