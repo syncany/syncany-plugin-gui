@@ -213,12 +213,15 @@ public class DefaultTrayIcon extends TrayIcon {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
 				ToolTip toolTip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
-				toolTip.setText(message);
+				
+				toolTip.setText(subject);
+				toolTip.setMessage(message);
 				
 				trayItem.setImage(images.get(TrayIconImage.TRAY_NO_OVERLAY));
 				trayItem.setToolTip(toolTip);
 				
 				toolTip.setVisible(true);
+				//toolTip.setAutoHide(true);
 			}
 		});		
 	}
