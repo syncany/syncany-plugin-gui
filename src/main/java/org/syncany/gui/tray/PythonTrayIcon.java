@@ -28,13 +28,14 @@ import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
+import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -42,11 +43,13 @@ import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.LocalEventBus;
-import org.syncany.operations.daemon.messages.GuiInternalEvent;
+import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
+import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
-import org.syncany.operations.daemon.messages.api.Request;
-import org.syncany.operations.status.StatusOperationResult;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -58,6 +61,7 @@ public class PythonTrayIcon extends TrayIcon {
 	
 	private Undertow webServer;
 	private Process pythonProcess;
+	private WebSocketChannel pythonClientChannel;
 	private LocalEventBus eventBus;
 
 	public PythonTrayIcon(Shell shell) {
@@ -123,21 +127,15 @@ public class PythonTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	protected void quit() {
+	protected void exitApplication() {
 		webServer.stop();		
-		super.quit();
+		super.exitApplication();
 	}
 
 	protected void handleCommand(Map<String, Object> map) {
 		String command = (String) map.get("action");
 
 		switch (command) {
-		case "tray_menu_clicked_new":
-			showWizard();
-			break;
-		case "tray_menu_clicked_preferences":
-			showSettings();
-			break;
 		case "tray_menu_clicked_folder":
 			showFolder(new File((String) map.get("folder")));
 			break;
@@ -148,13 +146,9 @@ public class PythonTrayIcon extends TrayIcon {
 			showWebsite();
 			break;
 		case "tray_menu_clicked_quit":
-			quit();
+			exitApplication();
 			break;
 		}
-	}
-
-	public void sendToAll(String message) {		
-
 	}
 
 	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix) {
@@ -177,38 +171,72 @@ public class PythonTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	public void updateWatchedFolders(final List<File> folders) {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put("action", "update_tray_menu");
-		parameters.put("folders", folders);
-		sendToAll(parameters.toString());
+	public void setWatchedFolders(List<File> folders) {		
+		sendWebSocketMessage(new UpdateWatchesGuiInternalEvent(new ArrayList<>(folders)));
 	}
 
 	@Override
-	public void updateStatusText(String statusText) {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put("action", "update_tray_status_text");
-		parameters.put("text", statusText);
-		sendToAll(parameters.toString());
+	public void setStatusText(String statusText) {
+		sendWebSocketMessage(new UpdateStatusTextGuiInternalEvent(statusText));
 	}
 
 	@Override
 	protected void setTrayImage(TrayIconImage image) {
-		Map<String, Object> parameters = new HashMap<>();
-		parameters.put("action", "update_tray_icon");
-		parameters.put("imageFileName", image.getFileName());
-		sendToAll(parameters.toString());
-	}
-
-	@Override
-	public void updateWatchedFoldersStatus(StatusOperationResult result) {
-		// TODO Auto-generated method stub
-		
+		sendWebSocketMessage(new UpdateTrayIconGuiInternalEvent(image.getFileName()));
 	}
 	
-	private class InternalWebSocketHandler implements WebSocketConnectionCallback {
-		private WebSocketChannel pythonClientChannel;
-		
+	public void sendWebSocketMessage(Message message) {		
+		if (pythonClientChannel != null) {
+			try {				
+				String messageStr = MessageFactory.toXml(message);
+				logger.log(Level.INFO, "Sending message: " + messageStr);
+
+				WebSockets.sendText(messageStr, pythonClientChannel, null);
+			}
+			catch (Exception e) {
+				logger.log(Level.WARNING, "Cannot send message. Failed to create/send message.", e);			
+			}				
+		}
+	}
+
+	private void handleWebSocketMessage(WebSocketChannel clientSocket, String messageStr) {
+		logger.log(Level.INFO, "Web socket message received: " + messageStr);
+
+		try {
+			Message message = MessageFactory.toMessage(messageStr);
+			
+			if (message instanceof ClickTrayMenuFolderGuiInternalEvent) {
+				ClickTrayMenuFolderGuiInternalEvent folderClickEvent = (ClickTrayMenuFolderGuiInternalEvent) message;
+				showFolder(new File(folderClickEvent.getFolder()));
+			}
+			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
+				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
+				
+				switch (clickEvent.getAction()) {
+				case DONATE:
+					showDonate();
+					break;
+					
+				case WEBSITE:
+					showWebsite();
+					break;
+					
+				case EXIT:		
+					exitApplication();
+					break;
+				}
+			}			
+			else {
+				logger.log(Level.WARNING, "UNKNOWN MESSAGE. IGNORING.");
+			}
+		}
+		catch (Exception e) {
+			logger.log(Level.WARNING, "Invalid request received; cannot serialize to Request.", e);
+			//eventBus.post(new BadRequestResponse(-1, "Invalid request."));
+		}
+	}
+	
+	private class InternalWebSocketHandler implements WebSocketConnectionCallback {				
 		@Override
 		public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
 			// Validate origin header (security!)
@@ -224,7 +252,7 @@ public class PythonTrayIcon extends TrayIcon {
 			channel.getReceiveSetter().set(new AbstractReceiveListener() {
 				@Override
 				protected void onFullTextMessage(WebSocketChannel clientChannel, BufferedTextMessage message) {
-					handleWebSocketRequest(clientChannel, message.getData());
+					handleWebSocketMessage(clientChannel, message.getData());
 				}
 
 				@Override
@@ -240,22 +268,6 @@ public class PythonTrayIcon extends TrayIcon {
 			
 			pythonClientChannel = channel;
 			channel.resumeReceives();
-		}
-		
-		private void handleWebSocketRequest(WebSocketChannel clientSocket, String messageStr) {
-			logger.log(Level.INFO, "Web socket message received: " + messageStr);
-
-			try {
-				Message message = MessageFactory.toMessage(messageStr);
-				
-				if (message instanceof GuiInternalEvent) {						
-					eventBus.post(message);
-				}
-			}
-			catch (Exception e) {
-				logger.log(Level.WARNING, "Invalid request received; cannot serialize to Request.", e);
-				//eventBus.post(new BadRequestResponse(-1, "Invalid request."));
-			}
-		}
+		}		
 	}
 }

@@ -17,9 +17,7 @@
  */
 package org.syncany.gui.tray;
 
-import java.awt.Desktop;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,16 +25,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.LocalEventBus;
-import org.syncany.gui.util.BrowserHelper;
+import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
-import org.syncany.operations.daemon.messages.StatusFolderResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
-import org.syncany.operations.daemon.messages.api.ExternalEvent;
-import org.syncany.operations.daemon.messages.api.Response;
-import org.syncany.operations.status.StatusOperationResult;
+import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
+import org.syncany.util.FileUtil;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -46,13 +42,16 @@ import com.google.common.eventbus.Subscribe;
  */
 public abstract class TrayIcon {
 	private static int REFRESH_TIME = 500;
+	private static String URL_DONATE = "https://www.syncany.org/donate.html";
+	private static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	private LocalEventBus eventBus;
 	private Thread systemTrayAnimationThread;
 	
 	private Shell shell;
 	private AtomicBoolean syncing = new AtomicBoolean(false);
-	private AtomicBoolean paused = new AtomicBoolean(false);
+	
+	private long uploadedFileSize;
 	
 	@SuppressWarnings("serial")
 	protected Map<String, String> messages = new HashMap<String, String>(){{
@@ -73,16 +72,67 @@ public abstract class TrayIcon {
 		startAnimationThread();
 	}
 
+	public Shell getShell() {
+		return shell;
+	}
+
+	protected void showFolder(File folder) {
+		DesktopHelper.openFolder(folder);
+	}
+
+	protected void showDonate() {
+		DesktopHelper.browse(URL_DONATE);
+	}
+
+	protected void showWebsite() {
+		DesktopHelper.browse(URL_HOMEPAGE);
+	}
+
+	protected void exitApplication() {
+		eventBus.post(new ExitGuiInternalEvent());
+	}
+
+	@Subscribe
+	public void onListWatchesResponseReceived(ListWatchesManagementResponse listWatchesResponse){
+		setWatchedFolders(listWatchesResponse.getWatches());
+	}
+	
+	@Subscribe
+	public void onTrayStartSyncReceived(UpStartSyncExternalEvent message) {
+		syncing.set(true);
+	}
+
+	@Subscribe
+	public void handleTrayStopSyncReceived(UpEndSyncExternalEvent message) {
+		syncing.set(false);
+		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+	}
+	
+	@Subscribe
+	public void onUploadFileInTransactionEventReceived(UpUploadFileInTransactionSyncExternalEvent syncEvent) {
+		if (syncEvent.getCurrentFileIndex() <= 1) {
+			uploadedFileSize = 0;
+		}
+		
+		String currentFileSizeStr = FileUtil.formatFileSize(syncEvent.getCurrentFileSize());
+		int uploadedPercent = (int) Math.round((double) uploadedFileSize / syncEvent.getTotalFileSize() * 100); 
+		
+		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + currentFileSizeStr + ", total " + uploadedPercent + "%) ...");
+		uploadedFileSize += syncEvent.getCurrentFileSize();
+	}	
+
+
 	private void startAnimationThread() {
 		systemTrayAnimationThread = new Thread(new Runnable() {
 				@Override
 				public void run() {
 					while (true) {
-						while (paused.get() || !syncing.get()) {
+						while (!syncing.get()) {
 							try {
 								Thread.sleep(200);
 							}
 							catch (InterruptedException e) {
+								// Don't care
 							}
 						}
 
@@ -92,14 +142,18 @@ public abstract class TrayIcon {
 							try {
 								setTrayImage(TrayIconImage.get(i));
 								i++;
-								if (i == 6)
+								
+								if (i == 6) {
 									i = 0;
+								}
+								
 								Thread.sleep(REFRESH_TIME);
 							}
 							catch (InterruptedException e) {
-								e.printStackTrace();
+								// Don't care
 							}
 						}
+						
 						setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 					}
 				}
@@ -107,88 +161,12 @@ public abstract class TrayIcon {
 		
 		systemTrayAnimationThread.start();
 	}
-
-	public Shell getShell() {
-		return shell;
-	}
-
-	protected void showFolder(File folder) {
-		try {
-			if (folder.exists() && folder.isDirectory()) {
-				Desktop.getDesktop().open(folder);
-			}
-		}
-		catch (IOException e1) {
-			e1.printStackTrace();
-		}
-	}
-
-	protected void showDonate() {
-		BrowserHelper.browse("https://www.syncany.org/donate.html");
-	}
-
-	protected void showWebsite() {
-		BrowserHelper.browse("https://www.syncany.org");
-	}
-
-	protected void quit() {
-		eventBus.post(new ExitGuiInternalEvent());
-	}
-
-	public void makeSystemTrayStartSync() {
-		syncing.set(true);
-		paused.set(false);
-	}
-
-	public void makeSystemTrayStopSync() {
-		syncing.set(false);
-		paused.set(false);
-		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-	}
-
-	public void pauseSyncing() {
-		paused.set(true);
-		setTrayImage(TrayIconImage.TRAY_PAUSE_SYNC);
-	}
-
-	public void resumeSyncing() {
-		paused.set(false);
-	}
-
-	protected void showSettings() {
-		// show settings
-	}
-
-	protected void showWizard() {
-		// start wizard
-	}
-
-	@Subscribe
-	public void handleResponse(Response message){
-		if (message instanceof ListWatchesManagementResponse){
-			updateWatchedFolders(((ListWatchesManagementResponse)message).getWatches());
-		}
-		else if (message instanceof StatusFolderResponse){
-			updateWatchedFoldersStatus(((StatusFolderResponse)message).getResult());
-		}
-	}
 	
-	@Subscribe
-	public void handleExternalEvent(ExternalEvent message) {
-		if (message instanceof UpStartSyncExternalEvent) {
-			makeSystemTrayStartSync();
-		}
-		else if (message instanceof UpEndSyncExternalEvent) {
-			makeSystemTrayStopSync();
-		}
-	}
-
 	// Abstract methods
+	
 	protected abstract void setTrayImage(TrayIconImage image);
 
-	public abstract void updateWatchedFolders(List<File> folders);
+	public abstract void setWatchedFolders(List<File> folders);
 
-	public abstract void updateStatusText(String statusText);
-
-	public abstract void updateWatchedFoldersStatus(StatusOperationResult result);
+	public abstract void setStatusText(String statusText);
 }

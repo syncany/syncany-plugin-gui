@@ -30,13 +30,15 @@ import gtk
 import pynotify
 import socket
 import threading
-import json
 import Queue
 import subprocess
 import websocket
 import appindicator
 import urllib
 import tempfile
+import re
+
+from lxml import etree
 
 def fetch_image(relativeUrl):
 	global baseUrl, imagesMap
@@ -71,7 +73,7 @@ def do_notify(request):
 	
 def do_update_icon(request):
 	global indicator
-	indicator.set_icon(fetch_image(request["imageFileName"]))		
+	indicator.set_icon(fetch_image("/" + request.find("filename").text))		
 	return None
 	
 def do_update_text(request):
@@ -80,7 +82,7 @@ def do_update_text(request):
 	gtk.gdk.threads_enter()
 	
 	label = menu_item_status.get_child()
-	label.set_text(request["text"])
+	label.set_text(request.find("text").text)
 	
 	menu_item_status.show()
 	
@@ -104,32 +106,17 @@ def do_update_menu(request):
 	menu_item_status.set_sensitive(0);
 
 	menu.append(menu_item_status)
-
-	'''---'''
-	#menu.append(gtk.SeparatorMenuItem())	
-
-	'''New connection'''
-	#menu_item_new = gtk.MenuItem("New sync folder")	
-	#menu_item_new.connect("activate", menu_item_clicked, "tray_menu_clicked_new")
-
-	#menu.append(menu_item_new)
-	
-	'''Preferences'''
-	#menu_item_prefs = gtk.MenuItem("Preferences")
-	#menu_item_prefs.connect("activate", menu_item_clicked, "tray_menu_clicked_preferences")
-	
-	#menu.append(menu_item_prefs)
 	
 	'''---'''
 	menu.append(gtk.SeparatorMenuItem())	
 
 	'''Folders'''
 	if request is not None:
-		folders = request["folders"]
-		
-		for folder in folders.itervalues():
-			menu_item_folder = gtk.MenuItem(os.path.basename(folder["folder"]) + "(" + folder["status"] + ")")
-			menu_item_folder.connect("activate", menu_item_folder_clicked, folder["folder"])
+		folders = request.xpath("//folder")
+	
+		for folder in folders:
+			menu_item_folder = gtk.MenuItem(os.path.basename(folder.text))
+			menu_item_folder.connect("activate", menu_item_folder_clicked, folder.text)
 		
 			menu.append(menu_item_folder)
 		
@@ -139,13 +126,13 @@ def do_update_menu(request):
 	
 	'''Donate ...'''
 	menu_item_donate = gtk.MenuItem("Donate")
-	menu_item_donate.connect("activate", menu_item_clicked, "tray_menu_clicked_donate")
+	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>DONATE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_donate)	
 	
 	'''Website'''
 	menu_item_website = gtk.MenuItem("Website")
-	menu_item_website.connect("activate", menu_item_clicked, "tray_menu_clicked_website")
+	menu_item_website.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>WEBSITE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_website)	
 	
@@ -154,7 +141,7 @@ def do_update_menu(request):
 
 	'''Quit'''
 	menu_item_quit = gtk.MenuItem("Exit")
-	menu_item_quit.connect("activate", menu_item_clicked, "<exitGuiInternalEvent></exitGuiInternalEvent>")
+	menu_item_quit.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>EXIT</action></clickTrayMenuGuiInternalEvent>")
 		
 	menu.append(menu_item_quit)	
 	
@@ -193,7 +180,7 @@ def menu_item_clicked(widget, message):
 
 def menu_item_folder_clicked(widget, folder):
 	do_print("Folder item '" + folder + "' clicked.")
-	ws.send("<openFolderGuiInternalEvent><folder>" + folder + "</folder></openFolderGuiInternalEvent>")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def do_kill():
 	# Note: this method cannot contain any do_print() calls since it is called
@@ -214,24 +201,31 @@ def on_ws_message(ws, message):
 	try:
 		do_print("Received request: " + message)				
 
-		request = json.loads(message)
-		response = None
+		messageTypeMatch = re.search('^<([^>]+)', message)
+		messageType = messageTypeMatch.group(1)
+
+		request = etree.XML(message)
+		response = None		
 		
 		last_request = time.time()
 		
-		if request["action"] == "display_notification":
+		if messageType == "display_notification":
 			response = do_notify(request)
 		
-		elif request["action"] == "update_tray_menu":
+		elif messageType == "updateWatchesGuiInternalEvent":
 			response = do_update_menu(request)
 		
-		elif request["action"] == "update_tray_icon":
+		elif messageType == "updateTrayIconGuiInternalEvent":
 			response = do_update_icon(request)
 		
-		elif request["action"] == "update_tray_status_text":
-			response = do_update_text(request)			
+		elif messageType == "updateStatusTextGuiInternalEvent":
+			response = do_update_text(request)
+			
+		else:
+			do_print("UNKNOWN MESSAGE. IGNORING.")			
 		
 	except:	
+		do_print(sys.exc_info())
 		do_print("Unexpected error: {0}".format(sys.exc_info()[0]))
 
 	if response is not None:
