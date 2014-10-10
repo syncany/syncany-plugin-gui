@@ -159,23 +159,64 @@ public abstract class TrayIcon {
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 		
 		if (changeSet.hasChanges()) {
-			List<String> changeMessageParts = new ArrayList<>();
+			String rootName = new File(downEndSyncEvent.getRoot()).getName();
+			int totalChangedFiles = changeSet.getNewFiles().size() + changeSet.getChangedFiles().size() + changeSet.getDeletedFiles().size();
+
+			String subject = "";
+			String message = "";
 			
-			if (changeSet.getNewFiles().size() > 0) {
-				changeMessageParts.add(changeSet.getNewFiles().size() + " file(s) added");
+			if (totalChangedFiles == 1) {
+				if (changeSet.getNewFiles().size() == 1) {
+					subject = changeSet.getNewFiles().first() + " added";
+					message = "File '" + changeSet.getNewFiles().first() + "' was added to your Syncany folder '" + rootName + "'";
+				}
+				
+				if (changeSet.getChangedFiles().size() == 1) {
+					subject = changeSet.getChangedFiles().first() + " changed";
+					message = "File '" + changeSet.getChangedFiles().first() + "' was altered or moved in your Syncany folder '" + rootName + "'";
+				}
+				
+				if (changeSet.getDeletedFiles().size() == 1) {
+					subject = changeSet.getDeletedFiles().first() + " deleted";
+					message = "File '" + changeSet.getDeletedFiles().first() + "' was removed from your Syncany folder '" + rootName + "'";
+				}
+			}
+			else {
+				List<String> messageParts = new ArrayList<>();
+				
+				if (changeSet.getNewFiles().size() > 0) {
+					if (changeSet.getNewFiles().size() == 1) {
+						messageParts.add(changeSet.getNewFiles().size() + " file added");
+					}
+					else {
+						messageParts.add(changeSet.getNewFiles().size() + " files added");
+					}
+				}
+				
+				if (changeSet.getChangedFiles().size() > 0) {
+					if (changeSet.getChangedFiles().size() == 1) {
+						messageParts.add(changeSet.getChangedFiles().size() + " file changed");
+					}
+					else {
+						messageParts.add(changeSet.getChangedFiles().size() + " files changed");
+					}
+				}
+				
+				if (changeSet.getDeletedFiles().size() > 0) {
+					if (changeSet.getDeletedFiles().size() == 1) {
+						messageParts.add(changeSet.getDeletedFiles().size() + " file deleted");
+					}
+					else {
+						messageParts.add(changeSet.getDeletedFiles().size() + " files deleted");
+					}
+				}
+				
+				subject = "Syncany synced";
+				message = StringUtil.join(messageParts, ", ") + " in your Syncany '" + rootName + "'";
 			}
 			
-			if (changeSet.getChangedFiles().size() > 0) {
-				changeMessageParts.add(changeSet.getChangedFiles().size() + " file(s) changed");
-			}
-			
-			if (changeSet.getDeletedFiles().size() > 0) {
-				changeMessageParts.add(changeSet.getDeletedFiles().size() + " file(s) deleted");
-			}
-			
-			String changedMessage = StringUtil.join(changeMessageParts, ", ");
 		
-			displayNotification(changedMessage, changedMessage);
+			displayNotification(subject, message);
 		}			
 	}	
 

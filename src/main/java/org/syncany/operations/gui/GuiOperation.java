@@ -30,9 +30,10 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.Config;
 import org.syncany.config.LocalEventBus;
 import org.syncany.config.UserConfig;
-import org.syncany.gui.messaging.DaemonWebSocketClient;
+import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.tray.TrayIcon;
 import org.syncany.gui.tray.TrayIconFactory;
+import org.syncany.gui.tray.TrayIconType;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.Operation;
@@ -51,7 +52,11 @@ import com.google.common.eventbus.Subscribe;
  */
 public class GuiOperation extends Operation {	
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	
-
+	private static final String GUI_CONFIG_FILE = "gui.xml";
+	private static final String GUI_CONFIG_EXAMPLE_FILE = "gui-example.xml";
+	
+	private GuiConfigTO guiConfig;
+	
 	private LocalEventBus eventBus;	
 	private GuiOperationOptions options;
 	
@@ -77,6 +82,8 @@ public class GuiOperation extends Operation {
 	public OperationResult execute() throws Exception {
 		logger.log(Level.INFO, "Starting GUI operation ...");
 		
+		loadOrCreateGuiConfig();
+		
 		initEventBus();		
 		initShutdownHook();		
 		initDisplayWindow();
@@ -93,6 +100,31 @@ public class GuiOperation extends Operation {
 		return null;
 	}
 	
+	private void loadOrCreateGuiConfig() {	
+		try {
+			File configFile = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_FILE);
+			File configFileExample = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_EXAMPLE_FILE);
+			
+			if (configFile.exists()) {
+				guiConfig = GuiConfigTO.load(configFile);
+			}
+			else {
+				// Write example config to daemon-example.xml, and default config to daemon.xml
+				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
+				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
+				
+				GuiConfigTO.save(exampleGuiConfig, configFileExample);
+				
+				// Use default settings
+				guiConfig = new GuiConfigTO();
+			}			
+		}
+		catch (Exception e) {
+			logger.log(Level.WARNING, "Cannot (re-)load config. Using default config.", e);
+			guiConfig = new GuiConfigTO();
+		}
+	}		
+
 	private void initEventBus() {
 		eventBus = LocalEventBus.getInstance();
 		eventBus.register(this);
@@ -132,7 +164,12 @@ public class GuiOperation extends Operation {
 			trayIcon = TrayIconFactory.createTrayIcon(shell, options.getTrayType());
 		}
 		else {
-			trayIcon = TrayIconFactory.createTrayIcon(shell);
+			if (guiConfig.getTray() != null) {
+				trayIcon = TrayIconFactory.createTrayIcon(shell, guiConfig.getTray());
+			}
+			else {
+				trayIcon = TrayIconFactory.createTrayIcon(shell);
+			}
 		}
 		
 		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning

@@ -18,5 +18,5 @@
 package org.syncany.gui.tray;
 
 public enum TrayIconType {
-	DEFAULT, PYTHON
+	DEFAULT, APPINDICATOR
 }

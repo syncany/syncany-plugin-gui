@@ -55,8 +55,8 @@ import org.syncany.operations.daemon.messages.api.MessageFactory;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
-public class PythonTrayIcon extends TrayIcon {
-	private static final Logger logger = Logger.getLogger(PythonTrayIcon.class.getSimpleName());
+public class AppIndicatorTrayIcon extends TrayIcon {
+	private static final Logger logger = Logger.getLogger(AppIndicatorTrayIcon.class.getSimpleName());
 
 	private static String WEBSERVER_HOST = "127.0.0.1";
 	private static int WEBSERVER_PORT = 51601;
@@ -72,7 +72,7 @@ public class PythonTrayIcon extends TrayIcon {
 	private WebSocketChannel pythonClientChannel;
 	private LocalEventBus eventBus;
 
-	public PythonTrayIcon(Shell shell) {
+	public AppIndicatorTrayIcon(Shell shell) {
 		super(shell);
 
 		this.eventBus = LocalEventBus.getInstance();

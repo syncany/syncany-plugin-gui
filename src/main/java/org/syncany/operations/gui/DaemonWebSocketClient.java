@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.messaging;
+package org.syncany.operations.gui;
 
 import io.undertow.websockets.WebSocketExtension;
 import io.undertow.websockets.client.WebSocketClient;
@@ -44,6 +44,7 @@ import org.syncany.config.LocalEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
+import org.syncany.gui.messaging.DaemonConfigHelper;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
