@@ -106,6 +106,34 @@ public String getSwtLibrary() {
 
 apply from: 'core/gradle/gradle/plugins.jar.gradle'
 
+// Debian Tasks ////////////////////////////////////////////////////////////////
+
+// TO BE MOVED TO CORE ONCE THEY ARE FINAL
+
+task pluginDebianClean(type: Delete) {
+	delete 'build/debian'	
+}
+
+task pluginDebian(dependsOn: [pluginDebianClean, pluginJar]) {
+	doLast {	
+		copy {
+			from files("build/libs") 
+			into file("build/debian/syncany-plugin-${pluginId}/lib")
+		}
+		
+		copy {
+			from files("gradle/debian") 
+			into file("build/debian/syncany-plugin-${pluginId}/debian")
+		}
+		
+		exec {
+			workingDir file("build/debian/syncany-plugin-${pluginId}")
+			commandLine "debuild -i -us -uc -b".split()
+		}		
+	}
+}
+
+
 // GUI Tasks ///////////////////////////////////////////////////////////////////
 
 task(runGui, dependsOn: 'classes', type: JavaExec) {

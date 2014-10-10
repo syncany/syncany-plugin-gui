@@ -1,0 +1,11 @@
+syncany-plugin-gui (0.1.12.alpha+SNAPSHOT.1410101616.gita9c3039) unstable; urgency=low
+
+  * Developer/alpha release (**STILL NOT FOR PRODUCTION USE!**)
+  * Features and significant changes:
+    + Allow OS/arch-dependent plugins (e.g. GUI) #245
+  * Bugfixes and other things:
+    + Fix integrity issue with DIRTY databases (major!) #227
+    + Make 'sy daemon stop' more reliable on Windows #230
+    + Fix permission issue with folders created on Windows #243
+
+ -- Syncany Team <hello@syncany.org>  Fri, 10 Oct 2014 18:16:50 +0200
