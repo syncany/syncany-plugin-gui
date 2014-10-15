@@ -225,4 +225,9 @@ public class DefaultTrayIcon extends TrayIcon {
 			}
 		});		
 	}
+
+	@Override
+	protected void dispose() {
+		trayItem.dispose();
+	}
 }

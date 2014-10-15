@@ -88,6 +88,7 @@ public abstract class TrayIcon {
 	}
 
 	protected void exitApplication() {
+		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}
 
@@ -278,4 +279,6 @@ public abstract class TrayIcon {
 	protected abstract void setStatusText(String statusText);
 	
 	protected abstract void displayNotification(String subject, String message);
+	
+	protected abstract void dispose();
 }

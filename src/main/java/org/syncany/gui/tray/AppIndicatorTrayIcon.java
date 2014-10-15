@@ -249,4 +249,9 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 			channel.resumeReceives();
 		}
 	}
+
+	@Override
+	protected void dispose() {
+		// Do nothing.
+	}
 }

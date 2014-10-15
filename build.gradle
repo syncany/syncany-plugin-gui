@@ -171,6 +171,11 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 	}
 
 	copy {
+		from("gradle/innosetup/sygui.vbs")
+		into("${buildDir}/install/syncany/bin")
+	}
+	
+	copy {
 		from("gradle/innosetup/setup-gui.iss.skel")
 		rename("setup-gui.iss.skel", "setup-gui.iss")
 		expand([
@@ -180,6 +185,11 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 		into(innoSetupDir)
 	}	
 	
+	copy {
+		from("gradle/innosetup/code.iss")
+		into(innoSetupDir)
+	}	
+
 	exec {
 		workingDir projectDir
 		commandLine "iscc ${innoSetupDir}/setup-gui.iss".split()
