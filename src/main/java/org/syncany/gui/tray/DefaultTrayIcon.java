@@ -62,7 +62,9 @@ public class DefaultTrayIcon extends TrayIcon {
 				
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
-			images.put(trayIconImage, SWTResourceManager.getImage(trayImageFileName, false));
+			Image trayImage = SWTResourceManager.getImage(trayImageFileName, false);
+			
+			images.put(trayIconImage, trayImage);
 		}
 	}
 	
@@ -127,13 +129,15 @@ public class DefaultTrayIcon extends TrayIcon {
 			}
 			
 			for (String filePath : watchedFolderMenuItems.keySet()){
-				boolean remove = true;
-				for (File file : watches){
-					if (file.getAbsolutePath().equals(filePath))
-						remove = false;
+				boolean removeFilePath = true;
+				
+				for (File file : watches) {
+					if (file.getAbsolutePath().equals(filePath)) {
+						removeFilePath = false;
+					}
 				}
 				
-				if (remove){
+				if (removeFilePath) {
 					watchedFolderMenuItems.get(filePath).dispose();
 					watchedFolderMenuItems.keySet().remove(filePath);
 				}

@@ -19,7 +19,6 @@ package org.syncany.operations.gui;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,8 +26,9 @@ import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
-import org.syncany.config.Config;
+import org.syncany.config.GuiEventBus;
 import org.syncany.config.LocalEventBus;
+import org.syncany.config.Logging;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.tray.TrayIcon;
@@ -39,9 +39,9 @@ import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.Operation;
 import org.syncany.operations.OperationResult;
 import org.syncany.operations.daemon.DaemonOperation;
+import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
-import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.PidFileUtil;
 
 import com.google.common.eventbus.Subscribe;
@@ -57,15 +57,17 @@ public class GuiOperation extends Operation {
 	
 	private GuiConfigTO guiConfig;
 	
-	private LocalEventBus eventBus;	
+	private GuiEventBus eventBus;	
 	private GuiOperationOptions options;
 	
 	private Shell shell;
 	private TrayIcon trayIcon;
 	private boolean daemonStarted;
-	private DaemonWebSocketClient webSocketClient;	
+	private Thread daemonThread;
+	private GuiWebSocketClient webSocketClient;	
 	
 	static {
+		Logging.init();
 		UserConfig.init();
 	}
 	
@@ -90,10 +92,8 @@ public class GuiOperation extends Operation {
 		initInternationalization();
 		initTray();
 		
-		startDaemon();
-
-		initWebSocket();
-		sendListWatchesRequest();
+		startDaemon();		
+		startWebSocketClient();
 				
 		startEventDispatchLoop();
 		
@@ -126,7 +126,7 @@ public class GuiOperation extends Operation {
 	}		
 
 	private void initEventBus() {
-		eventBus = LocalEventBus.getInstance();
+		eventBus = GuiEventBus.getInstance();
 		eventBus.register(this);
 	}
 	
@@ -175,32 +175,35 @@ public class GuiOperation extends Operation {
 		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning
 	}
 	
-	public void startDaemon() {
-		try {
-			File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
-			boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
+	public void startDaemon() {	
+		File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
+		boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
 
-			if (!daemonRunning) {
-				File launchScript = getLaunchScript();
-
-				Process daemonProcees = new ProcessBuilder(launchScript.getAbsolutePath(), "daemon", "start").start();
-				daemonProcees.waitFor();
-				
-				daemonStarted = true;
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			logger.log(Level.WARNING, "Unable to start daemon", e);
+		if (!daemonRunning) {
+			daemonThread = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						logger.log(Level.INFO, "Starting daemon in separate thread ...");
+						
+						new DaemonOperation(null).execute();
+						
+						logger.log(Level.INFO, "SHUTDOWN of daemon complete.");
+					}
+					catch (Exception e) {
+						logger.log(Level.SEVERE, "Cannot start daemon or daemon execution failed.", e);
+					}
+				}					
+			});
+			
+			daemonThread.start();
+			daemonStarted = true;
 		}		
 	}
 
-	private void initWebSocket() {
-		webSocketClient = new DaemonWebSocketClient(); 
-		webSocketClient.init();
-	}
-	
-	private void sendListWatchesRequest() {
-		eventBus.post(new ListWatchesManagementRequest());
+	private void startWebSocketClient() {
+		webSocketClient = new GuiWebSocketClient(); 
+		webSocketClient.start();
 	}
 
 	public void startEventDispatchLoop() {
@@ -226,43 +229,7 @@ public class GuiOperation extends Operation {
 
 	public void stopDaemon() throws IOException, InterruptedException {
 		if (daemonStarted) {
-			File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
-			boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
-	
-			if (daemonRunning) {
-				File launchScript = getLaunchScript();
-	
-				Process daemonProcees = new ProcessBuilder(launchScript.getAbsolutePath(), "daemon", "stop").start();
-				daemonProcees.waitFor();			
-			}
-		}
-	}
-	
-	private File getLaunchScript() {		
-		File libJarFile = getJarFromClass(Config.class);
-		File appHomeDir = libJarFile.getParentFile().getParentFile();
-		File appBinDir = new File(appHomeDir, "bin");
-		
-		String appLaunchScriptName = (EnvironmentUtil.isWindows()) ? "sy.bat" : "sy";			
-		File appLaunchScript = new File(appBinDir, appLaunchScriptName);
-		
-		return appLaunchScript;		
-	}
-	
-	private File getJarFromClass(Class<?> searchClass) {
-		try {
-			URL pluginClassLocation = searchClass.getResource('/' + searchClass.getName().replace('.', '/') + ".class");
-			String pluginClassLocationStr = pluginClassLocation.toString();
-			logger.log(Level.INFO, "Plugin class is at " + pluginClassLocation);
-	
-			int indexStartAfterSchema = "jar:file:".length();
-			int indexEndAtExclamationPoint = pluginClassLocationStr.indexOf("!");
-			File searchClassJarFile = new File(pluginClassLocationStr.substring(indexStartAfterSchema, indexEndAtExclamationPoint));
-			
-			return searchClassJarFile;
-		}
-		catch (Exception e) {
-			throw new RuntimeException("Cannot find JAR file for class " + searchClass, e);
+			LocalEventBus.getInstance().post(ControlCommand.SHUTDOWN);
 		}
 	}
 	

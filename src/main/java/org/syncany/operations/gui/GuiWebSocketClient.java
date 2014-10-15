@@ -33,18 +33,19 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.codec.binary.Base64;
-import org.syncany.config.ConfigException;
-import org.syncany.config.LocalEventBus;
+import org.syncany.config.GuiEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
 import org.syncany.gui.messaging.DaemonConfigHelper;
+import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
@@ -65,42 +66,95 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class DaemonWebSocketClient {
-	private static final Logger logger = Logger.getLogger(DaemonWebSocketClient.class.getSimpleName());
+public class GuiWebSocketClient {
+	private static final Logger logger = Logger.getLogger(GuiWebSocketClient.class.getSimpleName());
 	private final static String PROTOCOL = "wss://";
 	private final static String ENDPOINT = "/api/ws";
 
+	private GuiEventBus eventBus;
 	private WebSocketChannel webSocketChannel;
-	private LocalEventBus eventBus;
-	private DaemonConfigTO daemonConfig;
 
-	public DaemonWebSocketClient() {
-		this.eventBus = LocalEventBus.getInstance();
+	private Thread clientThread;
+	private AtomicBoolean clientThreadRunning;
+
+	public GuiWebSocketClient() {
+		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
+		
+		initClientThread();
 	}
 	
-	public void init() {
+	private void initClientThread() {
+		clientThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (clientThreadRunning.get()) {
+					try {
+						tryConnect();
+					}
+					catch (InterruptedException e) {
+						logger.log(Level.INFO, "Web socket interrupted. EXITING websocket client thread.", e);
+						clientThreadRunning.set(false);
+					}
+					catch (Exception e) {
+						logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...", e);
+						
+						try {
+							Thread.sleep(5000);
+						}
+						catch (InterruptedException e1) {
+							logger.log(Level.INFO, "Web socket interrupted. EXITING websocket client thread.", e1);
+							clientThreadRunning.set(false);
+						}
+					}
+				}
+			} 			
+		}, "GuiWsClient");		
+	}
+	
+	public void start() {
+		clientThreadRunning = new AtomicBoolean(true);
+		clientThread.start();
+	}
+	
+	public void stop() {
+		clientThreadRunning.set(false);
+		clientThread.interrupt();
+	}
+	
+	public void tryConnect() throws Exception {
+		logger.log(Level.INFO, "Trying to connect to websocket server ...");
+		
+		DaemonConfigTO daemonConfig = loadDaemonConfig();
+		UserTO firstDaemonUser = loadFirstDaemonUser(daemonConfig);
+		
+		connect(daemonConfig, firstDaemonUser);	
+		sendListWatchesRequest();
+	}
+	
+	private DaemonConfigTO loadDaemonConfig() throws Exception {
 		File daemonConfigFile = new File(UserConfig.getUserConfigDir(), UserConfig.DAEMON_FILE);
 
-		if (daemonConfigFile.exists()) {
-			try {
-				daemonConfig = DaemonConfigTO.load(daemonConfigFile);				
-				UserTO firstDaemonUser = DaemonConfigHelper.getFirstDaemonUser(daemonConfig);
-				
-				if (firstDaemonUser != null) {
-					start(firstDaemonUser);
-				}
-			}
-			catch (ConfigException e) {
-				logger.log(Level.WARNING, "Unable to load daemon configuration");
-			}
-			catch (Exception e) {
-				logger.log(Level.WARNING, "Unable to start websocket");
-			}
+		if (!daemonConfigFile.exists()) {
+			throw new Exception("Daemon configuration does not exist at " + daemonConfigFile);
 		}
+		
+		return DaemonConfigTO.load(daemonConfigFile);									
+	}
+	
+	private UserTO loadFirstDaemonUser(DaemonConfigTO daemonConfig) throws Exception {
+		UserTO firstDaemonUser = DaemonConfigHelper.getFirstDaemonUser(daemonConfig);
+		
+		if (firstDaemonUser == null) {
+			throw new Exception("Daemon configuration does not contain any users.");
+		}
+		
+		return firstDaemonUser;
 	}
 
-	private void start(final UserTO daemonUser) throws Exception {
+	private void connect(final DaemonConfigTO daemonConfig, final UserTO daemonUser) throws Exception {
+		logger.log(Level.INFO, "Starting GUI websocket client with user " + daemonUser.getUsername() + " at " + daemonConfig.getWebServer().getBindAddress() + " ...");
+		
 		SSLContext sslContext = UserConfig.createUserSSLContext();
 		Xnio xnio = Xnio.getInstance(this.getClass().getClassLoader());
 		Pool<ByteBuffer> buffer = new ByteBufferSlicePool(BufferAllocator.BYTE_BUFFER_ALLOCATOR, 1024, 1024);
@@ -119,21 +173,26 @@ public class DaemonWebSocketClient {
 		XnioSsl xnioSsl = new JsseXnioSsl(xnio, OptionMap.create(Options.USE_DIRECT_BUFFERS, true), sslContext);
 		URI uri = new URI(PROTOCOL + daemonConfig.getWebServer().getBindAddress() + ":" + daemonConfig.getWebServer().getBindPort() + ENDPOINT);
 
-		WebSocketClientNegotiation neg = new WebSocketClientNegotiation(new ArrayList<String>(), new ArrayList<WebSocketExtension>()) {
+		WebSocketClientNegotiation clientNegotiation = new WebSocketClientNegotiation(new ArrayList<String>(), new ArrayList<WebSocketExtension>()) {
 			@Override
 			public void beforeRequest(Map<String, String> headers) {
-				headers.put("Authorization", "Basic " + Base64.encodeBase64String(StringUtil.toBytesUTF8(daemonUser.getUsername() + ":" + daemonUser.getPassword())));
+				String basicAuthPlainUserPass = daemonUser.getUsername() + ":" + daemonUser.getPassword();
+				String basicAuthEncodedUserPass = Base64.encodeBase64String(StringUtil.toBytesUTF8(basicAuthPlainUserPass));
+				
+				headers.put("Authorization", "Basic " + basicAuthEncodedUserPass);
 			}
 		};
-
-		webSocketChannel = WebSocketClient.connect(worker, xnioSsl, buffer, workerOptions, uri, WebSocketVersion.V13, neg).get();
+		
+		webSocketChannel = WebSocketClient.connect(worker, xnioSsl, buffer, workerOptions, uri, WebSocketVersion.V13, clientNegotiation).get();
+		
 		webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
 			@Override
-			protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
-				Message m;
+			protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage textMessage) throws IOException {
+				Message message;
+				
 				try {
-					m = MessageFactory.toMessage(message.getData());
-					eventBus.post(m);
+					message = MessageFactory.toMessage(textMessage.getData());
+					eventBus.post(message);
 				}
 				catch (Exception e) {
 					logger.log(Level.WARNING, "Unable to parse message: " + e);
@@ -143,25 +202,31 @@ public class DaemonWebSocketClient {
 			@Override
 			protected void onError(WebSocketChannel channel, Throwable error) {
 				logger.log(Level.WARNING, "Error: " + error.getMessage());
-				markAsDeconnected();
+				waitAndReconnect();
 			}
 		});
-		
+				
 		webSocketChannel.resumeReceives();
 	}
+	
+	private void sendListWatchesRequest() {
+		onRequest(new ListWatchesManagementRequest());		
+	}
 
-	protected void markAsDeconnected() {
+	protected void waitAndReconnect() {
 		try {
+			logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...");
 			Thread.sleep(5000);
-			init();
+						
+			tryConnect();
 		}		
-		catch (InterruptedException e) {
+		catch (Exception e) {
 			logger.log(Level.WARNING, "Unable to reconnect to daemon");
 		}
 	}
 
 	@Subscribe
-	public void requestSubscription(Request request) {
+	public void onRequest(Request request) {
 		try {
 			postMessage(MessageFactory.toXml(request));
 		}
@@ -171,6 +236,8 @@ public class DaemonWebSocketClient {
 	}
 
 	private void postMessage(String message) {
+		logger.log(Level.INFO, "Sending WS message to daemon: " + message);
+		
 		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
 			@Override
 			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {

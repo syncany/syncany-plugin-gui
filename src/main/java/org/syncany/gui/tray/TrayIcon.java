@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.swt.widgets.Shell;
-import org.syncany.config.LocalEventBus;
+import org.syncany.config.GuiEventBus;
 import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
 import org.syncany.operations.ChangeSet;
@@ -52,13 +52,12 @@ public abstract class TrayIcon {
 	private static int REFRESH_TIME = 500;
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
-
-	private LocalEventBus eventBus;
-	private Thread systemTrayAnimationThread;
 	
 	protected Shell shell;
+	protected GuiEventBus eventBus;
 	protected Map<String, String> messages;
 
+	private Thread systemTrayAnimationThread;
 	private AtomicBoolean syncing;	
 	private long uploadedFileSize;	
 	
@@ -66,7 +65,7 @@ public abstract class TrayIcon {
 		this.shell = shell;
 		this.messages = new HashMap<String, String>();
 		
-		this.eventBus = LocalEventBus.getInstance();		
+		this.eventBus = GuiEventBus.getInstance();		
 		this.eventBus.register(this);
 		
 		this.syncing = new AtomicBoolean(false);
