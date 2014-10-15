@@ -38,17 +38,16 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.Operation;
 import org.syncany.operations.OperationResult;
-import org.syncany.operations.daemon.DaemonOperation;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
+import org.syncany.operations.daemon.DaemonOperation;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
-import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.util.PidFileUtil;
 
 import com.google.common.eventbus.Subscribe;
 
-
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class GuiOperation extends Operation {	
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	

@@ -64,8 +64,8 @@ import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
- */
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+*/
 public class GuiWebSocketClient {
 	private static final Logger logger = Logger.getLogger(GuiWebSocketClient.class.getSimpleName());
 	private final static String PROTOCOL = "wss://";
@@ -90,14 +90,14 @@ public class GuiWebSocketClient {
 			public void run() {
 				while (clientThreadRunning.get()) {
 					try {
-						tryConnect();
+						connectAndWait();
 					}
 					catch (InterruptedException e) {
 						logger.log(Level.INFO, "Web socket interrupted. EXITING websocket client thread.", e);
 						clientThreadRunning.set(false);
 					}
 					catch (Exception e) {
-						logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...", e);
+						logger.log(Level.WARNING, "Web socket connect failure. Waiting, then retrying ...", e);
 						
 						try {
 							Thread.sleep(5000);
@@ -122,7 +122,7 @@ public class GuiWebSocketClient {
 		clientThread.interrupt();
 	}
 	
-	public void tryConnect() throws Exception {
+	public void connectAndWait() throws Exception {
 		logger.log(Level.INFO, "Trying to connect to websocket server ...");
 		
 		DaemonConfigTO daemonConfig = loadDaemonConfig();
@@ -130,6 +130,10 @@ public class GuiWebSocketClient {
 		
 		connect(daemonConfig, firstDaemonUser);	
 		sendListWatchesRequest();
+		
+		while (clientThreadRunning.get()) {
+			Thread.sleep(500);
+		}
 	}
 	
 	private DaemonConfigTO loadDaemonConfig() throws Exception {
@@ -218,7 +222,7 @@ public class GuiWebSocketClient {
 			logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...");
 			Thread.sleep(5000);
 						
-			tryConnect();
+			connectAndWait();
 		}		
 		catch (Exception e) {
 			logger.log(Level.WARNING, "Unable to reconnect to daemon");

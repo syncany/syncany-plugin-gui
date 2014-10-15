@@ -73,7 +73,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 		if (tray != null) {
 			trayItem = new TrayItem(tray, SWT.NONE);				
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+			setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 
 			buildMenuItems(null);
 			addMenuListeners();

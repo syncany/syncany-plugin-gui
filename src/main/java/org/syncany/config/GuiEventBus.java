@@ -30,7 +30,7 @@ import com.google.common.eventbus.EventBus;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class GuiEventBus {
-	private static final Logger logger = Logger.getLogger(LocalEventBus.class.getSimpleName());
+	private static final Logger logger = Logger.getLogger(GuiEventBus.class.getSimpleName());
 	private static GuiEventBus instance;
 	
 	private EventBus eventBus;
@@ -45,7 +45,7 @@ public class GuiEventBus {
 	}
 	
 	private GuiEventBus() {
-		this.eventBus = new EventBus();
+		this.eventBus = new EventBus("GUI");
 	}
 	
 	public void register(Object object) {
