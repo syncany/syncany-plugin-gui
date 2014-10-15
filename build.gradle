@@ -167,6 +167,7 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 		from("${rootProject.projectDir}/gradle/innosetup/setup-info-after.rtf")		
 		from("${rootProject.projectDir}/gradle/innosetup/setup-icon.ico")		
 		from("${rootProject.projectDir}/gradle/innosetup/modpath.iss")
+		from("${rootProject.projectDir}/gradle/innosetup/code.iss")
 		into(innoSetupDir)
 	}
 
@@ -182,11 +183,6 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 			applicationVersion: "${applicationVersion}",
 			applicationVersionFull: "${applicationVersionFull}",			
 		])
-		into(innoSetupDir)
-	}	
-	
-	copy {
-		from("gradle/innosetup/code.iss")
 		into(innoSetupDir)
 	}	
 
