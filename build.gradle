@@ -110,37 +110,16 @@ apply from: 'core/gradle/gradle/plugins.jar.gradle'
 
 // Debian Tasks ////////////////////////////////////////////////////////////////
 
-// TO BE MOVED TO CORE ONCE THEY ARE FINAL
-
 task pluginDebianClean(type: Delete) {
 	delete 'build/debian'	
 }
 
-task pluginDebian(dependsOn: [clean, pluginDebianClean, pluginJar]) {
+task pluginDebianGuiPrepare(dependsOn: [clean, pluginDebianClean, pluginJar]) {	
 	doLast {	
-		copy {
-			from files("build/libs") 
-			into file("build/debian/syncany-plugin-${pluginId}/usr/share/syncany/lib")
-		}
+		project.ext.pluginDebianPpaVersion = (!"unstable".equals(pluginDebianDistribution)) ? "~${pluginDebianDistribution}ppa${pluginDebianVersion}" : ""
+		project.ext.pluginDebianVersionFull = "${pluginVersionFull}".replaceAll("-", ".") + pluginDebianPpaVersion
+		project.ext.pluginDebianArchitecture = (project.ext.pluginArchitecture == "x86") ? "i386" : "amd64"
 		
-		copy {
-			from files("gradle/debian/debian") 
-			into file("build/debian/syncany-plugin-${pluginId}/debian")
-		}		
-		
-		exec {
-			workingDir file("build/debian/syncany-plugin-${pluginId}")
-			commandLine "debuild -i -us -uc -b".split()
-		}		
-	}
-}
-
-task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {	
-	doLast {	
-		String pluginDebianPpaVersion = (!"unstable".equals(pluginDebianDistribution)) ? "~${pluginDebianDistribution}ppa${pluginDebianVersion}" : ""
-		String pluginDebianVersionFull = "${pluginVersionFull}".replaceAll("-", ".") + pluginDebianPpaVersion
-		String pluginDebianArchitecture = (project.ext.pluginArchitecture == "x86") ? "i386" : "amd64";
-	
 		copy {
 			from files("gradle/debian/syncany-plugin-gui") 
 			into file("build/debian/syncany-plugin-gui/debian")
@@ -165,12 +144,29 @@ task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {
 		exec {
 			workingDir file(".")
 			commandLine rootProject.file("gradle/debian/makechangelog.pl"), "syncany-plugin-gui", "${pluginDebianDistribution}", "${pluginDebianVersionFull}", file("CHANGELOG.md"), file("build/debian/syncany-plugin-gui/debian/debian/changelog")
-		}
-				
+		}						
+	}	
+}
+
+task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {	
+	doLast {
 		exec {
 			workingDir file("build/debian/syncany-plugin-gui/debian")
-			commandLine "debuild -i -us -uc -b".split()
-		}		
+			commandLine "debuild -i -us -uc -b -a${pluginDebianArchitecture}".split()
+		}
+	}
+}
+	
+task pluginDebianGuiPpa(dependsOn: [pluginDebianGuiPrepare]) {	
+	doLast {	
+		exec {
+			commandLine(
+				rootProject.file("gradle/debian/debuild-signed.sh"), 
+				rootProject.file("gradle/debian/gpg/syncany-team.asc.aes256"),
+				file("${buildDir}"),
+				file("${buildDir}/debian/syncany-plugin-gui/debian")
+			)
+		}
 	}
 }
 
@@ -236,15 +232,15 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 // GUI Tasks ///////////////////////////////////////////////////////////////////
 
 task(runGui, dependsOn: 'classes', type: JavaExec) {
-	main = "org.syncany.gui.Launcher"
+	main = "org.syncany.cli.GuiCommand"
 	// SWT need -XStartOnFirstThread to run on OSX
 	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
 	classpath = sourceSets.main.runtimeClasspath
 }
 
-task(runGuiPython, dependsOn: 'classes', type: JavaExec) {
-	main = "org.syncany.gui.Launcher"
-	args = ["--tray", "python"]
+task(runGuiAppIndicator, dependsOn: 'classes', type: JavaExec) {
+	main = "org.syncany.cli.GuiCommand"
+	args = ["--tray", "appindicator"]
 	// SWT need -XStartOnFirstThread to run on OSX
 	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
 	classpath = sourceSets.main.runtimeClasspath

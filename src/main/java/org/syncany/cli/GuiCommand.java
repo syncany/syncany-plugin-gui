@@ -31,6 +31,10 @@ import org.syncany.operations.gui.GuiOperationOptions;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public class GuiCommand extends Command {
+	public static void main(String[] args) throws Exception {
+		System.exit(new GuiCommand().execute(args));		
+	}	
+	
 	@Override
 	public int execute(String[] operationArgs) throws Exception {
 		GuiOperationOptions operationOptions = parseOptions(operationArgs);
