@@ -8,6 +8,11 @@ Homepage: https://www.syncany.org
 
 Package: syncany-plugin-gui
 Architecture: ${pluginDebianArchitecture}
-Depends: ${pluginMiscDepends}, syncany (>= ${pluginAppMinVersion})
+Depends: ${pluginMiscDepends}, syncany (>= ${pluginAppMinVersion}), python-gtk2, 
+         python-notify, python-appindicator, python-websocket-client | python-websocket
 Homepage: https://www.syncany.org/
 Description: Graphical User Interface for Syncany
+ This plugin provides a graphical user interface for Syncany -- mainly in the
+ form of a tray or app indicator icon and notifications when changes occur.
+ .
+ The package relies on the original Syncany package.
