@@ -7,16 +7,7 @@ Standards-Version: 3.9.4
 Homepage: https://www.syncany.org
 
 Package: syncany-plugin-gui
-Architecture: all
-Depends: ${misc:Depends}, syncany
+Architecture: ${pluginDebianArchitecture}
+Depends: ${pluginMiscDepends}, syncany (>= ${pluginAppMinVersion})
 Homepage: https://www.syncany.org/
-Description: Secure file sync software for arbitrary storage backends
- Syncany allows users to backup and share certain folders of their workstations
- using any kind of storage. Syncany is open-source and provides data encryption
- and incredible flexibility in terms of storage type and provider:
- .
-  - Data encryption: Syncany encrypts the files locally, so that any online 
-    storage can be used even for sensitive data.
- .
-  - Arbitrary storage: Syncany uses a plug-in based storage system. It can be
-    used with any type of remote storage.
+Description: Graphical User Interface for Syncany

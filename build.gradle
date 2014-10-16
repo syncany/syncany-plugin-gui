@@ -23,6 +23,7 @@ project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
 	pluginVersion = "0.1.12-alpha"	
+	pluginDebianVersion = "1"
 	pluginDate = new Date()
 	pluginAppMinVersion = "0.1.12-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
@@ -31,6 +32,8 @@ project.ext {
 	pluginVersionSnapshot = rootProject.ext.applicationVersionSnapshot
 	pluginVersionFull = "${pluginVersion}${pluginVersionSnapshot}"	
 	pluginNeedsOperatingSystemAndArchitecture = true
+
+	pluginDebianDistribution = (project.hasProperty("dist")) ? project.getProperty("dist") : "unstable"
 }
 
 dependencies {
@@ -132,11 +135,26 @@ task pluginDebian(dependsOn: [clean, pluginDebianClean, pluginJar]) {
 	}
 }
 
-task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {
+task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {	
 	doLast {	
+		String pluginDebianPpaVersion = (!"unstable".equals(pluginDebianDistribution)) ? "~${pluginDebianDistribution}ppa${pluginDebianVersion}" : ""
+		String pluginDebianVersionFull = "${pluginVersionFull}".replaceAll("-", ".") + pluginDebianPpaVersion
+		String pluginDebianArchitecture = (project.ext.pluginArchitecture == "x86") ? "i386" : "amd64";
+	
 		copy {
 			from files("gradle/debian/syncany-plugin-gui") 
 			into file("build/debian/syncany-plugin-gui/debian")
+		}
+		
+		copy {
+			from file("gradle/debian/syncany-plugin-gui/debian") 
+			include "control"
+			expand([
+				pluginAppMinVersion: "${pluginAppMinVersion}", 	
+				pluginDebianArchitecture: "${pluginDebianArchitecture}",
+				pluginMiscDepends: "\${misc:Depends}" // Dirty hack to keep ${misc:Depends} debian variable
+			])
+			into file("build/debian/syncany-plugin-gui/debian/debian")
 		}
 		
 		copy {
@@ -145,8 +163,8 @@ task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {
 		}
 		
 		exec {
-			workingDir rootProject.file("gradle/debian")
-			commandLine "./makechangelog.pl", "syncany-plugin-gui", "${debianDistribution}", "${debianApplicationVersionFull}", file("../../CHANGELOG.md"), file("../../build/debian/syncany/debian/changelog")
+			workingDir file(".")
+			commandLine rootProject.file("gradle/debian/makechangelog.pl"), "syncany-plugin-gui", "${pluginDebianDistribution}", "${pluginDebianVersionFull}", file("CHANGELOG.md"), file("build/debian/syncany-plugin-gui/debian/debian/changelog")
 		}
 				
 		exec {
