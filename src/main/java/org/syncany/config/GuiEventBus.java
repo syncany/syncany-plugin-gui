@@ -17,49 +17,14 @@
  */
 package org.syncany.config;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import com.google.common.eventbus.EventBus;
-
 /**
- * The event bus wraps the Google EventBus service for the
- * daemon. It provides a publish/subscribe mechanism within a
- * single JVM.
+ * Event bus for the GUI plugin, mainly used to pass messages
+ * between tray icon and main operation.
  * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class GuiEventBus {
-	private static final Logger logger = Logger.getLogger(GuiEventBus.class.getSimpleName());
-	private static GuiEventBus instance;
-	
-	private EventBus eventBus;
-	
+public class GuiEventBus extends InternalEventBus {
 	public static GuiEventBus getInstance() {
-		if (instance != null) {
-			return instance;
-		}
-		
-		instance = new GuiEventBus();
-		return instance;
-	}
-	
-	private GuiEventBus() {
-		this.eventBus = new EventBus("GUI");
-	}
-	
-	public void register(Object object) {
-		logger.log(Level.INFO, "Event bus: Registering " + object + " (Class: " + object.getClass().getSimpleName() + ") ...");
-		eventBus.register(object);
-	}
-	
-	public void unregister(Object object) {
-		logger.log(Level.INFO, "Event bus: Unregistering " + object + " (Class: " + object.getClass().getSimpleName() + ") ...");
-		eventBus.unregister(object);
-	}	
-	
-	public void post(Object event) {
-		logger.log(Level.INFO, "Event bus: Posting event " + event + " (Class: " + event.getClass().getSimpleName() + ") ...");
-		eventBus.post(event);
+		return InternalEventBus.getInstance(GuiEventBus.class);
 	}
 }
