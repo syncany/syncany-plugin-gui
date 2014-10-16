@@ -113,20 +113,39 @@ task pluginDebianClean(type: Delete) {
 	delete 'build/debian'	
 }
 
-task pluginDebian(dependsOn: [pluginDebianClean, pluginJar]) {
+task pluginDebian(dependsOn: [clean, pluginDebianClean, pluginJar]) {
 	doLast {	
 		copy {
 			from files("build/libs") 
-			into file("build/debian/syncany-plugin-${pluginId}/lib")
+			into file("build/debian/syncany-plugin-${pluginId}/usr/share/syncany/lib")
 		}
 		
 		copy {
-			from files("gradle/debian") 
+			from files("gradle/debian/debian") 
 			into file("build/debian/syncany-plugin-${pluginId}/debian")
 		}
 		
 		exec {
 			workingDir file("build/debian/syncany-plugin-${pluginId}")
+			commandLine "debuild -i -us -uc -b".split()
+		}		
+	}
+}
+
+task pluginDebianGui(dependsOn: [clean, pluginDebianClean, pluginJar]) {
+	doLast {	
+		copy {
+			from files("gradle/debian/syncany-plugin-gui") 
+			into file("build/debian/syncany-plugin-gui/debian")
+		}
+		
+		copy {
+			from files("build/libs") 
+			into file("build/debian/syncany-plugin-gui/debian/usr/share/syncany/lib")
+		}
+				
+		exec {
+			workingDir file("build/debian/syncany-plugin-gui/debian")
 			commandLine "debuild -i -us -uc -b".split()
 		}		
 	}
