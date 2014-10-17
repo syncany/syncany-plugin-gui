@@ -29,6 +29,8 @@ install:
   - ./gradlew -v
 
 script:
+
+# Build and upload plugin JARs for different operating systems
 - ./gradlew clean
 - ./gradlew pluginJar -Pos=linux -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
@@ -41,7 +43,13 @@ script:
 - ./gradlew pluginJar -Pos=macosx -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
-
-after_success:
 - core/gradle/lftp/lftpuploadplugin.sh
+
+# Build .deb-packages and upload to PPA
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=precise
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=precise
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=trusty
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=trusty
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=utopic
+- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=utopic
 

@@ -32,8 +32,6 @@ project.ext {
 	pluginVersionSnapshot = rootProject.ext.applicationVersionSnapshot
 	pluginVersionFull = "${pluginVersion}${pluginVersionSnapshot}"	
 	pluginNeedsOperatingSystemAndArchitecture = true
-
-	pluginDebianDistribution = (project.hasProperty("dist")) ? project.getProperty("dist") : "unstable"
 }
 
 dependencies {
@@ -107,19 +105,12 @@ public String getSwtLibrary() {
 }
 
 apply from: 'core/gradle/gradle/plugins.jar.gradle'
+apply from: 'core/gradle/gradle/plugins.debian.gradle'
 
-// Debian Tasks ////////////////////////////////////////////////////////////////
-
-task pluginDebianClean(type: Delete) {
-	delete 'build/debian'	
-}
+// GUI-specific Debian Tasks ///////////////////////////////////////////////////
 
 task pluginDebianGuiPrepare(dependsOn: [clean, pluginDebianClean, pluginJar]) {	
-	doLast {	
-		project.ext.pluginDebianPpaVersion = (!"unstable".equals(pluginDebianDistribution)) ? "~${pluginDebianDistribution}ppa${pluginDebianVersion}" : ""
-		project.ext.pluginDebianVersionFull = "${pluginVersionFull}".replaceAll("-", ".") + pluginDebianPpaVersion
-		project.ext.pluginDebianArchitecture = (project.ext.pluginArchitecture == "x86") ? "i386" : "amd64"
-		
+	doLast {			
 		copy {
 			from files("gradle/debian/syncany-plugin-gui") 
 			into file("build/debian/syncany-plugin-gui/debian")
@@ -143,7 +134,14 @@ task pluginDebianGuiPrepare(dependsOn: [clean, pluginDebianClean, pluginJar]) {
 		
 		exec {
 			workingDir file(".")
-			commandLine rootProject.file("gradle/debian/makechangelog.pl"), "syncany-plugin-gui", "${pluginDebianDistribution}", "${pluginDebianVersionFull}", file("CHANGELOG.md"), file("build/debian/syncany-plugin-gui/debian/debian/changelog")
+			commandLine(
+				rootProject.file("gradle/debian/makechangelog.pl"),
+				"syncany-plugin-gui",
+				"${pluginDebianDistribution}",
+				"${pluginDebianVersionFull}",
+				file("CHANGELOG.md"),
+				file("build/debian/syncany-plugin-gui/debian/debian/changelog")
+			)
 		}						
 	}	
 }
@@ -157,7 +155,7 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 	}
 }
 	
-task pluginDebianGuiPpa(dependsOn: [pluginDebianGuiPrepare]) {	
+task pluginDebianGuiPpaBuild(dependsOn: [pluginDebianGuiPrepare]) {	
 	doLast {	
 		exec {
 			commandLine(
@@ -165,6 +163,19 @@ task pluginDebianGuiPpa(dependsOn: [pluginDebianGuiPrepare]) {
 				rootProject.file("gradle/debian/gpg/syncany-team.asc.aes256"),
 				file("${buildDir}"),
 				file("${buildDir}/debian/syncany-plugin-gui/debian")
+			)
+		}
+	}
+}
+
+task pluginDebianGuiPpa(dependsOn: [pluginDebianGuiPpaBuild]) {	
+	doLast {	
+		exec {		
+			commandLine(
+				rootProject.file("gradle/debian/dput-ppa.sh"), 
+				rootProject.file("gradle/debian/dput.cf"),
+				file("${buildDir}/debian/syncany-plugin-gui"),
+				pluginDebianTargetPpa
 			)
 		}
 	}
