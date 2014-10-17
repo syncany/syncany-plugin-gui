@@ -4,10 +4,16 @@ jdk: openjdk7
 env:
   global:
   - TERM=dumb
+  
+  # FTP credentials 
   - secure: "EnoeJjBqPc/gnC83VOWrdnaWNFrrq1P4D4NVpu387tjVM6ejmutAvr0Pnx/hrPu1R8+RL23lFzPlvAGiPbneURQHEqZt47V2yXxOPxYp8oL74a5QGk420qCtDtiQTcbC6A0aheFk2UBmzIhddTfI3iyI78Tsghe9mMF+PUlXrVk="
   - secure: "HQFmxUk9nmy7MilybRAN0akVfw+8Thch1gnCzsE9qVqvICbxRhYmOHVULOAdlameeOUu4/DODZW4Rnlr+RrZEkwk49WLS70XkOfy0v9GliOqTkXaYZtzRoEnrjjIcboPkrG7nr25TB6AAjtFg/lpKtQ9UWY73Prs0/AVoWBLYIk="
   - secure: "BqO+9W0YAHPE2QdQFueEPszlJ/r/f7vpYAbHXHW38QIgpSEsk2LGKQpLXP07rlHnrMmF//bEwmGTK08pD6KpaIFFtgC20+9T5GiReMS0J6EH/vDHcZoZWDXInAFiDY/oK9DbHoJBvFXhrhQc8189lzKqDiFpIrlnOAsDgzXs4Ds="
   
+  # GPG key variable passphrases
+  - secure: "JrOCCe/myLdfeQpeVn3EwOoUnreuM3j+eNR2TLp/Gcdf9FFO75EUQHi0jdqLZKftXQNu6G2r/vdYNhfGi1vXyBfp21Wv9qu5pSEL9gxjI3uGtMODkJHWcDaPUU0FrK2AFK2vfR5pb1nNbu6loNQ6ffejtlvoZJGkmADTc1CnE8w="
+  - secure: "Va8CmghWuzUUJPHdDxOLKp4kTmH8gMtmZ2v5+yx90IzPf95VBXETk1NHgrkplZN8PMso/QwOIvh/ZVaOvbMAyWysimwdKmJb/p2QwUkZykpzMN/RWHuYMM+NXgy/PnGvpumNeK2/JzoJXr4KAwkowOQ/gkmeoNyV4BC6FRsfg3E="
+
 branches:
   only:
   - master
