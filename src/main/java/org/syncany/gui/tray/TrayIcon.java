@@ -211,8 +211,8 @@ public abstract class TrayIcon {
 					}
 				}
 				
-				subject = "Syncany synced";
-				message = StringUtil.join(messageParts, ", ") + " in your Syncany '" + rootName + "'";
+				subject = "Syncany folder '" + rootName + "' synced";
+				message = StringUtil.join(messageParts, ", ") + " in your Syncany folder '" + rootName + "'";
 			}
 			
 		
