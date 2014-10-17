@@ -24,11 +24,19 @@ notifications:
   irc: chat.freenode.net#syncany
 
 before_install:
-- sudo apt-get update
-- sudo apt-get install -y -q lftp
-- lftp -v
-- mkdir / 2> /dev/null || true
-- echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
+  # Standard Stuff
+  - sudo apt-get update
+  - sudo apt-get install -y -q lftp
+  - lftp -v
+  - mkdir / 2> /dev/null || true
+  - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
+
+  # Debian and PPA 
+  - sudo apt-get install -y -q gnupg dh-make devscripts dput devscripts debhelper bash-completion
+  - gpg --version
+  - dput -v
+  - debuild --version
+  - perl -v
 
 install:
   # Disable default travis behavior 'gradle assemble'
