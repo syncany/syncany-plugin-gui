@@ -164,6 +164,9 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 // Windows Installer ///////////////////////////////////////////////////////////
 
 task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pluginJar]) << {
+	String applicationArchitecuresAllowed = (pluginArchitecture == "x86") ? "x86" : "x64"
+	String applicationArchitecureSuffix = pluginArchitecture;
+
 	def innoSetupDir = new File("${buildDir}/innosetup")
 
 	delete innoSetupDir	
@@ -200,7 +203,7 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 	}
 
 	copy {
-		from("gradle/innosetup/sygui.vbs")
+		from("gradle/innosetup/launcher.vbs")
 		into("${buildDir}/install/syncany/bin")
 	}
 	
@@ -209,7 +212,9 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 		rename("setup-gui.iss.skel", "setup-gui.iss")
 		expand([
 			applicationVersion: "${applicationVersion}",
-			applicationVersionFull: "${applicationVersionFull}",			
+			applicationVersionFull: "${applicationVersionFull}",
+			applicationArchitecuresAllowed: "${applicationArchitecuresAllowed}",
+			applicationArchitecureSuffix: "${applicationArchitecureSuffix}"
 		])
 		into(innoSetupDir)
 	}	

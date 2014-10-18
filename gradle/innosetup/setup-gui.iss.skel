@@ -30,9 +30,15 @@ DisableProgramGroupPage=yes
 UninstallDisplayIcon={uninstallexe}
 ChangesEnvironment=yes
 
+; The GUI code is architecture dependent, only allow either x86
+; or x64. The install mode must still be x86, because the CLI
+; installer is architecture-independent.
+ArchitecturesAllowed=${applicationArchitecuresAllowed}
+ArchitecturesInstallIn64BitMode=x86 
+
 SourceDir=..\\install\\syncany
 OutputDir=..\\..\\innosetup
-OutputBaseFilename=syncany-${applicationVersionFull}
+OutputBaseFilename=syncany-${applicationVersionFull}~${applicationArchitecureSuffix}
 
 SetupIconFile=..\\..\\innosetup\\setup-icon.ico
 WizardImageFile=..\\..\\innosetup\\setup-left.bmp
@@ -48,12 +54,8 @@ Source: "lib\\*"; DestDir: "{app}\\lib"
 [InstallDelete]
 Type: files; Name: "{app}\\lib\\*"
 
-[Tasks]
-Name: modifypath; Description: Add Syncany to PATH environment variable (recommended)
-Name: setjavahome; Description: Set JAVA_HOME environment variable if not set (recommended)
-
 [Icons]
-Name: "{group}\\Syncany"; Filename: "{app}\\bin\\sygui.vbs"; IconFilename: "{app}\\syncany.ico"
+Name: "{group}\\Syncany"; Filename: "{app}\\bin\\launcher.vbs"; IconFilename: "{app}\\syncany.ico"
 Name: "{group}\\Syncany Quick How-To"; Filename: "https://www.syncany.org/r/howto"
 Name: "{group}\\Syncany User Guide and Wiki"; Filename: "https://www.syncany.org/r/wiki"
 Name: "{group}\\Uninstall Syncany"; Filename: "{uninstallexe}"
