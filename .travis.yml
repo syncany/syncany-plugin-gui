@@ -10,10 +10,6 @@ env:
   - secure: "HQFmxUk9nmy7MilybRAN0akVfw+8Thch1gnCzsE9qVqvICbxRhYmOHVULOAdlameeOUu4/DODZW4Rnlr+RrZEkwk49WLS70XkOfy0v9GliOqTkXaYZtzRoEnrjjIcboPkrG7nr25TB6AAjtFg/lpKtQ9UWY73Prs0/AVoWBLYIk="
   - secure: "BqO+9W0YAHPE2QdQFueEPszlJ/r/f7vpYAbHXHW38QIgpSEsk2LGKQpLXP07rlHnrMmF//bEwmGTK08pD6KpaIFFtgC20+9T5GiReMS0J6EH/vDHcZoZWDXInAFiDY/oK9DbHoJBvFXhrhQc8189lzKqDiFpIrlnOAsDgzXs4Ds="
   
-  # GPG key variable passphrases
-  - secure: "JrOCCe/myLdfeQpeVn3EwOoUnreuM3j+eNR2TLp/Gcdf9FFO75EUQHi0jdqLZKftXQNu6G2r/vdYNhfGi1vXyBfp21Wv9qu5pSEL9gxjI3uGtMODkJHWcDaPUU0FrK2AFK2vfR5pb1nNbu6loNQ6ffejtlvoZJGkmADTc1CnE8w="
-  - secure: "Va8CmghWuzUUJPHdDxOLKp4kTmH8gMtmZ2v5+yx90IzPf95VBXETk1NHgrkplZN8PMso/QwOIvh/ZVaOvbMAyWysimwdKmJb/p2QwUkZykpzMN/RWHuYMM+NXgy/PnGvpumNeK2/JzoJXr4KAwkowOQ/gkmeoNyV4BC6FRsfg3E="
-
 branches:
   only:
   - master
@@ -31,10 +27,9 @@ before_install:
   - mkdir ~/.gradle 2> /dev/null || true
   - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
-  # Debian and PPA 
-  - sudo apt-get install -y -q dh-make devscripts devscripts debhelper bash-completion
+  # Debian Packaging
+  - sudo apt-get install -y -q dh-make devscripts debhelper bash-completion
   - gpg --version
-  - dput -v
   - debuild --version
   - perl -v
 
@@ -43,25 +38,30 @@ install:
   - ./gradlew -v
 
 script:
+  # Be safe and clean!
+  - ./gradlew clean
 
-# Build and upload plugin JARs for different operating systems
-- ./gradlew clean
+  # Build JARs for different operating systems
+  - ./gradlew pluginJar -Pos=linux -Parch=x86
+  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 
-- ./gradlew pluginJar -Pos=linux -Parch=x86
-- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- ./gradlew pluginJar -Pos=linux -Parch=x86_64
-- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- ./gradlew pluginJar -Pos=windows -Parch=x86
-- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- ./gradlew pluginJar -Pos=windows -Parch=x86_64
-- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- ./gradlew pluginJar -Pos=macosx -Parch=x86
-- rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-- ./gradlew pluginJar -Pos=macosx -Parch=x86_64
+  - ./gradlew pluginJar -Pos=linux -Parch=x86_64
+  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 
-# Build .deb-packages
-- ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86
-- ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64
+  - ./gradlew pluginJar -Pos=windows -Parch=x86
+  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 
-# Upload
-- core/gradle/lftp/lftpuploadplugin.sh
+  - ./gradlew pluginJar -Pos=windows -Parch=x86_64
+  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+
+  - ./gradlew pluginJar -Pos=macosx -Parch=x86
+  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
+
+  - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
+
+  # Build Debian DEBs
+  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86
+  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64
+
+  # Upload JARs and DEBs
+  - core/gradle/lftp/lftpuploadplugin.sh
