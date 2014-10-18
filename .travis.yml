@@ -40,7 +40,7 @@ before_install:
   - wine --version 
   - innoextract --version 
   - core/gradle/innosetup/innoinstall.sh
-  - sudo cp gradle/innosetup/iscc /usr/local/bin/iscc
+  - sudo cp core/gradle/innosetup/iscc /usr/local/bin/iscc
   - iscc /? 2> /dev/null | grep "Inno Setup Preprocessor"  
 
 install:
