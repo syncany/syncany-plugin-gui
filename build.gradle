@@ -54,7 +54,7 @@ dependencies {
 	
 	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
 	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
-	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
+	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
 	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
 	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
 	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"	
@@ -109,7 +109,7 @@ apply from: 'core/gradle/gradle/plugins.debian.gradle'
 
 // GUI-specific Debian Tasks ///////////////////////////////////////////////////
 
-task pluginDebianGuiPrepare(dependsOn: [clean, pluginDebianClean, pluginJar]) {	
+task pluginDebianGuiPrepare(dependsOn: [pluginDebianClean, pluginJar]) {	
 	doLast {			
 		copy {
 			from files("gradle/debian/syncany-plugin-gui") 
@@ -152,31 +152,11 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 			workingDir file("build/debian/syncany-plugin-gui/debian")
 			commandLine "debuild -i -us -uc -b -a${pluginDebianArchitecture}".split()
 		}
-	}
-}
-	
-task pluginDebianGuiPpaBuild(dependsOn: [pluginDebianGuiPrepare]) {	
-	doLast {	
-		exec {
-			commandLine(
-				rootProject.file("gradle/debian/debuild-signed.sh"), 
-				rootProject.file("gradle/debian/gpg/syncany-team.asc.aes256"),
-				file("${buildDir}"),
-				file("${buildDir}/debian/syncany-plugin-gui/debian")
-			)
-		}
-	}
-}
-
-task pluginDebianGuiPpa(dependsOn: [pluginDebianGuiPpaBuild]) {	
-	doLast {	
-		exec {		
-			commandLine(
-				rootProject.file("gradle/debian/dput-ppa.sh"), 
-				rootProject.file("gradle/debian/dput.cf"),
-				file("${buildDir}/debian/syncany-plugin-gui"),
-				pluginDebianTargetPpa
-			)
+		
+		copy {
+			from files("build/debian/syncany-plugin-gui") 
+			include "*.deb"
+			into file("build/upload")
 		}
 	}
 }

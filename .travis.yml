@@ -32,7 +32,7 @@ before_install:
   - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
   # Debian and PPA 
-  - sudo apt-get install -y -q gnupg dh-make devscripts dput devscripts debhelper bash-completion
+  - sudo apt-get install -y -q dh-make devscripts devscripts debhelper bash-completion
   - gpg --version
   - dput -v
   - debuild --version
@@ -46,6 +46,7 @@ script:
 
 # Build and upload plugin JARs for different operating systems
 - ./gradlew clean
+
 - ./gradlew pluginJar -Pos=linux -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 - ./gradlew pluginJar -Pos=linux -Parch=x86_64
@@ -57,13 +58,10 @@ script:
 - ./gradlew pluginJar -Pos=macosx -Parch=x86
 - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
+
+# Build .deb-packages
+- ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86
+- ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64
+
+# Upload
 - core/gradle/lftp/lftpuploadplugin.sh
-
-# Build .deb-packages and upload to PPA
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=precise
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=precise
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=trusty
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=trusty
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86 -Pdist=utopic
-- ./gradlew pluginDebianGuiPpa -Pos=linux -Parch=x86_64 -Pdist=utopic
-
