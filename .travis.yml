@@ -27,11 +27,21 @@ before_install:
   - mkdir ~/.gradle 2> /dev/null || true
   - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
-  # Debian Packaging
+  # Debian Build Tools
   - sudo apt-get install -y -q dh-make devscripts debhelper bash-completion
-  - gpg --version
   - debuild --version
   - perl -v
+  
+  # Inno Setup (for Windows executable/installer)
+  # Note: If this code is changed, also update syncany/.travis.yml
+  - sudo add-apt-repository --yes ppa:arx/release
+  - sudo apt-get update -d
+  - sudo apt-get install -y -q innoextract wine python-software-properties
+  - wine --version 
+  - innoextract --version 
+  - core/gradle/innosetup/innoinstall.sh
+  - sudo cp gradle/innosetup/iscc /usr/local/bin/iscc
+  - iscc /? 2> /dev/null | grep "Inno Setup Preprocessor"  
 
 install:
   # Disable default travis behavior 'gradle assemble'
@@ -67,5 +77,6 @@ script:
   - ./gradlew exeWithGui -Pos=windows -Parch=x86 -PpluginJarDontCopyToUpload
   - ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload
   
+after_success:
   # Upload JARs and DEBs
   - core/gradle/lftp/lftpuploadplugin.sh
