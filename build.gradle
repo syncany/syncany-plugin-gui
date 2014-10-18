@@ -163,7 +163,14 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 
 // Windows Installer ///////////////////////////////////////////////////////////
 
-task exeWithGui(dependsOn: [rootProject.installApp, pluginJar]) << {
+task cleanInstallAndLibDirs(type: Delete) {
+	delete files("build/install")
+	delete files("build/libs")
+}
+
+rootProject.installApp.mustRunAfter = [cleanInstallAndLibDirs] // Dirty hack to fix order in dependsOn
+
+task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, pluginJarBasic]) << {
 	String applicationArchitecuresAllowed = (pluginArchitecture == "x86") ? "x86" : "x64"
 	String applicationArchitecureSuffix = pluginArchitecture;
 
