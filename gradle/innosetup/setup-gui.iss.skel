@@ -34,7 +34,7 @@ ChangesEnvironment=yes
 ; or x64. The install mode must still be x86, because the CLI
 ; installer is architecture-independent.
 ArchitecturesAllowed=${applicationArchitecuresAllowed}
-ArchitecturesInstallIn64BitMode=x86 
+ArchitecturesInstallIn64BitMode=
 
 SourceDir=..\\install\\syncany
 OutputDir=..\\..\\innosetup

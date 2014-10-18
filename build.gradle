@@ -163,7 +163,7 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 
 // Windows Installer ///////////////////////////////////////////////////////////
 
-task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pluginJar]) << {
+task exeWithGui(dependsOn: [rootProject.installApp, pluginJar]) << {
 	String applicationArchitecuresAllowed = (pluginArchitecture == "x86") ? "x86" : "x64"
 	String applicationArchitecureSuffix = pluginArchitecture;
 
@@ -171,8 +171,6 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 
 	delete innoSetupDir	
 	innoSetupDir.mkdir();	
-	
-	print buildDir 
 	
 	copy {
 		from("${rootProject.projectDir}/build/install")
@@ -222,6 +220,12 @@ task exeWithGui(dependsOn: [clean, rootProject.clean, rootProject.installApp, pl
 	exec {
 		workingDir projectDir
 		commandLine "iscc ${innoSetupDir}/setup-gui.iss".split()
+	}
+
+	copy {
+		from files("${buildDir}/innosetup") 
+		include "*.exe"
+		into file("${buildDir}/upload")
 	}
 }
 

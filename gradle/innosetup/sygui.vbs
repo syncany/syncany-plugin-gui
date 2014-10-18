@@ -1,1 +1,0 @@
-CreateObject("Wscript.Shell").Run "sy.bat gui", 0, True
