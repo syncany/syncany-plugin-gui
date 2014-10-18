@@ -153,10 +153,12 @@ task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 			commandLine "debuild -i -us -uc -b -a${pluginDebianArchitecture}".split()
 		}
 		
-		copy {
-			from files("build/debian/syncany-plugin-gui") 
-			include "*.deb"
-			into file("build/upload")
+		if (!project.ext.has('pluginDebDontCopyToUpload')) {
+			copy {
+				from files("build/debian/syncany-plugin-gui") 
+				include "*.deb"
+				into file("build/upload")
+			}
 		}
 	}
 }
@@ -170,7 +172,7 @@ task cleanInstallAndLibDirs(type: Delete) {
 
 rootProject.installApp.mustRunAfter = [cleanInstallAndLibDirs] // Dirty hack to fix order in dependsOn
 
-task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, pluginJarBasic]) << {
+task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, pluginJar]) << {
 	String applicationArchitecuresAllowed = (pluginArchitecture == "x86") ? "x86" : "x64"
 	String applicationArchitecureSuffix = pluginArchitecture;
 
@@ -229,10 +231,12 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 		commandLine "iscc ${innoSetupDir}/setup-gui.iss".split()
 	}
 
-	copy {
-		from files("${buildDir}/innosetup") 
-		include "*.exe"
-		into file("${buildDir}/upload")
+	if (!project.ext.has('pluginExeDontCopyToUpload')) {
+		copy {
+			from files("${buildDir}/innosetup") 
+			include "*.exe"
+			into file("${buildDir}/upload")
+		}
 	}
 }
 

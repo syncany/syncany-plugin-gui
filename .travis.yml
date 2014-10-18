@@ -60,8 +60,12 @@ script:
   - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
 
   # Build Debian DEBs
-  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86
-  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64
+  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86 -PpluginJarDontCopyToUpload
+  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64 -PpluginJarDontCopyToUpload
 
+  # Build Windows installer
+  - ./gradlew exeWithGui -Pos=windows -Parch=x86 -PpluginJarDontCopyToUpload
+  - ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload
+  
   # Upload JARs and DEBs
   - core/gradle/lftp/lftpuploadplugin.sh
