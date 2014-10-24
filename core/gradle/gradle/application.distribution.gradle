@@ -91,10 +91,18 @@ startScripts {
 		unixMaxMemoryCommands += "    DEFAULT_JVM_OPTS=\"\$DEFAULT_JVM_OPTS \\\"-Xmx" + defaultMaxMemory + "\\\"\"\n";
 		unixMaxMemoryCommands += "else\n";
 		unixMaxMemoryCommands += "    DEFAULT_JVM_OPTS=\"\$DEFAULT_JVM_OPTS \\\"-Xmx\$APP_MAX_MEMORY\\\"\"\n";
-		unixMaxMemoryCommands += "fi\n";
+		unixMaxMemoryCommands += "fi";
 
 		unixFile.text = unixFile.text.replaceAll("(DEFAULT_JVM_OPTS=.+)", '$0' + Matcher.quoteReplacement("\n\n${unixMaxMemoryCommands}"))		
 
+		// - Mac OS X: Add -XstartOnFirstThread (to fix SWT)
+		String unixDarwinFirstThreadFlagCommands = "# For Darwin / Mac OS X: Add -XstartOnFirstThread (to fix SWT)\n"
+		unixDarwinFirstThreadFlagCommands += "if \$darwin; then\n"		
+		unixDarwinFirstThreadFlagCommands += "    DEFAULT_JVM_OPTS=\"\$DEFAULT_JVM_OPTS \\\"-XstartOnFirstThread\\\"\"\n";
+		unixDarwinFirstThreadFlagCommands += "fi"
+
+		unixFile.text = unixFile.text.replaceAll("(CLASSPATH=\\\$APP_HOME.+)", '$0' + Matcher.quoteReplacement("\n\n${unixDarwinFirstThreadFlagCommands}"))		
+		
 		// - Append daemon batch script (handle 'sy daemon')		
 		def unixTextTmp = ""
 		def unixText = unixFile.text
