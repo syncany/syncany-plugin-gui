@@ -55,7 +55,7 @@ Source: "lib\\*"; DestDir: "{app}\\lib"
 Type: files; Name: "{app}\\lib\\*"
 
 [Icons]
-Name: "{group}\\Syncany"; Filename: "{sys}\\wscript.exe"; Parameters: "{app}\\bin\\launcher.vbs"; IconFilename: "{app}\\syncany.ico"
+Name: "{group}\\Syncany"; Filename: "{sys}\\wscript.exe"; Parameters: """{app}\\bin\\launcher.vbs"""; IconFilename: "{app}\\syncany.ico"
 Name: "{group}\\Syncany Quick How-To"; Filename: "https://www.syncany.org/r/howto"
 Name: "{group}\\Syncany User Guide and Wiki"; Filename: "https://www.syncany.org/r/wiki"
 Name: "{group}\\Uninstall Syncany"; Filename: "{uninstallexe}"
