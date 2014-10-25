@@ -185,7 +185,7 @@ public class GuiOperation extends Operation {
 					try {
 						logger.log(Level.INFO, "Starting daemon in separate thread ...");
 						
-						new DaemonOperation(null).execute();
+						new DaemonOperation().execute();
 						
 						logger.log(Level.INFO, "SHUTDOWN of daemon complete.");
 					}
