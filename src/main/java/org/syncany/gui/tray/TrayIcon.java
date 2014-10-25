@@ -45,6 +45,11 @@ import org.syncany.util.StringUtil;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * Represents the tray icon, showing the status of the application,
+ * a menu to control the application and the ability to display
+ * notifications. The tray icon is the central entry point for
+ * the application.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */

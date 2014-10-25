@@ -39,6 +39,12 @@ import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
 /**
+ * The default tray icon uses the default SWT {@link TrayItem}
+ * class and the {@link Menu} to display the tray icon.
+ * 
+ * <p>These classes are supported by all operating systems and
+ * desktop environment,  except Ubuntu/Unity.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */

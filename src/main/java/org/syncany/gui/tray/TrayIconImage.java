@@ -17,6 +17,13 @@
  */
 package org.syncany.gui.tray;
 
+/**
+ * The tray icon image represents the filename of the
+ * image being displayed in the tray icon.
+ * 
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ * @author Vincent Wiencek <vwiencek@gmail.com>
+ */
 public enum TrayIconImage {
 	TRAY_NO_OVERLAY("tray.png"), 
 	TRAY_IN_SYNC("tray-in-sync.png"), 

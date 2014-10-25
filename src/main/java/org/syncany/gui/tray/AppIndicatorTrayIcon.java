@@ -52,6 +52,15 @@ import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 
 /**
+ * The app indicator tray icon uses a Python script to create 
+ * a so called "app indicator" (introduced by Ubuntu Unity).
+ * 
+ * <p>The class starts a Python script that creates an app indicator
+ * and connects to the embedded web and websocket server. The embedded
+ * server serves static content (tray icon images) and provides a 
+ * websocket server to communicate between the script and this class. 
+ * 
+ * @see https://unity.ubuntu.com/projects/appindicators/
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -210,7 +219,6 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "Invalid request received; cannot serialize to Request.", e);
-			//eventBus.post(new BadRequestResponse(-1, "Invalid request."));
 		}
 	}
 
