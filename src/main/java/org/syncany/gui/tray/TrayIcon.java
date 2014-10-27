@@ -89,8 +89,6 @@ public abstract class TrayIcon {
 				wizardDialog.open();
 			}
 		});
-		
-		new WizardDialog(shell, SWT.APPLICATION_MODAL);
 	}
 	
 	protected void showFolder(File folder) {

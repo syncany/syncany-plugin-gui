@@ -23,28 +23,22 @@ import org.eclipse.swt.widgets.Composite;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public abstract class WizardPanelComposite extends Composite implements UserParametersChecker {
-	private WizardDialog parentWizardDialog;
+public abstract class WizardPanel extends Composite {
+	private WizardDialog parentDialog;
 
-	protected WizardPanelComposite(Composite parent, int style) {
+	protected WizardPanel(Composite parent, int style) {
 		super(parent, style);
 	}
-	
-	public WizardPanelComposite(WizardDialog parentWizardDialog, Composite parent, int style) {
+
+	public WizardPanel(WizardDialog parentDialog, Composite parent, int style) {
 		this(parent, style);
-		this.parentWizardDialog = parentWizardDialog;
-	}
-	
-	public WizardDialog getParentWizardDialog() {
-		return parentWizardDialog;
-	}
-	
-	public boolean hasCancelButton(){
-		return true;
+		this.parentDialog = parentDialog;
 	}
 
-	public abstract boolean hasNextButton();
-	public abstract boolean hasPreviousButton();
-	public abstract boolean hasFinishButton();
-	public abstract void updateData();
+	public WizardDialog getParentWizardDialog() {
+		return parentDialog;
+	}
+	
+	public abstract PanelState getState();	
+	public abstract boolean isValid();
 }

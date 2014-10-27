@@ -17,11 +17,11 @@
  */
 package org.syncany.gui.wizard;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowData;
@@ -37,78 +37,76 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.gui.util.DialogUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.wizard.SelectFolderPanel.SelectFolderValidationMethod;
+import org.syncany.gui.wizard.StartPanel.StartPanelSelection;
+
+import com.google.common.collect.Lists;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class WizardDialog extends Dialog {
-	private enum Panel {
-		START(null, "LOCAL_FOLDER_SELECTION"),
-		REPOSITORY_SELECTION("LOCAL_FOLDER_SELECTION", "REPOSITORY_ENCRYPTION"),
-		REPOSITORY_ENCRYPTION("REPOSITORY_SELECTION", "SUMMARY"),
-		LOCAL_FOLDER_SELECTION("START", "REPOSITORY_SELECTION"),
-		SUMMARY("REPOSITORY_ENCRYPTION", null);
-
-		Panel(String previous, String next) {
-			this.previous = previous;
-			this.next = next;
-		}
-
-		private String previous;
-		private String next;
-
-		public Panel getPrevious() {
-			return Panel.valueOf(previous);
-		}
-
-		public Panel getNext() {
-			return Panel.valueOf(next);
-		}
-	};
-
-	//Widgets
-	private Button cancelButton;
-	private Button nextButton;
-	private Button previousButton;
-	private Button finishButton;
-
+public class WizardDialog extends Dialog {	
 	private Shell shell;
 	private Composite stackComposite;
 	private StackLayout stackLayout;
 
-	private Panel selectedPanel = Panel.START;
-	private Map<Panel, WizardPanelComposite> panels = new HashMap<>();
-	private UserInput userInput = new UserInput();
+	private WizardPanel currentPanel;	
+	private StartPanel startPanel;
+	private StartPanelSelection startPanelSelection;
+	private SelectFolderPanel selectFolderPanel;
+	private ProgressPanel progressPanel;
+	private SummaryPanel summaryPanel;
+		
+	private Button cancelButton;
+	private Button nextButton;
+	private Button previousButton;
 
-	/**
-	 * Create the dialog.
-	 * @param parent
-	 * @param style
-	 */
+	public enum ClickAction { PREVIOUS, NEXT };
+
+	public static void main(String[] a) {
+		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");  
+		
+		I18n.registerBundleName(intlPackage + "/i18n/messages");
+		I18n.registerBundleFilter("plugin_messages*");		
+
+		Shell shell = new Shell(); 
+		Display display = Display.getDefault();
+
+		WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
+		wizardDialog.open();
+		
+		while (!shell.isDisposed()) {
+			if (!display.readAndDispatch()) {
+				display.sleep();
+			}
+		}		
+	}
+	
 	public WizardDialog(Shell parent, int style) {
 		super(parent, style);
-		setText(I18n.getString("dialog.wizard.title"));
+		
+		this.setText(I18n.getString("dialog.wizard.title"));
 	}
 
-	/**
-	 * Open the dialog.
-	 * @return the result
-	 */
 	public Object open() {
 		createContents();
 		buildPanels();
-		showPanel(Panel.START);
+		showPanel(startPanel, ClickAction.NEXT);
 
 		DialogUtil.centerOnScreen(shell);
+		
 		shell.open();
 		shell.layout();
+		
 		Display display = getParent().getDisplay();
+		
 		while (!shell.isDisposed()) {
 			if (!display.readAndDispatch()) {
 				display.sleep();
 			}
 		}
+		
 		return null;
 	}
 
@@ -116,44 +114,41 @@ public class WizardDialog extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
+		GridLayout gridLayoutShell = new GridLayout(2, false);
+		gridLayoutShell.marginTop = 0;
+		gridLayoutShell.marginLeft = -2;
+		gridLayoutShell.marginHeight = 0;
+		gridLayoutShell.marginWidth = 0;
+		gridLayoutShell.horizontalSpacing = 0;
+		gridLayoutShell.verticalSpacing = 0;
+
 		shell = new Shell(getParent(), SWT.DIALOG_TRIM);
 		shell.setToolTipText("");
-		//shell.setBackground(WidgetDecorator.COLOR_WIDGET);
+		shell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		shell.setSize(700, 500);
 		shell.setText(getText());
-		GridLayout gl_shell = new GridLayout(2, false);
-		gl_shell.marginLeft = -2;
-		gl_shell.marginHeight = 0;
-		gl_shell.marginWidth = 0;
-		gl_shell.horizontalSpacing = 0;
-		gl_shell.verticalSpacing = 0;
-		shell.setLayout(gl_shell);
+		shell.setLayout(gridLayoutShell);
 
-		Label imageLabel = new Label(shell, SWT.NONE);
-		imageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 2));
-		imageLabel.setImage(SWTResourceManager.getImage("/org/syncany/gui/images/wizard-left.png"));
+		String leftImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-left.png";
+		Image leftImage = SWTResourceManager.getImage(leftImageResource);
+		
+		Label leftImageLabel = new Label(shell, SWT.NONE);
+		leftImageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 2));
+		leftImageLabel.setImage(leftImage);
+
+		stackLayout = new StackLayout();
 
 		stackComposite = new Composite(shell, SWT.NONE);
-		stackLayout = new StackLayout();
 		stackComposite.setLayout(stackLayout);
 		stackComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, true, 1, 1));
 
-		Composite buttonComposite = new Composite(shell, SWT.NONE);
-		RowLayout rl_buttonComposite = new RowLayout(SWT.HORIZONTAL);
-		rl_buttonComposite.marginBottom = 15;
-		rl_buttonComposite.marginRight = 20;
-		buttonComposite.setLayout(rl_buttonComposite);
-		buttonComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false, 1, 1));
+		RowLayout rowLayoutButtonComposite = new RowLayout(SWT.HORIZONTAL);
+		rowLayoutButtonComposite.marginBottom = 15;
+		rowLayoutButtonComposite.marginRight = 20;
 
-		cancelButton = new Button(buttonComposite, SWT.NONE);
-		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		cancelButton.setText(I18n.getString("dialog.default.cancel"));
-		cancelButton.addListener(SWT.Selection, new Listener() {
-			@Override
-			public void handleEvent(Event event) {
-				handleCancel();
-			}
-		});
+		Composite buttonComposite = new Composite(shell, SWT.NONE);
+		buttonComposite.setLayout(rowLayoutButtonComposite);
+		buttonComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false, 1, 1));
 
 		previousButton = new Button(buttonComposite, SWT.NONE);
 		previousButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
@@ -161,7 +156,7 @@ public class WizardDialog extends Dialog {
 		previousButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				handlePrevious();
+				handleFlow(ClickAction.PREVIOUS);
 			}
 		});
 
@@ -171,83 +166,104 @@ public class WizardDialog extends Dialog {
 		nextButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				handleNext();
+				handleFlow(ClickAction.NEXT);
 			}
 		});
 
-		finishButton = new Button(buttonComposite, SWT.NONE);
-		finishButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		finishButton.setText(I18n.getString("dialog.default.finish"));
-		finishButton.addListener(SWT.Selection, new Listener() {
+		cancelButton = new Button(buttonComposite, SWT.NONE);
+		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
+		cancelButton.setText(I18n.getString("dialog.default.cancel"));
+		cancelButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-
+				safeDispose();
 			}
 		});
 
-		WidgetDecorator.normal(nextButton, previousButton, cancelButton, finishButton);
+		shell.setDefaultButton(nextButton);
+		
+		WidgetDecorator.normal(nextButton, previousButton, cancelButton);
 	}
+	
+	private void handleFlow(ClickAction clickAction) {
+		if (currentPanel == startPanel) {
+			startPanelSelection = startPanel.getState().getSelection();
+		}
 
-	private void handleNext() {
-		WizardPanelComposite panel = panels.get(selectedPanel);
-		if (panel.isValid()) {
-			userInput.merge(panel.getUserSelection());
-			showPanel(selectedPanel.getNext());
+		switch (startPanelSelection) {
+		case INIT: 
+			handleInitFlow(clickAction);
+			break;
+		case CONNECT_MANUAL: 
+			handleConnectFlowManual(clickAction);
+			break;
+		case CONNECT_URL: 
+			handleConnectFlowUrl(clickAction);
+			break;
+		case ADD_EXISTING: 
+			handleAddExistingFlow(clickAction);
+			break;				
 		}
 	}
 
-	private void handlePrevious() {
-		showPanel(selectedPanel.getPrevious());
-	}
-
-	private void handleCancel() {
-		safeDispose();
-	}
-
-	public UserInput getUserInput() {
-		return userInput;
-	}
-
-	private void showPanel(Panel panel) {
-		selectedPanel = panel;
-		WizardPanelComposite wizardPanel = panels.get(panel);
-		stackLayout.topControl = wizardPanel;
-		wizardPanel.updateData();
-		toggleButtons(wizardPanel);
-		stackComposite.layout();
-	}
-
-	private void toggleButtons(boolean state) {
-		nextButton.setEnabled(state);
-		previousButton.setEnabled(state);
-		cancelButton.setEnabled(state);
-		finishButton.setEnabled(state);
-	}
-
-	private void toggleButtons(WizardPanelComposite panel) {
-		nextButton.setEnabled(panel.hasNextButton());
-		previousButton.setEnabled(panel.hasPreviousButton());
-		cancelButton.setEnabled(panel.hasCancelButton());
-		finishButton.setEnabled(panel.hasFinishButton());
-	}
-
-	public void updateFinishButton(final boolean state) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				finishButton.setEnabled(state);
+	private void handleAddExistingFlow(ClickAction clickAction) {
+		if (currentPanel == startPanel) {
+			if (clickAction == ClickAction.NEXT) {
+				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);				
+				showPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
 			}
-		});
+		}
+		else if (currentPanel == selectFolderPanel) {
+			if (clickAction == ClickAction.PREVIOUS) {
+				showPanel(startPanel, ClickAction.NEXT);
+			}
+			else if (clickAction == ClickAction.NEXT) {
+				showPanel(progressPanel);
+			}
+		}
+		else if (currentPanel == progressPanel) {
+			if (clickAction == ClickAction.PREVIOUS) {
+				showPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
+			}
+			else if (clickAction == ClickAction.NEXT) {
+				showPanel(startPanel);
+			}
+		}
 	}
 
-	public void updateNextButton(final boolean state) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				nextButton.setEnabled(state);
-			}
-		});
+	private void handleConnectFlowUrl(ClickAction clickAction) {
+		// TODO Auto-generated method stub
+		
 	}
+
+	private void handleConnectFlowManual(ClickAction clickAction) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void handleInitFlow(ClickAction clickAction) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void showPanel(WizardPanel panel, ClickAction... allowedActions) {
+		boolean currentPanelValid = currentPanel == null || currentPanel.isValid();
+		
+		if (currentPanelValid) {		
+			// Set new current panel
+			currentPanel = panel;
+			
+			// Do layout
+			stackLayout.topControl = currentPanel;			
+			stackComposite.layout();
+			
+			// Toggle buttons
+			ArrayList<ClickAction> allowedActionsList = Lists.newArrayList(allowedActions);
+			
+			nextButton.setEnabled(allowedActionsList.contains(ClickAction.NEXT));
+			previousButton.setEnabled(allowedActionsList.contains(ClickAction.PREVIOUS));
+		}
+	}	
 
 	public void safeDispose() {
 		Display.getDefault().asyncExec(new Runnable() {
@@ -259,7 +275,9 @@ public class WizardDialog extends Dialog {
 	}
 
 	private void buildPanels() {
-		panels.put(Panel.START, new StartPanel(this, stackComposite, SWT.NONE));
-		panels.put(Panel.LOCAL_FOLDER_SELECTION, new SelectLocalFolderPanel(this, stackComposite, SWT.NONE));
+		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
+		selectFolderPanel = new SelectFolderPanel(this, stackComposite, SWT.NONE);
+		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
+		summaryPanel = new SummaryPanel(this, stackComposite, SWT.NONE);
 	}
 }

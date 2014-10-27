@@ -32,19 +32,16 @@ import org.syncany.gui.util.I18n;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class StartPanel extends WizardPanelComposite {
+public class StartPanel extends WizardPanel {
 	private Button createStorageRadio;
 	private Button connectStorageRadio;
 	private Button watchStorageRadio;
 	private Button existingUrl;
 
-	public StartPanel(WizardDialog wizardParentDialog, Composite composite, int style) {
+	public StartPanel(WizardDialog parentDialog, Composite composite, int style) {
 		// Trick for windowBuilder to work
-		super(wizardParentDialog, composite == null ? new Composite(new Shell(), SWT.NONE) : composite, style);
-		initComposite();
-	}
-
-	private void initComposite() {
+		super(parentDialog, composite == null ? new Composite(new Shell(), SWT.NONE) : composite, style);
+			
 		GridLayout gridLayoutComposite = new GridLayout(1, false);
 		gridLayoutComposite.marginRight = 30;
 
@@ -131,9 +128,9 @@ public class StartPanel extends WizardPanelComposite {
 		});
 
 		Label watchText = new Label(this, SWT.WRAP);
-		GridData gd_watchText = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-		gd_watchText.horizontalIndent = 30;
-		watchText.setLayoutData(gd_watchText);
+		GridData gridDataWatchText = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		gridDataWatchText.horizontalIndent = 30;
+		watchText.setLayoutData(gridDataWatchText);
 		watchText.setText(I18n.getString("dialog.start.option.watchExisting.helpText"));
 
 		WidgetDecorator.bold(introductionTitleText);
@@ -158,38 +155,40 @@ public class StartPanel extends WizardPanelComposite {
 	}
 
 	@Override
-	public UserInput getUserSelection() {
-		UserInput userInput = new UserInput();
+	public StartPanelState getState() {		
 		if (createStorageRadio.getSelection()) {
-			userInput.putCommonParameter(CommonParameters.COMMAND_ACTION, "create");
+			return new StartPanelState(StartPanelSelection.INIT);
 		}
 		else if (connectStorageRadio.getSelection()) {
-			userInput.putCommonParameter(CommonParameters.COMMAND_ACTION, "connect");
-			userInput.putCommonParameter(CommonParameters.AVAILABLE_URL, existingUrl.getSelection() ? "yes" : "no");
+			if (existingUrl.getSelection()) {
+				return new StartPanelState(StartPanelSelection.CONNECT_URL);
+			}
+			else {
+				return new StartPanelState(StartPanelSelection.CONNECT_MANUAL);
+			}
 		}
 		else {
-			userInput.putCommonParameter(CommonParameters.COMMAND_ACTION, "watch");
+			return new StartPanelState(StartPanelSelection.ADD_EXISTING);
 		}
-		return userInput;
 	}
-
-	@Override
-	public boolean hasNextButton() {
-		return true;
+	
+	public enum StartPanelSelection {
+		INIT, CONNECT_MANUAL, CONNECT_URL, ADD_EXISTING
 	}
+	
+	public class StartPanelState implements PanelState {
+		private StartPanelSelection selection;
 
-	@Override
-	public boolean hasPreviousButton() {
-		return false;
-	}
+		public StartPanelState(StartPanelSelection selection) {
+			this.selection = selection;
+		}
+		
+		public StartPanelSelection getSelection() {
+			return selection;
+		}
 
-	@Override
-	public boolean hasFinishButton() {
-		return false;
-	}
-
-	@Override
-	public void updateData() {
-
+		public void setSelection(StartPanelSelection selection) {
+			this.selection = selection;
+		}			
 	}
 }

@@ -17,12 +17,6 @@
  */
 package org.syncany.gui.wizard;
 
-
-/**
- * @author vwiencek
- *
- */
-public interface UserParametersChecker {
-	public abstract UserInput getUserSelection();
-	public abstract boolean isValid();
+public interface PanelState {
+	// Marker
 }
