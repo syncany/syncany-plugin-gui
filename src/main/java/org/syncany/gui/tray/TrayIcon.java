@@ -24,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
 import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
+import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
@@ -79,6 +81,18 @@ public abstract class TrayIcon {
 		startAnimationThread();
 	}
 
+	protected void showNew() {
+		shell.getDisplay().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
+				wizardDialog.open();
+			}
+		});
+		
+		new WizardDialog(shell, SWT.APPLICATION_MODAL);
+	}
+	
 	protected void showFolder(File folder) {
 		DesktopHelper.openFolder(folder);
 	}

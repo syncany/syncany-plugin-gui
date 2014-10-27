@@ -112,6 +112,15 @@ def do_update_menu(request):
 	'''---'''
 	menu.append(gtk.SeparatorMenuItem())	
 
+	'''New ...'''
+	menu_item_donate = gtk.MenuItem("New ...")
+	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
+	
+	menu.append(menu_item_donate)	
+
+	'''---'''
+	menu.append(gtk.SeparatorMenuItem())	
+
 	'''Folders'''
 	if request is not None:
 		folders = request.xpath("//folder")

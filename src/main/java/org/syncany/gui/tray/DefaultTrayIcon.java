@@ -115,6 +115,17 @@ public class DefaultTrayIcon extends TrayIcon {
 		statusTextItem.setEnabled(false);
 
 		new MenuItem(menu, SWT.SEPARATOR);
+		
+		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
+		newItem.setText("New ...");
+		newItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showNew();
+			}
+		});
+
+		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
 			for (final File file : watches){

@@ -200,6 +200,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
 
 				switch (clickEvent.getAction()) {
+				case NEW:
+					showNew();
+					break;
+
 				case DONATE:
 					showDonate();
 					break;

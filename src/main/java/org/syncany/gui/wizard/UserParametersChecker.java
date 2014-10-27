@@ -15,25 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.daemon.messages;
+package org.syncany.gui.wizard;
 
-import org.simpleframework.xml.Element;
 
-public class ClickTrayMenuGuiInternalEvent extends GuiInternalEvent {
-	public enum TrayAction { NEW, WEBSITE, DONATE, EXIT }
-	
-	@Element(name = "action")
-	private TrayAction action;
-
-	public ClickTrayMenuGuiInternalEvent() {
-		// Nothing
-	}
-
-	public ClickTrayMenuGuiInternalEvent(TrayAction action) {
-		this.action = action;
-	}
-
-	public TrayAction getAction() {
-		return action;
-	}
+/**
+ * @author vwiencek
+ *
+ */
+public interface UserParametersChecker {
+	public abstract UserInput getUserSelection();
+	public abstract boolean isValid();
 }
