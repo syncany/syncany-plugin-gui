@@ -10,12 +10,14 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.Config;
 import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -27,43 +29,57 @@ public class SelectFolderPanel extends WizardPanel {
 	};
 
 	private Text localDir;
-	private Label introductionLabel;
+	private Label welcomeText;
 	private Label messageLabel;
 
 	private SelectFolderValidationMethod validationMethod;
 
 	public SelectFolderPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
 		super(wizardParentDialog, parent, style);
-		
-		GridLayout gridLayoutComposite = new GridLayout(3, false);
+				
+		// Main composite
+		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
+		mainCompositeGridLayout.marginTop = 15;
+		mainCompositeGridLayout.marginLeft = 10;
+		mainCompositeGridLayout.marginRight = 20;
 
-		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		setLayout(gridLayoutComposite);
+		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));		
+		setLayout(mainCompositeGridLayout);
+		setBackground(SWTResourceManager.getColor(236, 236, 236));
+	
+		// Title and welcome text
+		Label titleLabel = new Label(this, SWT.WRAP);
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		titleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
+			
+		WidgetDecorator.title(titleLabel);
 
-		Label introductionTitleLabel = new Label(this, SWT.WRAP);
-		introductionTitleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
-		introductionTitleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
+		welcomeText = new Label(this, SWT.WRAP);
+		welcomeText.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+		welcomeText.setText("..");
 
-		introductionLabel = new Label(this, SWT.WRAP);
-		introductionLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
-		introductionLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction"));
+		WidgetDecorator.normal(welcomeText);
 
-		GridData gridDataHostLabel = new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1);
-		gridDataHostLabel.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
+		// Label "Folder:"
+		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		selectFolderLabel.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
+		selectFolderLabel.horizontalSpan = 2;
 
-		Label hostLabel = new Label(this, SWT.WRAP);
-		hostLabel.setLayoutData(gridDataHostLabel);
-		hostLabel.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolder", true));
+		Label seledctFolderLabel = new Label(this, SWT.WRAP);
+		seledctFolderLabel.setLayoutData(selectFolderLabel);
+		seledctFolderLabel.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolder"));
 
-		GridData gridDataHostText = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gridDataHostText.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
-		gridDataHostText.minimumWidth = 200;
+		// Textfield "Folder"
+		GridData folderTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		folderTextGridData.verticalIndent = 0;
+		folderTextGridData.minimumWidth = 200;
 
 		localDir = new Text(this, SWT.BORDER);
-		localDir.setLayoutData(gridDataHostText);
+		localDir.setLayoutData(folderTextGridData);
 
+		// Button "Select ..."
 		Button selectFolderButton = new Button(this, SWT.FLAT);
-		selectFolderButton.setText("Select Folder ...");
+		selectFolderButton.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolderButton"));
 		selectFolderButton.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, false, false, 1, 1));
 		selectFolderButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -75,12 +91,22 @@ public class SelectFolderPanel extends WizardPanel {
 		messageLabel = new Label(this, SWT.WRAP);
 		messageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
 
-		WidgetDecorator.bold(introductionTitleLabel);
-		WidgetDecorator.normal(introductionLabel, localDir, hostLabel, messageLabel);
+		WidgetDecorator.normal(localDir, seledctFolderLabel, messageLabel);
+
 	}
 	
 	public void setValidationMethod(SelectFolderValidationMethod validationMethod) {
 		this.validationMethod = validationMethod;
+	}
+	
+	public void setWelcomeText(final String welcomeTextStr) {
+		Display.getDefault().asyncExec(new Runnable() {			
+			@Override
+			public void run() {
+				welcomeText.setText(welcomeTextStr);
+				layout();
+			}
+		});
 	}
 	
 	@Override

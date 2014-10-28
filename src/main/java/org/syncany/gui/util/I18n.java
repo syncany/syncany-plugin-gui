@@ -150,7 +150,7 @@ public class I18n implements Serializable {
 
 		try {
 			Properties ap = bundles.get(Locale.getDefault());
-			return ap == null ? key : ap.getProperty(key).trim() + (semicolon ? " :" : "");
+			return ap == null ? key : ap.getProperty(key).trim() + (semicolon ? ":" : "");
 		}
 		catch (NullPointerException e) {
 			if (key != null && !key.isEmpty()) {

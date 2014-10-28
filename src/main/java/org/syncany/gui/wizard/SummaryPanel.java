@@ -102,7 +102,7 @@ public class SummaryPanel extends WizardPanel {
 
 		Label repositoryActionLabel = new Label(this, SWT.NONE);
 		repositoryActionLabel.setLayoutData(gridDataRepositoryTypeLabel);
-		repositoryActionLabel.setText(I18n.getString("dialog.summary.repositoryAction", true));
+		repositoryActionLabel.setText(I18n.getString("dialog.summary.repositoryAction"));
 		
 		GridData gridDataRepositoryType = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
 		gridDataRepositoryType.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
@@ -112,21 +112,21 @@ public class SummaryPanel extends WizardPanel {
 		
 		Label repositoryTypeLabel = new Label(this, SWT.NONE);
 		repositoryTypeLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		repositoryTypeLabel.setText(I18n.getString("dialog.summary.repositoryType", true));
+		repositoryTypeLabel.setText(I18n.getString("dialog.summary.repositoryType"));
 		
 		repositoryType = new Label(this, SWT.NONE);
 		repositoryType.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
 		Label localFolderLabel = new Label(this, SWT.NONE);
 		localFolderLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		localFolderLabel.setText(I18n.getString("dialog.summary.localFolder", true));
+		localFolderLabel.setText(I18n.getString("dialog.summary.localFolder"));
 		
 		localFolder = new Label(this, SWT.NONE);
 		localFolder.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		
 		encryptionTypeLabel = new Label(this, SWT.NONE);
 		encryptionTypeLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.TOP, false, false, 1, 1));
-		encryptionTypeLabel.setText(I18n.getString("dialog.summary.encryptionSettings", true));
+		encryptionTypeLabel.setText(I18n.getString("dialog.summary.encryptionSettings"));
 		
 		encryptionType = new Label(this, SWT.NONE);
 		encryptionType.setLayoutData(new GridData(SWT.FILL, SWT.TOP, false, false, 1, 1));

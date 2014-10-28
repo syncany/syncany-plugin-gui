@@ -71,16 +71,11 @@ public class WizardDialog extends Dialog {
 		I18n.registerBundleFilter("plugin_messages*");		
 
 		Shell shell = new Shell(); 
-		Display display = Display.getDefault();
 
 		WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
 		wizardDialog.open();
 		
-		while (!shell.isDisposed()) {
-			if (!display.readAndDispatch()) {
-				display.sleep();
-			}
-		}		
+		shell.dispose();
 	}
 	
 	public WizardDialog(Shell parent, int style) {
@@ -114,21 +109,23 @@ public class WizardDialog extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
-		GridLayout gridLayoutShell = new GridLayout(2, false);
-		gridLayoutShell.marginTop = 0;
-		gridLayoutShell.marginLeft = -2;
-		gridLayoutShell.marginHeight = 0;
-		gridLayoutShell.marginWidth = 0;
-		gridLayoutShell.horizontalSpacing = 0;
-		gridLayoutShell.verticalSpacing = 0;
+		GridLayout shellGridLayout = new GridLayout(2, false);
+		shellGridLayout.marginTop = 0;
+		shellGridLayout.marginLeft = -2;
+		shellGridLayout.marginHeight = 0;
+		shellGridLayout.marginWidth = 0;
+		shellGridLayout.horizontalSpacing = 0;
+		shellGridLayout.verticalSpacing = 0;
+		shellGridLayout.numColumns = 2;
 
 		shell = new Shell(getParent(), SWT.DIALOG_TRIM);
 		shell.setToolTipText("");
 		shell.setBackground(WidgetDecorator.COLOR_WIDGET);
-		shell.setSize(700, 500);
+		shell.setSize(640, 480);
 		shell.setText(getText());
-		shell.setLayout(gridLayoutShell);
+		shell.setLayout(shellGridLayout);
 
+		// Row 1, Column 1: Image
 		String leftImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-left.png";
 		Image leftImage = SWTResourceManager.getImage(leftImageResource);
 		
@@ -136,20 +133,37 @@ public class WizardDialog extends Dialog {
 		leftImageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 2));
 		leftImageLabel.setImage(leftImage);
 
+		// Row 1, Column 2: Panel
 		stackLayout = new StackLayout();
-
+		stackLayout.marginHeight = 0;
+		stackLayout.marginWidth = 0;
+		
 		stackComposite = new Composite(shell, SWT.NONE);
 		stackComposite.setLayout(stackLayout);
 		stackComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, true, 1, 1));
+		
+		// Row 2, Column 1+2: Line
+	    GridData horizontalLineGridData = new GridData(GridData.FILL_HORIZONTAL);
+	    horizontalLineGridData.horizontalSpan = 2;
 
-		RowLayout rowLayoutButtonComposite = new RowLayout(SWT.HORIZONTAL);
-		rowLayoutButtonComposite.marginBottom = 15;
-		rowLayoutButtonComposite.marginRight = 20;
+	    Label horizontalLine = new Label(shell, SWT.SEPARATOR | SWT.HORIZONTAL);	    
+	    horizontalLine.setLayoutData(horizontalLineGridData);
+	   
+	    // Row 3: Column 1+2: Button Composite
+		RowLayout buttonCompositeRowLayout = new RowLayout(SWT.HORIZONTAL);
+		buttonCompositeRowLayout.marginTop = 15;
+		buttonCompositeRowLayout.marginBottom = 15;
+		buttonCompositeRowLayout.marginRight = 20;
 
+		GridData buttonCompositeGridData = new GridData(SWT.RIGHT, SWT.FILL, false, false);
+		buttonCompositeGridData.horizontalSpan = 2;
+		buttonCompositeGridData.verticalSpan = 1;
+				
 		Composite buttonComposite = new Composite(shell, SWT.NONE);
-		buttonComposite.setLayout(rowLayoutButtonComposite);
-		buttonComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, false, false, 1, 1));
+		buttonComposite.setLayout(buttonCompositeRowLayout);
+		buttonComposite.setLayoutData(buttonCompositeGridData);
 
+		// Buttons
 		previousButton = new Button(buttonComposite, SWT.NONE);
 		previousButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
 		previousButton.setText(I18n.getString("dialog.default.previous"));
@@ -209,8 +223,10 @@ public class WizardDialog extends Dialog {
 	private void handleAddExistingFlow(ClickAction clickAction) {
 		if (currentPanel == startPanel) {
 			if (clickAction == ClickAction.NEXT) {
-				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);				
-				showPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
+				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);
+				selectFolderPanel.setWelcomeText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
+				
+				validateAndShowPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
 			}
 		}
 		else if (currentPanel == selectFolderPanel) {
@@ -218,7 +234,7 @@ public class WizardDialog extends Dialog {
 				showPanel(startPanel, ClickAction.NEXT);
 			}
 			else if (clickAction == ClickAction.NEXT) {
-				showPanel(progressPanel);
+				validateAndShowPanel(progressPanel);
 			}
 		}
 		else if (currentPanel == progressPanel) {
@@ -226,7 +242,7 @@ public class WizardDialog extends Dialog {
 				showPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
 			}
 			else if (clickAction == ClickAction.NEXT) {
-				showPanel(startPanel);
+				validateAndShowPanel(startPanel);
 			}
 		}
 	}
@@ -246,23 +262,27 @@ public class WizardDialog extends Dialog {
 		
 	}
 
-	private void showPanel(WizardPanel panel, ClickAction... allowedActions) {
+	private void validateAndShowPanel(WizardPanel panel, ClickAction... allowedActions) {
 		boolean currentPanelValid = currentPanel == null || currentPanel.isValid();
 		
-		if (currentPanelValid) {		
-			// Set new current panel
-			currentPanel = panel;
-			
-			// Do layout
-			stackLayout.topControl = currentPanel;			
-			stackComposite.layout();
-			
-			// Toggle buttons
-			ArrayList<ClickAction> allowedActionsList = Lists.newArrayList(allowedActions);
-			
-			nextButton.setEnabled(allowedActionsList.contains(ClickAction.NEXT));
-			previousButton.setEnabled(allowedActionsList.contains(ClickAction.PREVIOUS));
+		if (currentPanelValid) {	
+			showPanel(panel, allowedActions);
 		}
+	}	
+	
+	private void showPanel(WizardPanel panel, ClickAction... allowedActions) {			
+		// Set new current panel
+		currentPanel = panel;
+		
+		// Do layout
+		stackLayout.topControl = currentPanel;			
+		stackComposite.layout();
+		
+		// Toggle buttons
+		ArrayList<ClickAction> allowedActionsList = Lists.newArrayList(allowedActions);
+		
+		nextButton.setEnabled(allowedActionsList.contains(ClickAction.NEXT));
+		previousButton.setEnabled(allowedActionsList.contains(ClickAction.PREVIOUS));
 	}	
 
 	public void safeDispose() {

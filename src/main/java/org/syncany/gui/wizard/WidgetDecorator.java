@@ -48,8 +48,9 @@ public class WidgetDecorator {
 	private static String FONT_NAME = "Segoe UI";
 	private static int FONT_SIZE = EnvironmentUtil.isMacOSX() ? 12 : EnvironmentUtil.isWindows() ? 9 : 9;
 
+	private static Font FONT_TITLE = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 5, SWT.NORMAL);
 	private static Font FONT_NORMAL = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.NORMAL);
-	private static Font FONT_BOLD = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.BOLD);
+	private static Font FONT_BOLD = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 3, SWT.NORMAL);
 
 	public static void bold(Control... controls) {
 		for (Control control : controls) {
@@ -63,6 +64,7 @@ public class WidgetDecorator {
 	public static void normal(TreeItem... controls) {
 		for (TreeItem control : controls) {
 			control.setFont(FONT_NORMAL);
+			control.setForeground(GRAY);
 		}
 	}
 
@@ -72,6 +74,12 @@ public class WidgetDecorator {
 			if (control instanceof Text) {
 				enhanceFocus((Text) control);
 			}
+		}
+	}
+
+	public static void title(Control... controls) {
+		for (Control control : controls) {
+			control.setFont(FONT_TITLE);
 		}
 	}
 
@@ -105,4 +113,5 @@ public class WidgetDecorator {
 			markAsInvalid(c);
 		}
 	}
+
 }
