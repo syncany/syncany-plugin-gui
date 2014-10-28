@@ -21,7 +21,7 @@ import java.io.File;
 
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.SelectFolderPanel.SelectFolderValidationMethod;
-import org.syncany.gui.wizard.WizardDialog.ClickAction;
+import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.AddWatchManagementRequest;
 import org.syncany.operations.daemon.messages.AddWatchManagementResponse;
@@ -52,20 +52,20 @@ public class AddExistingPanelController extends PanelController {
 	}
 
 	@Override
-	public void handleFlow(ClickAction clickAction) {
+	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
-			if (clickAction == ClickAction.NEXT) {
+			if (clickAction == Action.NEXT) {
 				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);
 				selectFolderPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
 
-				wizardDialog.validateAndSetCurrentPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
+				wizardDialog.validateAndSetCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
 			}
 		}
 		else if (wizardDialog.getCurrentPanel() == selectFolderPanel) {
-			if (clickAction == ClickAction.PREVIOUS) {
-				wizardDialog.setCurrentPanel(startPanel, ClickAction.NEXT);
+			if (clickAction == Action.PREVIOUS) {
+				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
 			}
-			else if (clickAction == ClickAction.NEXT) {
+			else if (clickAction == Action.NEXT) {
 				progressPanel.setTitleText(I18n.getString("dialog.progressPanel.add.title"));
 				progressPanel.setDescriptionText(I18n.getString("dialog.progressPanel.add.text"));
 
@@ -77,10 +77,10 @@ public class AddExistingPanelController extends PanelController {
 			}
 		}
 		else if (wizardDialog.getCurrentPanel() == progressPanel) {
-			if (clickAction == ClickAction.PREVIOUS) {
-				wizardDialog.setCurrentPanel(selectFolderPanel, ClickAction.PREVIOUS, ClickAction.NEXT);
+			if (clickAction == Action.PREVIOUS) {
+				wizardDialog.setCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
 			}
-			else if (clickAction == ClickAction.NEXT) {
+			else if (clickAction == Action.NEXT) {
 				wizardDialog.validateAndSetCurrentPanel(startPanel);
 			}
 		}
@@ -90,7 +90,7 @@ public class AddExistingPanelController extends PanelController {
 		File newWatchFolder = selectFolderPanel.getFolder();
 		AddWatchManagementRequest addWatchManagementRequest = new AddWatchManagementRequest(newWatchFolder);
 		
-		progressPanel.resetProgressBar(3);
+		progressPanel.resetPanel(3);
 		progressPanel.appendLog("Adding folder "+ newWatchFolder + " ... ");
 
 		eventBus.post(addWatchManagementRequest);		
@@ -109,7 +109,7 @@ public class AddExistingPanelController extends PanelController {
 			progressPanel.setShowDetails(true);
 			progressPanel.appendLog("ERROR.\nUnable to add folder; reason: " + response.getCode() + ", " + response.getMessage());
 			
-			wizardDialog.setAllowedActions(ClickAction.PREVIOUS);			
+			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
 	}
 	
@@ -127,7 +127,7 @@ public class AddExistingPanelController extends PanelController {
 			progressPanel.setShowDetails(true);
 			progressPanel.appendLog("ERROR.\nUnable to reload daemon; reason: " + response.getCode() + ", " + response.getMessage());
 			
-			wizardDialog.setAllowedActions(ClickAction.PREVIOUS);			
+			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
 	}
 
@@ -140,14 +140,14 @@ public class AddExistingPanelController extends PanelController {
 				progressPanel.setProgress(3);
 				progressPanel.appendLog("DONE.\nAdding folder successful.");
 				
-				wizardDialog.setAllowedActions(ClickAction.FINISH);			
+				wizardDialog.setAllowedActions(Action.FINISH);			
 			}
 			else {
 				progressPanel.setProgress(3);
 				progressPanel.setShowDetails(true);
 				progressPanel.appendLog("ERROR.\nUnable to list folders; reason: " + response.getCode() + ", " + response.getMessage());
 	
-				wizardDialog.setAllowedActions(ClickAction.PREVIOUS);			
+				wizardDialog.setAllowedActions(Action.PREVIOUS);			
 			}
 		}
 	}

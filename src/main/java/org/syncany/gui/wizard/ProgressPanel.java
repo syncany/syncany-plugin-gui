@@ -17,9 +17,6 @@
  */
 package org.syncany.gui.wizard;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -143,19 +140,24 @@ public class ProgressPanel extends Panel {
 		});
 	}
 	
-	public void resetProgressBar(final int maximum) {
-		Display.getDefault().asyncExec(new Runnable() {
+	public void resetPanel(final int maximumProgress) {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				progressBar.setMinimum(0);
-				progressBar.setMaximum(maximum);
+				progressBar.setMaximum(maximumProgress);
 				progressBar.setSelection(0);
+				
+				progressLogCheckButton.setSelection(false);
+
+				progressLogText.setVisible(false);
+				progressLogText.setText("");
 			}
 		});		
 	}
 	
 	public void setProgress(final int position) {
-		Display.getDefault().asyncExec(new Runnable() {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				progressBar.setSelection(position);
@@ -164,7 +166,7 @@ public class ProgressPanel extends Panel {
 	}
 	
 	public void setShowDetails(final boolean showDetailsPanel) {
-		Display.getDefault().asyncExec(new Runnable() {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				progressLogCheckButton.setSelection(showDetailsPanel);
@@ -176,32 +178,5 @@ public class ProgressPanel extends Panel {
 	@Override
 	public boolean isValid() {
 		return true;
-	}
-
-	public void startIndeterminateProgressBar() {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				progressBar.setState(SWT.NORMAL);
-			}
-		});
-
-		new Timer().schedule(new TimerTask() {
-			@Override
-			public void run() {
-				stopIndeterminateProgressBar();
-			}
-		}, 1000 * 5);
-	}
-
-	public void stopIndeterminateProgressBar() {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (!progressBar.isDisposed() && progressBar.getState() == SWT.NORMAL) {
-					progressBar.setState(SWT.PAUSED);
-				}
-			}
-		});
 	}
 }

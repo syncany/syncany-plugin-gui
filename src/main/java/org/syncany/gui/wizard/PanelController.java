@@ -18,7 +18,7 @@
 package org.syncany.gui.wizard;
 
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.wizard.WizardDialog.ClickAction;
+import org.syncany.gui.wizard.WizardDialog.Action;
 
 /**
  * @author pheckel
@@ -42,5 +42,5 @@ public abstract class PanelController {
 		wizardDialog = null;
 	}
 
-	public abstract void handleFlow(ClickAction action);
+	public abstract void handleFlow(Action action);
 }

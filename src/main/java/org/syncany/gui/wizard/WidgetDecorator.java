@@ -55,6 +55,7 @@ public class WidgetDecorator {
 	public static void bold(Control... controls) {
 		for (Control control : controls) {
 			font(control, FONT_BOLD);
+			
 			if (control instanceof Text) {
 				enhanceFocus((Text) control);
 			}

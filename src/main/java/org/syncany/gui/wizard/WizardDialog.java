@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class WizardDialog extends Dialog {
-	public enum ClickAction {
+	public enum Action {
 		PREVIOUS, NEXT, FINISH
 	};
 
@@ -58,7 +58,6 @@ public class WizardDialog extends Dialog {
 	private StartPanel startPanel;
 	private SelectFolderPanel selectFolderPanel;
 	private ProgressPanel progressPanel;
-	private SummaryPanel summaryPanel;
 	
 	private Panel currentPanel;
 	private PanelController panelController;
@@ -96,7 +95,7 @@ public class WizardDialog extends Dialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(startPanel, ClickAction.NEXT);
+		setCurrentPanel(startPanel, Action.NEXT);
 
 		DialogUtil.centerOnScreen(shell);
 
@@ -179,7 +178,7 @@ public class WizardDialog extends Dialog {
 		previousButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				handleFlow(ClickAction.PREVIOUS);
+				handleFlow(Action.PREVIOUS);
 			}
 		});
 
@@ -189,7 +188,7 @@ public class WizardDialog extends Dialog {
 		nextButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				handleFlow(ClickAction.NEXT);
+				handleFlow(Action.NEXT);
 			}
 		});
 
@@ -212,10 +211,9 @@ public class WizardDialog extends Dialog {
 		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
 		selectFolderPanel = new SelectFolderPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
-		summaryPanel = new SummaryPanel(this, stackComposite, SWT.NONE);
 	}
 
-	private void handleFlow(ClickAction clickAction) {
+	private void handleFlow(Action clickAction) {
 		if (stackLayout.topControl == startPanel) {
 			if (panelController != null) {
 				panelController.destroy();
@@ -224,7 +222,9 @@ public class WizardDialog extends Dialog {
 			panelController = createPanelStrategy(startPanel.getSelection());
 		}
 		
-		panelController.handleFlow(clickAction);
+		if (panelController != null) {
+			panelController.handleFlow(clickAction);
+		}
 	}
 	
 	private PanelController createPanelStrategy(StartPanelSelection startPanelSelection) {
@@ -236,7 +236,7 @@ public class WizardDialog extends Dialog {
 		case CONNECT_MANUAL:
 		case CONNECT_URL:
 		default:
-			throw new RuntimeException("Not yet implemented.");
+			return null;
 		}
 	}
 
@@ -244,7 +244,7 @@ public class WizardDialog extends Dialog {
 		return currentPanel;
 	}
 
-	public void setCurrentPanel(Panel newPanel, ClickAction... allowedActions) {
+	public void setCurrentPanel(Panel newPanel, Action... allowedActions) {
 		// Set current panel
 		currentPanel = newPanel;
 		
@@ -255,16 +255,16 @@ public class WizardDialog extends Dialog {
 		setAllowedActions(allowedActions);
 	}
 	
-	public void setAllowedActions(final ClickAction... allowedActions) {
+	public void setAllowedActions(final Action... allowedActions) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				ArrayList<ClickAction> allowedActionsList = Lists.newArrayList(allowedActions);
+				ArrayList<Action> allowedActionsList = Lists.newArrayList(allowedActions);
 
-				nextButton.setEnabled(allowedActionsList.contains(ClickAction.NEXT));
-				previousButton.setEnabled(allowedActionsList.contains(ClickAction.PREVIOUS));
+				nextButton.setEnabled(allowedActionsList.contains(Action.NEXT));
+				previousButton.setEnabled(allowedActionsList.contains(Action.PREVIOUS));
 				
-				if (allowedActionsList.contains(ClickAction.FINISH)) {
+				if (allowedActionsList.contains(Action.FINISH)) {
 					cancelButton.setText(I18n.getString("dialog.default.finish"));
 				}
 				else {
@@ -272,10 +272,9 @@ public class WizardDialog extends Dialog {
 				}
 			}
 		});
-
 	}
 	
-	protected boolean validateAndSetCurrentPanel(Panel panel, ClickAction... allowedActions) {
+	protected boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
 		boolean currentPanelValid = currentPanel == null || currentPanel.isValid();
 
 		if (currentPanelValid) {
