@@ -17,6 +17,30 @@
  */
 package org.syncany.gui.wizard;
 
-public interface PanelState {
-	// Marker
+import org.syncany.config.GuiEventBus;
+import org.syncany.gui.wizard.WizardDialog.ClickAction;
+
+/**
+ * @author pheckel
+ *
+ */
+public abstract class PanelController {
+	protected WizardDialog wizardDialog;
+	protected GuiEventBus eventBus;
+
+	public PanelController(WizardDialog wizardDialog) {
+		this.wizardDialog = wizardDialog;
+		
+		this.eventBus = GuiEventBus.getInstance();
+		this.eventBus.register(this);		
+	}
+	
+	public void destroy() {
+		eventBus.unregister(this);		
+		
+		eventBus = null;
+		wizardDialog = null;
+	}
+
+	public abstract void handleFlow(ClickAction action);
 }

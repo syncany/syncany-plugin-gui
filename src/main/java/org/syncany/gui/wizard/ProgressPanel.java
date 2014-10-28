@@ -19,57 +19,160 @@ package org.syncany.gui.wizard;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
-import org.syncany.gui.util.I18n;
+import org.eclipse.swt.widgets.Text;
+import org.syncany.config.GuiEventBus;
+import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class ProgressPanel extends WizardPanel {
-	private static Logger logger = Logger.getLogger(ProgressPanel.class.getSimpleName());
-	
-	private Label summaryIntroductionTitleLabel;
-	private Label summaryIntroductionLabel;
+public class ProgressPanel extends Panel {
+	private Label titleLabel;
+	private Label descriptionLabel;
 
+	private Button progressLogCheckButton;
+	private Text progressLogText;
 	private ProgressBar progressBar;
-	
+
+	private GuiEventBus eventBus;
+
 	public ProgressPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
 		super(wizardParentDialog, parent, style);
+
+		this.eventBus = GuiEventBus.getInstance();
+		this.eventBus.register(this);
+
 		initComposite();
 	}
-	
-	private void initComposite(){
-		GridLayout gridLayout = new GridLayout(2, false);
-		gridLayout.horizontalSpacing = 8;
-		setLayout(gridLayout);
-		
-		summaryIntroductionTitleLabel = new Label(this, SWT.NONE);
-		summaryIntroductionTitleLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
-		summaryIntroductionTitleLabel.setText(I18n.getString("dialog.summary.introduction.title"));
-		
-		summaryIntroductionLabel = new Label(this, SWT.NONE);
-		summaryIntroductionLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
-		summaryIntroductionLabel.setText(I18n.getString("dialog.summary.introduction"));
-		
-		GridData gridDataProgressBar = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
-		gridDataProgressBar.verticalIndent = 50;
 
-		progressBar = new ProgressBar(this, SWT.INDETERMINATE);
-		progressBar.setLayoutData(gridDataProgressBar);
+	private void initComposite() {
+		// Main composite
+		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
+		mainCompositeGridLayout.marginTop = 15;
+		mainCompositeGridLayout.marginBottom = 15;
+		mainCompositeGridLayout.marginLeft = 10;
+		mainCompositeGridLayout.marginRight = 10;
+
+		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		setLayout(mainCompositeGridLayout);
+		setBackground(SWTResourceManager.getColor(236, 236, 236));
+
+		// Title and welcome text
+		titleLabel = new Label(this, SWT.WRAP);
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		titleLabel.setText("..");
+
+		WidgetDecorator.title(titleLabel);
+
+		descriptionLabel = new Label(this, SWT.WRAP);
+		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+		descriptionLabel.setText("..");
+
+		WidgetDecorator.normal(descriptionLabel);		
+		
+		// Progress bar
+		GridData progressBarGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		progressBarGridData.verticalIndent = 20;
+		
+		progressBar = new ProgressBar(this, SWT.SMOOTH);
+		progressBar.setLayoutData(progressBarGridData);
 		progressBar.setState(SWT.PAUSED);
-	
-		WidgetDecorator.bold(summaryIntroductionTitleLabel);
+		
+		// Check box for details
+		GridData logCheckGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		logCheckGridData.horizontalSpan = 2;
+		
+		progressLogCheckButton = new Button(this, SWT.CHECK);
+		progressLogCheckButton.setText("Show Details");
+		progressLogCheckButton.setLayoutData(logCheckGridData);
+		
+		progressLogCheckButton.addSelectionListener(new SelectionAdapter() {			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				progressLogText.setVisible(progressLogCheckButton.getSelection());
+			}			
+		});
+		
+		// Details
+		GridData progressLogTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);
+		progressLogTextGridData.verticalIndent = 20;
+
+		progressLogText = new Text(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
+		progressLogText.setLayoutData(new GridData(GridData.FILL_BOTH));
+		progressLogText.setVisible(false);
 	}
 	
+	public void setTitleText(final String titleStr) {
+		Display.getDefault().asyncExec(new Runnable() {			
+			@Override
+			public void run() {
+				titleLabel.setText(titleStr);
+				layout();
+			}
+		});
+	}
+	
+	public void setDescriptionText(final String descriptionStr) {
+		Display.getDefault().asyncExec(new Runnable() {			
+			@Override
+			public void run() {
+				descriptionLabel.setText(descriptionStr);
+				layout();
+			}
+		});
+	}
+
+	public void appendLog(final String logLine) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				progressLogText.append(logLine);
+			}
+		});
+	}
+	
+	public void resetProgressBar(final int maximum) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				progressBar.setMinimum(0);
+				progressBar.setMaximum(maximum);
+				progressBar.setSelection(0);
+			}
+		});		
+	}
+	
+	public void setProgress(final int position) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				progressBar.setSelection(position);
+			}
+		});
+	}
+	
+	public void setShowDetails(final boolean showDetailsPanel) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				progressLogCheckButton.setSelection(showDetailsPanel);
+				progressLogText.setVisible(showDetailsPanel);
+			}
+		});
+	}
+
 	@Override
 	public boolean isValid() {
 		return true;
@@ -82,28 +185,23 @@ public class ProgressPanel extends WizardPanel {
 				progressBar.setState(SWT.NORMAL);
 			}
 		});
-		
+
 		new Timer().schedule(new TimerTask() {
 			@Override
 			public void run() {
 				stopIndeterminateProgressBar();
 			}
-		}, 1000*5);
+		}, 1000 * 5);
 	}
 
 	public void stopIndeterminateProgressBar() {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				if (!progressBar.isDisposed() && progressBar.getState() == SWT.NORMAL){
+				if (!progressBar.isDisposed() && progressBar.getState() == SWT.NORMAL) {
 					progressBar.setState(SWT.PAUSED);
 				}
 			}
 		});
-	}
-
-	@Override
-	public PanelState getState() {
-		return null;
 	}
 }

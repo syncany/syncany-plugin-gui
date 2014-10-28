@@ -44,7 +44,7 @@ import org.syncany.gui.util.I18n;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class SummaryPanel extends WizardPanel {
+public class SummaryPanel extends Panel {
 	private static Logger logger = Logger.getLogger(SummaryPanel.class.getSimpleName());
 	
 	private Label repositoryOperation;
@@ -281,11 +281,5 @@ public class SummaryPanel extends WizardPanel {
 		this.link = link;
 		stackLayout.topControl = successInitComposite;
 		stackComposite.layout();
-	}
-
-	@Override
-	public PanelState getState() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

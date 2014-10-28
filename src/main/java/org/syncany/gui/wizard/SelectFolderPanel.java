@@ -23,13 +23,13 @@ import org.syncany.gui.util.SWTResourceManager;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class SelectFolderPanel extends WizardPanel {
+public class SelectFolderPanel extends Panel {
 	public enum SelectFolderValidationMethod {
 		NO_APP_FOLDER, APP_FOLDER
 	};
 
 	private Text localDir;
-	private Label welcomeText;
+	private Label descriptionText;
 	private Label messageLabel;
 
 	private SelectFolderValidationMethod validationMethod;
@@ -54,11 +54,11 @@ public class SelectFolderPanel extends WizardPanel {
 			
 		WidgetDecorator.title(titleLabel);
 
-		welcomeText = new Label(this, SWT.WRAP);
-		welcomeText.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		welcomeText.setText("..");
+		descriptionText = new Label(this, SWT.WRAP);
+		descriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+		descriptionText.setText("..");
 
-		WidgetDecorator.normal(welcomeText);
+		WidgetDecorator.normal(descriptionText);
 
 		// Label "Folder:"
 		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
@@ -99,11 +99,11 @@ public class SelectFolderPanel extends WizardPanel {
 		this.validationMethod = validationMethod;
 	}
 	
-	public void setWelcomeText(final String welcomeTextStr) {
+	public void setDescriptionText(final String descriptionTextStr) {
 		Display.getDefault().asyncExec(new Runnable() {			
 			@Override
 			public void run() {
-				welcomeText.setText(welcomeTextStr);
+				descriptionText.setText(descriptionTextStr);
 				layout();
 			}
 		});
@@ -192,20 +192,7 @@ public class SelectFolderPanel extends WizardPanel {
 		}
 	}
 
-	@Override
-	public SelectFolderPanelState getState() {
-		return new SelectFolderPanelState(new File(localDir.getText()));
-	}
-
-	public class SelectFolderPanelState implements PanelState {
-		private File folder;
-
-		public SelectFolderPanelState(File folder) {
-			this.folder = folder;
-		}
-
-		public File getFolder() {
-			return folder;
-		}
+	public File getFolder() {
+		return new File(localDir.getText());
 	}
 }

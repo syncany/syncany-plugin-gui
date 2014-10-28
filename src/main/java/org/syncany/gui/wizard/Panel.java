@@ -23,14 +23,14 @@ import org.eclipse.swt.widgets.Composite;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public abstract class WizardPanel extends Composite {
+public abstract class Panel extends Composite {
 	private WizardDialog parentDialog;
 
-	protected WizardPanel(Composite parent, int style) {
+	protected Panel(Composite parent, int style) {
 		super(parent, style);
 	}
 
-	public WizardPanel(WizardDialog parentDialog, Composite parent, int style) {
+	public Panel(WizardDialog parentDialog, Composite parent, int style) {
 		this(parent, style);
 		this.parentDialog = parentDialog;
 	}
@@ -39,6 +39,5 @@ public abstract class WizardPanel extends Composite {
 		return parentDialog;
 	}
 	
-	public abstract PanelState getState();	
 	public abstract boolean isValid();
 }

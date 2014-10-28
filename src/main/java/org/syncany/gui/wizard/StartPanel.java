@@ -20,7 +20,6 @@ package org.syncany.gui.wizard;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -33,7 +32,7 @@ import org.syncany.gui.util.SWTResourceManager;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  *
  */
-public class StartPanel extends WizardPanel {
+public class StartPanel extends Panel {
 	private Button createStorageRadio;
 	private Button connectStorageRadio;
 	private Button watchStorageRadio;
@@ -155,41 +154,24 @@ public class StartPanel extends WizardPanel {
 		return createStorageRadio.getSelection() || connectStorageRadio.getSelection() || watchStorageRadio.getSelection();
 	}
 
-	@Override
-	public StartPanelState getState() {		
+	public StartPanelSelection getSelection() {		
 		if (createStorageRadio.getSelection()) {
-			return new StartPanelState(StartPanelSelection.INIT);
+			return StartPanelSelection.INIT;
 		}
 		else if (connectStorageRadio.getSelection()) {
 			if (existingUrl.getSelection()) {
-				return new StartPanelState(StartPanelSelection.CONNECT_URL);
+				return StartPanelSelection.CONNECT_URL;
 			}
 			else {
-				return new StartPanelState(StartPanelSelection.CONNECT_MANUAL);
+				return StartPanelSelection.CONNECT_MANUAL;
 			}
 		}
 		else {
-			return new StartPanelState(StartPanelSelection.ADD_EXISTING);
+			return StartPanelSelection.ADD_EXISTING;
 		}
 	}
 	
 	public enum StartPanelSelection {
 		INIT, CONNECT_MANUAL, CONNECT_URL, ADD_EXISTING
-	}
-	
-	public class StartPanelState implements PanelState {
-		private StartPanelSelection selection;
-
-		public StartPanelState(StartPanelSelection selection) {
-			this.selection = selection;
-		}
-		
-		public StartPanelSelection getSelection() {
-			return selection;
-		}
-
-		public void setSelection(StartPanelSelection selection) {
-			this.selection = selection;
-		}			
 	}
 }
