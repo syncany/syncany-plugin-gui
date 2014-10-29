@@ -24,7 +24,6 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.swt.widgets.TreeItem;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
@@ -35,7 +34,7 @@ import org.syncany.util.EnvironmentUtil;
 public class WidgetDecorator {
 	public static final int VERTICAL_INDENT = 20;
 
-	public static final int DEFAULT_BUTTON_WIDTH = 90;
+	public static final int DEFAULT_BUTTON_WIDTH = 100;
 	public static final int DEFAULT_BUTTON_HEIGHT = 30;
 
 	public static final Color INVALID_TEXT_COLOR = SWTResourceManager.getColor(255, 218, 185);
@@ -43,18 +42,42 @@ public class WidgetDecorator {
 	public static final Color WHITE = SWTResourceManager.getColor(SWT.COLOR_WHITE);
 	public static final Color BLACK = SWTResourceManager.getColor(SWT.COLOR_BLACK);
 	public static final Color GRAY = SWTResourceManager.getColor(SWT.COLOR_GRAY);
+	public static final Color DARK_GRAY = SWTResourceManager.getColor(SWT.COLOR_DARK_GRAY);
+	
 	public static final Color COLOR_WIDGET = SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND);
-
+	public static final Color COLOR_WIDGET_LIGHT = SWTResourceManager.getColor(
+			SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND).getRed() + 22,
+			SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND).getGreen() + 22,
+			SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND).getBlue() + 22
+	);
+	
 	private static String FONT_NAME = "Segoe UI";
-	private static int FONT_SIZE = EnvironmentUtil.isMacOSX() ? 12 : EnvironmentUtil.isWindows() ? 9 : 9;
+	private static int FONT_SIZE = EnvironmentUtil.isMacOSX() ? 10 : EnvironmentUtil.isWindows() ? 9 : 9;
 
 	private static Font FONT_TITLE = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 5, SWT.NORMAL);
+	private static Font FONT_BIGGER = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 2, SWT.BOLD);
 	private static Font FONT_NORMAL = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.NORMAL);
-	private static Font FONT_BOLD = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 3, SWT.NORMAL);
+	private static Font FONT_BOLD = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.BOLD);
 
+	public static void title(Control... controls) {
+		font(FONT_TITLE, controls);
+	}
+
+	public static void bigger(Control... controls) {
+		font(FONT_BIGGER, controls);
+	}
+
+	public static void normal(Control... controls) {
+		font(FONT_NORMAL, controls);
+	}
+	
 	public static void bold(Control... controls) {
+		font(FONT_BOLD, controls);
+	}
+
+	public static void font(Font font, Control... controls) {
 		for (Control control : controls) {
-			font(control, FONT_BOLD);
+			font(font, control);
 			
 			if (control instanceof Text) {
 				enhanceFocus((Text) control);
@@ -62,34 +85,13 @@ public class WidgetDecorator {
 		}
 	}
 
-	public static void normal(TreeItem... controls) {
-		for (TreeItem control : controls) {
-			control.setFont(FONT_NORMAL);
-			control.setForeground(GRAY);
-		}
-	}
-
-	public static void normal(Control... controls) {
-		for (Control control : controls) {
-			font(control, FONT_NORMAL);
-			if (control instanceof Text) {
-				enhanceFocus((Text) control);
-			}
-		}
-	}
-
-	public static void title(Control... controls) {
-		for (Control control : controls) {
-			control.setFont(FONT_TITLE);
-		}
-	}
-
-	private static void font(Control control, Font font) {
+	private static void font(Font font, Control control) {
 		control.setFont(font);
 	}
 
 	private static void enhanceFocus(Text control) {
 		final Text text = (Text) control;
+		
 		text.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusGained(FocusEvent e) {
@@ -98,21 +100,11 @@ public class WidgetDecorator {
 		});
 	}
 
-	private static void markAsInvalid(Control c) {
-		c.setBackground(INVALID_TEXT_COLOR);
+	public static void markAsInvalid(Control control) {
+		control.setBackground(INVALID_TEXT_COLOR);
 	}
 
-	private static void markAsValid(Control c) {
-		c.setBackground(WHITE);
+	public static void markAsValid(Control control) {
+		control.setBackground(WHITE);
 	}
-
-	public static void markAs(boolean valid, Control c) {
-		if (valid) {
-			markAsValid(c);
-		}
-		else {
-			markAsInvalid(c);
-		}
-	}
-
 }

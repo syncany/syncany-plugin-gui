@@ -29,11 +29,10 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ProgressPanel extends Panel {
 	private Label titleLabel;
@@ -64,7 +63,6 @@ public class ProgressPanel extends Panel {
 
 		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		setLayout(mainCompositeGridLayout);
-		setBackground(SWTResourceManager.getColor(236, 236, 236));
 
 		// Title and welcome text
 		titleLabel = new Label(this, SWT.WRAP);
@@ -176,7 +174,7 @@ public class ProgressPanel extends Panel {
 	}
 
 	@Override
-	public boolean isValid() {
+	public boolean validatePanel() {
 		return true;
 	}
 }

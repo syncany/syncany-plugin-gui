@@ -204,6 +204,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 					showNew();
 					break;
 
+				case REPORT_ISSUE:
+					showReportIssue();
+					break;
+					
 				case DONATE:
 					showDonate();
 					break;

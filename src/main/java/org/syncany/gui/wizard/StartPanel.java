@@ -18,160 +18,137 @@
 package org.syncany.gui.wizard;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.gui.util.I18n;
-import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class StartPanel extends Panel {
+	public enum StartPanelSelection {
+		INIT, CONNECT, ADD_EXISTING
+	}
+
 	private Button createStorageRadio;
 	private Button connectStorageRadio;
-	private Button watchStorageRadio;
-	private Button existingUrl;
+	private Button addWatchStorageRadio;
 
 	public StartPanel(WizardDialog parentDialog, Composite composite, int style) {
 		super(parentDialog, composite, style);
-		
+
 		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
 
-		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));		
+		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		setLayout(mainCompositeGridLayout);
-		setBackground(SWTResourceManager.getColor(236, 236, 236));
 
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
 		titleLabel.setText(I18n.getString("dialog.start.introductionText.title"));
 
-		Label welcomeTextLabel = new Label(this, SWT.WRAP);
-		welcomeTextLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
-		welcomeTextLabel.setText(I18n.getString("dialog.start.introductionText"));
+		WidgetDecorator.title(titleLabel);
 
-		// Toggle checkboxes/buttons
-		SelectionAdapter toggleButtonsSelectionAdapter = new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				toggleButtons();
-			}
-		};
+		Label descriptionLabel = new Label(this, SWT.WRAP);
+		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
+		descriptionLabel.setText(I18n.getString("dialog.start.introductionText"));
 		
+		WidgetDecorator.normal(descriptionLabel);
+
 		// Radio button "Create new repo"
-		GridData gridDataCreateStorageRadio = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gridDataCreateStorageRadio.verticalIndent = 20;
-		gridDataCreateStorageRadio.horizontalIndent = 0;
-		gridDataCreateStorageRadio.heightHint = 20;
+		GridData createStorageRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		createStorageRadioGridData.verticalIndent = 23;
+		createStorageRadioGridData.horizontalIndent = 0;
+		createStorageRadioGridData.heightHint = 20;
 
 		createStorageRadio = new Button(this, SWT.RADIO);
-		createStorageRadio.setLayoutData(gridDataCreateStorageRadio);
+		createStorageRadio.setLayoutData(createStorageRadioGridData);
 		createStorageRadio.setBounds(0, 0, 90, 16);
 		createStorageRadio.setText(I18n.getString("dialog.start.option.createOnlineStorage"));
-		createStorageRadio.setSelection(true);
-		createStorageRadio.addSelectionListener(toggleButtonsSelectionAdapter);
+		createStorageRadio.setForeground(WidgetDecorator.DARK_GRAY);
+		createStorageRadio.setEnabled(false);
+		
+		WidgetDecorator.bigger(createStorageRadio);
 
-		GridData gridDataCreateText = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-		gridDataCreateText.horizontalIndent = 0;
+		GridData createStorageTextGridData = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		createStorageTextGridData.horizontalIndent = 25;
 
-		Label createText = new Label(this, SWT.WRAP);
-		createText.setLayoutData(gridDataCreateText);
-		createText.setText(I18n.getString("dialog.start.option.createOnlineStorage.helpText"));
+		Label createStorageText = new Label(this, SWT.WRAP);
+		createStorageText.setLayoutData(createStorageTextGridData);
+		createStorageText.setText(I18n.getString("dialog.start.option.createOnlineStorage.helpText"));
+
+		WidgetDecorator.normal(createStorageText);
 
 		// Radio button "Connect to existing repo"
-		GridData gridDataConnectStorageRadio = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gridDataConnectStorageRadio.verticalIndent = 20;
-		gridDataConnectStorageRadio.horizontalIndent = 0;
-		gridDataConnectStorageRadio.heightHint = 20;
+		GridData connectStorageRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		connectStorageRadioGridData.verticalIndent = 23;
+		connectStorageRadioGridData.horizontalIndent = 0;
+		connectStorageRadioGridData.heightHint = 20;
 
 		connectStorageRadio = new Button(this, SWT.RADIO);
-		connectStorageRadio.setLayoutData(gridDataConnectStorageRadio);
+		connectStorageRadio.setLayoutData(connectStorageRadioGridData);
 		connectStorageRadio.setBounds(0, 0, 90, 16);
 		connectStorageRadio.setText(I18n.getString("dialog.start.option.connectExisting"));
-		connectStorageRadio.addSelectionListener(toggleButtonsSelectionAdapter);
+		connectStorageRadio.setForeground(WidgetDecorator.DARK_GRAY);
+		connectStorageRadio.setEnabled(false);
+		
+		WidgetDecorator.bigger(connectStorageRadio);
 
-		GridData gridDataConnectText = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-		gridDataConnectText.horizontalIndent = 0;
+		GridData connectStorageTextGridData = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		connectStorageTextGridData.horizontalIndent = 25;
 
-		Label connectText = new Label(this, SWT.WRAP);
-		connectText.setLayoutData(gridDataConnectText);
-		connectText.setText(I18n.getString("dialog.start.option.connectExisting.helpText"));
+		Label connectStorageText = new Label(this, SWT.WRAP);
+		connectStorageText.setLayoutData(connectStorageTextGridData);
+		connectStorageText.setText(I18n.getString("dialog.start.option.connectExisting.helpText"));
 
-		GridData gridDataExistingUrl = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gridDataExistingUrl.horizontalIndent = 0;
-
-		existingUrl = new Button(this, SWT.CHECK);
-		existingUrl.setEnabled(false);
-		existingUrl.setLayoutData(gridDataExistingUrl);
-		existingUrl.setText(I18n.getString("dialog.start.option.connectExisting.url"));
+		WidgetDecorator.normal(connectStorageText);
 
 		// Radio button "Add existing folder"
-		GridData gridDataWatchStorageRadio = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gridDataWatchStorageRadio.verticalIndent = 20;
-		gridDataWatchStorageRadio.horizontalIndent = 0;
-		gridDataWatchStorageRadio.heightHint = 20;
+		GridData addWatchStorageRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		addWatchStorageRadioGridData.verticalIndent = 23;
+		addWatchStorageRadioGridData.horizontalIndent = 0;
+		addWatchStorageRadioGridData.heightHint = 20;
 
-		watchStorageRadio = new Button(this, SWT.RADIO);
-		watchStorageRadio.setLayoutData(gridDataWatchStorageRadio);
-		watchStorageRadio.setBounds(0, 0, 90, 16);
-		watchStorageRadio.setText(I18n.getString("dialog.start.option.watchExisting"));
-		watchStorageRadio.addSelectionListener(toggleButtonsSelectionAdapter);
+		addWatchStorageRadio = new Button(this, SWT.RADIO);
+		addWatchStorageRadio.setLayoutData(addWatchStorageRadioGridData);
+		addWatchStorageRadio.setBounds(0, 0, 90, 16);
+		addWatchStorageRadio.setText(I18n.getString("dialog.start.option.watchExisting"));
+		addWatchStorageRadio.setSelection(true);
+		
+		WidgetDecorator.bigger(addWatchStorageRadio);
 
-		Label watchText = new Label(this, SWT.WRAP);
-		GridData gridDataWatchText = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
-		gridDataWatchText.horizontalIndent = 0;
-		watchText.setLayoutData(gridDataWatchText);
-		watchText.setText(I18n.getString("dialog.start.option.watchExisting.helpText"));
+		GridData addWatchTextGridData = new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1);
+		addWatchTextGridData.horizontalIndent = 25;
 
-		WidgetDecorator.title(titleLabel);
-		WidgetDecorator.bold(createStorageRadio);
-		WidgetDecorator.bold(connectStorageRadio);
-		WidgetDecorator.bold(watchStorageRadio);
+		Label addWatchText = new Label(this, SWT.WRAP);
+		addWatchText.setLayoutData(addWatchTextGridData);
+		addWatchText.setText(I18n.getString("dialog.start.option.watchExisting.helpText"));
 
-		WidgetDecorator.normal(welcomeTextLabel);
-		WidgetDecorator.normal(existingUrl);
-		WidgetDecorator.normal(createText);
-		WidgetDecorator.normal(connectText);
-		WidgetDecorator.normal(watchText);
-	}
-
-	protected void toggleButtons() {
-		existingUrl.setEnabled(connectStorageRadio.getSelection());
+		WidgetDecorator.normal(addWatchText);
 	}
 
 	@Override
-	public boolean isValid() {
-		return createStorageRadio.getSelection() || connectStorageRadio.getSelection() || watchStorageRadio.getSelection();
+	public boolean validatePanel() {
+		return createStorageRadio.getSelection() || connectStorageRadio.getSelection() || addWatchStorageRadio.getSelection();
 	}
 
-	public StartPanelSelection getSelection() {		
+	public StartPanelSelection getSelection() {
 		if (createStorageRadio.getSelection()) {
 			return StartPanelSelection.INIT;
 		}
 		else if (connectStorageRadio.getSelection()) {
-			if (existingUrl.getSelection()) {
-				return StartPanelSelection.CONNECT_URL;
-			}
-			else {
-				return StartPanelSelection.CONNECT_MANUAL;
-			}
+			return StartPanelSelection.CONNECT;
 		}
 		else {
 			return StartPanelSelection.ADD_EXISTING;
 		}
-	}
-	
-	public enum StartPanelSelection {
-		INIT, CONNECT_MANUAL, CONNECT_URL, ADD_EXISTING
 	}
 }

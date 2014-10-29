@@ -20,7 +20,7 @@ package org.syncany.operations.daemon.messages;
 import org.simpleframework.xml.Element;
 
 public class ClickTrayMenuGuiInternalEvent extends GuiInternalEvent {
-	public enum TrayAction { NEW, WEBSITE, DONATE, EXIT }
+	public enum TrayAction { NEW, WEBSITE, DONATE, REPORT_ISSUE, EXIT }
 	
 	@Element(name = "action")
 	private TrayAction action;

@@ -17,17 +17,24 @@
  */
 package org.syncany.gui.wizard;
 
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class Panel extends Composite {
 	private WizardDialog parentDialog;
 
 	protected Panel(Composite parent, int style) {
 		super(parent, style);
+		
+		String backImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-back.png";
+		Image backImage = SWTResourceManager.getImage(backImageResource);
+
+		setBackgroundImage(backImage);
 	}
 
 	public Panel(WizardDialog parentDialog, Composite parent, int style) {
@@ -39,5 +46,5 @@ public abstract class Panel extends Composite {
 		return parentDialog;
 	}
 	
-	public abstract boolean isValid();
+	public abstract boolean validatePanel();
 }

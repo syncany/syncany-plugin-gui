@@ -21,8 +21,7 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.gui.wizard.WizardDialog.Action;
 
 /**
- * @author pheckel
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class PanelController {
 	protected WizardDialog wizardDialog;

@@ -33,8 +33,7 @@ import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import com.google.common.eventbus.Subscribe;
 
 /**
- * @author pheckel
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class AddExistingPanelController extends PanelController {
 	private StartPanel startPanel;
@@ -107,7 +106,7 @@ public class AddExistingPanelController extends PanelController {
 		else {
 			progressPanel.setProgress(3);
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\nUnable to add folder; reason: " + response.getCode() + ", " + response.getMessage());
+			progressPanel.appendLog("ERROR.\n\nUnable to add folder (code: " + response.getCode() + ")\n" + response.getMessage());
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
@@ -125,7 +124,7 @@ public class AddExistingPanelController extends PanelController {
 		else {
 			progressPanel.setProgress(3);
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\nUnable to reload daemon; reason: " + response.getCode() + ", " + response.getMessage());
+			progressPanel.appendLog("ERROR.\n\nUnable to reload daemon (code: " + response.getCode() + ")\n" + response.getMessage());
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
@@ -145,7 +144,7 @@ public class AddExistingPanelController extends PanelController {
 			else {
 				progressPanel.setProgress(3);
 				progressPanel.setShowDetails(true);
-				progressPanel.appendLog("ERROR.\nUnable to list folders; reason: " + response.getCode() + ", " + response.getMessage());
+				progressPanel.appendLog("ERROR.\n\nUnable to list folders (code: " + response.getCode() + ")\n" + response.getMessage());
 	
 				wizardDialog.setAllowedActions(Action.PREVIOUS);			
 			}

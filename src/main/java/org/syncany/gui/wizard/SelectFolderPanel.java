@@ -3,8 +3,11 @@ package org.syncany.gui.wizard;
 import java.io.File;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -30,26 +33,33 @@ public class SelectFolderPanel extends Panel {
 
 	private Text localDir;
 	private Label descriptionText;
-	private Label messageLabel;
+	
+	private Label warningImageLabel;
+	private Label warningMessageLabel;
 
 	private SelectFolderValidationMethod validationMethod;
+	private boolean firstValidationDone;
 
 	public SelectFolderPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
 		super(wizardParentDialog, parent, style);
+		
+		this.createControls();
+		this.firstValidationDone = false;
+	}
 				
+	private void createControls() {
 		// Main composite
-		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
 
 		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));		
 		setLayout(mainCompositeGridLayout);
-		setBackground(SWTResourceManager.getColor(236, 236, 236));
 	
-		// Title and welcome text
+		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
-		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
 		titleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
 			
 		WidgetDecorator.title(titleLabel);
@@ -61,21 +71,32 @@ public class SelectFolderPanel extends Panel {
 		WidgetDecorator.normal(descriptionText);
 
 		// Label "Folder:"
-		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false);
 		selectFolderLabel.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
-		selectFolderLabel.horizontalSpan = 2;
+		selectFolderLabel.horizontalSpan = 3;
 
 		Label seledctFolderLabel = new Label(this, SWT.WRAP);
 		seledctFolderLabel.setLayoutData(selectFolderLabel);
 		seledctFolderLabel.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolder"));
 
 		// Textfield "Folder"
-		GridData folderTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		GridData folderTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
 		folderTextGridData.verticalIndent = 0;
+		folderTextGridData.horizontalSpan = 2;
 		folderTextGridData.minimumWidth = 200;
 
 		localDir = new Text(this, SWT.BORDER);
 		localDir.setLayoutData(folderTextGridData);
+		localDir.addModifyListener(new ModifyListener() {			
+			@Override
+			public void modifyText(ModifyEvent e) {
+				if (firstValidationDone) {
+					validatePanel();
+				}
+			}
+		});
+		
+		WidgetDecorator.normal(localDir);
 
 		// Button "Select ..."
 		Button selectFolderButton = new Button(this, SWT.FLAT);
@@ -87,12 +108,23 @@ public class SelectFolderPanel extends Panel {
 				onSelectFolderClick();
 			}
 		});
+		
+		WidgetDecorator.normal(seledctFolderLabel);
 
-		messageLabel = new Label(this, SWT.WRAP);
-		messageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 3, 1));
+		// Warning message and label
+		String warningImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/warning-icon.png";
+		Image warningImage = SWTResourceManager.getImage(warningImageResource);
 
-		WidgetDecorator.normal(localDir, seledctFolderLabel, messageLabel);
+		warningImageLabel = new Label(this, SWT.NONE);
+		warningImageLabel.setImage(warningImage);
+		warningImageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1));
+		warningImageLabel.setVisible(false);
 
+		warningMessageLabel = new Label(this, SWT.WRAP);
+		warningMessageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+		warningMessageLabel.setVisible(false);
+		
+		WidgetDecorator.bold(warningMessageLabel);
 	}
 	
 	public void setValidationMethod(SelectFolderValidationMethod validationMethod) {
@@ -110,7 +142,9 @@ public class SelectFolderPanel extends Panel {
 	}
 	
 	@Override
-	public boolean isValid() {
+	public boolean validatePanel() {
+		firstValidationDone = true;
+		
 		switch (validationMethod) {
 		case APP_FOLDER:
 			return isValidAppFolder();
@@ -128,31 +162,30 @@ public class SelectFolderPanel extends Panel {
 		File appDir = new File(selectedDir, Config.DIR_APPLICATION);
 
 		if (appDir.exists()) {
-			WidgetDecorator.markAs(false, localDir);
+			WidgetDecorator.markAsInvalid(localDir);
 			return false;
 		}
 		else {
 			if (!selectedDir.isDirectory()) {
 				boolean allowCreate = askCreateFolder(getShell(), selectedDir);
-				WidgetDecorator.markAs(allowCreate, localDir);
 				
 				if (allowCreate) {
 					if (selectedDir.mkdirs()) {
-						WidgetDecorator.markAs(true, localDir);
+						WidgetDecorator.markAsValid(localDir);
 						return true;
 					}
 					else {
-						WidgetDecorator.markAs(false, localDir);
+						WidgetDecorator.markAsInvalid(localDir);
 						return false;
 					}
 				}
 				else {
-					WidgetDecorator.markAs(false, localDir);
+					WidgetDecorator.markAsInvalid(localDir);
 					return false;
 				}
 			}
 			else {
-				WidgetDecorator.markAs(true, localDir);
+				WidgetDecorator.markAsValid(localDir);
 				return true;
 			}
 		}		
@@ -160,12 +193,31 @@ public class SelectFolderPanel extends Panel {
 
 	private boolean isValidAppFolder() {
 		File selectedDir = new File(localDir.getText());
-		File appDir = new File(selectedDir, Config.DIR_APPLICATION);
+		File appDir = new File(selectedDir, Config.DIR_APPLICATION);		
+		
+		if (appDir.exists()) {
+			hideWarning();
+			return true;
+		}
+		else {
+			showWarning(I18n.getString("dialog.selectLocalFolder.error.noWatchFolder"));
+			return false;			
+		}
+	}
+	
+	private void showWarning(String warningStr) {
+		warningImageLabel.setVisible(true);
+		warningMessageLabel.setVisible(true);			
+		warningMessageLabel.setText(warningStr);
+		
+		WidgetDecorator.markAsInvalid(localDir);
+	}
+	
+	private void hideWarning() {
+		warningImageLabel.setVisible(false);
+		warningMessageLabel.setVisible(false);
 
-		boolean isValid = appDir.exists();
-			
-		WidgetDecorator.markAs(isValid, localDir);
-		return isValid;
+		WidgetDecorator.markAsValid(localDir);
 	}
 
 	private boolean askCreateFolder(Shell shell, File selectedDir) {
@@ -185,10 +237,13 @@ public class SelectFolderPanel extends Panel {
 	
 	private void onSelectFolderClick() {
 		DirectoryDialog directoryDialog = new DirectoryDialog(getShell());
+		directoryDialog.setFilterPath(localDir.getText());
+		
 		String selectedFolder = directoryDialog.open();
 
 		if (selectedFolder != null && selectedFolder.length() > 0) {
 			localDir.setText(selectedFolder);
+			validatePanel();
 		}
 	}
 

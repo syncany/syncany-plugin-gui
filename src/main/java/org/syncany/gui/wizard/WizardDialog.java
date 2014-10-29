@@ -35,7 +35,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.util.DialogUtil;
+import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.wizard.StartPanel.StartPanelSelection;
@@ -91,17 +91,20 @@ public class WizardDialog extends Dialog {
 		this.setText(I18n.getString("dialog.wizard.title"));
 	}
 
-	public Object open() {
+	public void open() {
+		// Create controls
 		createContents();
 		buildPanels();
 		
 		setCurrentPanel(startPanel, Action.NEXT);
 
-		DialogUtil.centerOnScreen(shell);
+		// Open shell
+		DesktopHelper.centerOnScreen(shell);
 
 		shell.open();
 		shell.layout();
 
+		// Dispatch loop
 		Display display = getParent().getDisplay();
 
 		while (!shell.isDisposed()) {
@@ -109,8 +112,6 @@ public class WizardDialog extends Dialog {
 				display.sleep();
 			}
 		}
-
-		return null;
 	}
 
 	/**
@@ -131,7 +132,7 @@ public class WizardDialog extends Dialog {
 		shell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		shell.setSize(640, 480);
 		shell.setText(getText());
-		shell.setLayout(shellGridLayout);
+		shell.setLayout(shellGridLayout);		
 
 		// Row 1, Column 1: Image
 		String leftImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-left.png";
@@ -170,6 +171,7 @@ public class WizardDialog extends Dialog {
 		Composite buttonComposite = new Composite(shell, SWT.NONE);
 		buttonComposite.setLayout(buttonCompositeRowLayout);
 		buttonComposite.setLayoutData(buttonCompositeGridData);
+		buttonComposite.setBackground(WidgetDecorator.COLOR_WIDGET);
 
 		// Buttons
 		previousButton = new Button(buttonComposite, SWT.NONE);
@@ -191,6 +193,9 @@ public class WizardDialog extends Dialog {
 				handleFlow(Action.NEXT);
 			}
 		});
+		
+		Label spacingLabel = new Label(buttonComposite, SWT.NONE);
+		spacingLabel.setText(" ");
 
 		cancelButton = new Button(buttonComposite, SWT.NONE);
 		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
@@ -233,8 +238,7 @@ public class WizardDialog extends Dialog {
 			return new AddExistingPanelController(this, startPanel, selectFolderPanel, progressPanel);
 
 		case INIT:
-		case CONNECT_MANUAL:
-		case CONNECT_URL:
+		case CONNECT:
 		default:
 			return null;
 		}
@@ -265,6 +269,7 @@ public class WizardDialog extends Dialog {
 				previousButton.setEnabled(allowedActionsList.contains(Action.PREVIOUS));
 				
 				if (allowedActionsList.contains(Action.FINISH)) {
+					shell.setDefaultButton(cancelButton);
 					cancelButton.setText(I18n.getString("dialog.default.finish"));
 				}
 				else {
@@ -275,7 +280,7 @@ public class WizardDialog extends Dialog {
 	}
 	
 	protected boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
-		boolean currentPanelValid = currentPanel == null || currentPanel.isValid();
+		boolean currentPanelValid = currentPanel == null || currentPanel.validatePanel();
 
 		if (currentPanelValid) {
 			setCurrentPanel(panel, allowedActions);
