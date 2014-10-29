@@ -111,8 +111,19 @@ public class DefaultTrayIcon extends TrayIcon {
 		menu = new Menu(shell, SWT.POP_UP);
 
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
-		statusTextItem.setText("All folders in sync");
+		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
 		statusTextItem.setEnabled(false);
+
+		new MenuItem(menu, SWT.SEPARATOR);
+		
+		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
+		newItem.setText(messages.get("tray.menuitem.new"));
+		newItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showNew();
+			}
+		});
 
 		new MenuItem(menu, SWT.SEPARATOR);
 
@@ -151,6 +162,15 @@ public class DefaultTrayIcon extends TrayIcon {
 			
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
+
+		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
+		reportIssueItem.setText(messages.get("tray.menuitem.issue"));
+		reportIssueItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showReportIssue();
+			}
+		});
 
 		MenuItem donateItem = new MenuItem(menu, SWT.PUSH);
 		donateItem.setText(messages.get("tray.menuitem.donate"));

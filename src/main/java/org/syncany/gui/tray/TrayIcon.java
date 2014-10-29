@@ -24,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
 import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
+import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
@@ -55,6 +57,7 @@ import com.google.common.eventbus.Subscribe;
  */
 public abstract class TrayIcon {
 	private static int REFRESH_TIME = 500;
+	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
 	
@@ -79,8 +82,22 @@ public abstract class TrayIcon {
 		startAnimationThread();
 	}
 
+	protected void showNew() {
+		shell.getDisplay().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
+				wizardDialog.open();
+			}
+		});
+	}
+	
 	protected void showFolder(File folder) {
 		DesktopHelper.openFolder(folder);
+	}
+	
+	protected void showReportIssue() {
+		DesktopHelper.browse(URL_REPORT_ISSUE);
 	}
 
 	protected void showDonate() {
@@ -226,10 +243,10 @@ public abstract class TrayIcon {
 	}	
 
 	private void initInternationalization() {
-		messages.put("tray.menuitem.open", I18n.getString("tray.menuitem.open"));
+		messages.put("tray.menuitem.new", I18n.getString("tray.menuitem.new"));
+		messages.put("tray.menuitem.status.insync", I18n.getString("tray.menuitem.status.insync"));
+		messages.put("tray.menuitem.issue", I18n.getString("tray.menuitem.issue"));
 		messages.put("tray.menuitem.donate", I18n.getString("tray.menuitem.donate"));
-		messages.put("tray.menuitem.pause", I18n.getString("tray.menuitem.pause"));
-		messages.put("tray.menuitem.resume", I18n.getString("tray.menuitem.resume"));
 		messages.put("tray.menuitem.exit", I18n.getString("tray.menuitem.exit"));
 		messages.put("tray.menuitem.website", I18n.getString("tray.menuitem.website"));
 	}

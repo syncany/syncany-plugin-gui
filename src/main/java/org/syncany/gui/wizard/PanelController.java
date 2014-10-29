@@ -15,29 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.daemon.messages.api;
+package org.syncany.gui.wizard;
 
-import java.util.Random;
+import org.syncany.config.GuiEventBus;
+import org.syncany.gui.wizard.WizardDialog.Action;
 
-import org.simpleframework.xml.Element;
-import org.simpleframework.xml.Namespace;
-import org.simpleframework.xml.Root;
+/**
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ */
+public abstract class PanelController {
+	protected WizardDialog wizardDialog;
+	protected GuiEventBus eventBus;
 
-@Root(strict = false)
-@Namespace(reference = "http://syncany.org/ws/1")
-public abstract class Request extends Message {
-	@Element(required = true)
-	private int id;	
+	public PanelController(WizardDialog wizardDialog) {
+		this.wizardDialog = wizardDialog;
+		
+		this.eventBus = GuiEventBus.getInstance();
+		this.eventBus.register(this);		
+	}
 	
-	public Request() {
-		this.id = Math.abs(new Random().nextInt());
+	public void destroy() {
+		eventBus.unregister(this);		
+		
+		eventBus = null;
+		wizardDialog = null;
 	}
 
-	public int getId() {
-		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
-	}
+	public abstract void handleFlow(Action action);
 }
