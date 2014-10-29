@@ -83,7 +83,6 @@ public class ProgressPanel extends Panel {
 		
 		progressBar = new ProgressBar(this, SWT.SMOOTH);
 		progressBar.setLayoutData(progressBarGridData);
-		progressBar.setState(SWT.PAUSED);
 		
 		// Check box for details
 		GridData logCheckGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1);

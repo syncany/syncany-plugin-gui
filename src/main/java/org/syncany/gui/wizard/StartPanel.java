@@ -83,6 +83,7 @@ public class StartPanel extends Panel {
 
 		Label createStorageText = new Label(this, SWT.WRAP);
 		createStorageText.setLayoutData(createStorageTextGridData);
+		createStorageText.setForeground(WidgetDecorator.DARK_GRAY);
 		createStorageText.setText(I18n.getString("dialog.start.option.createOnlineStorage.helpText"));
 
 		WidgetDecorator.normal(createStorageText);
@@ -107,6 +108,7 @@ public class StartPanel extends Panel {
 
 		Label connectStorageText = new Label(this, SWT.WRAP);
 		connectStorageText.setLayoutData(connectStorageTextGridData);
+		connectStorageText.setForeground(WidgetDecorator.DARK_GRAY);
 		connectStorageText.setText(I18n.getString("dialog.start.option.connectExisting.helpText"));
 
 		WidgetDecorator.normal(connectStorageText);
