@@ -17,6 +17,7 @@
  */
 package org.syncany.gui.wizard;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.syncany.gui.util.SWTResourceManager;
@@ -35,6 +36,7 @@ public abstract class Panel extends Composite {
 		Image backImage = SWTResourceManager.getImage(backImageResource);
 
 		setBackgroundImage(backImage);
+		setBackgroundMode(SWT.INHERIT_FORCE);
 	}
 
 	public Panel(WizardDialog parentDialog, Composite parent, int style) {

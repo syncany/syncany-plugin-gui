@@ -61,7 +61,7 @@ public class SelectFolderPanel extends Panel {
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
 		titleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
-			
+		
 		WidgetDecorator.title(titleLabel);
 
 		descriptionText = new Label(this, SWT.WRAP);
@@ -78,7 +78,7 @@ public class SelectFolderPanel extends Panel {
 		Label seledctFolderLabel = new Label(this, SWT.WRAP);
 		seledctFolderLabel.setLayoutData(selectFolderLabel);
 		seledctFolderLabel.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolder"));
-
+		
 		// Textfield "Folder"
 		GridData folderTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
 		folderTextGridData.verticalIndent = 0;
@@ -87,6 +87,7 @@ public class SelectFolderPanel extends Panel {
 
 		localDir = new Text(this, SWT.BORDER);
 		localDir.setLayoutData(folderTextGridData);
+		localDir.setBackground(WidgetDecorator.WHITE);
 		localDir.addModifyListener(new ModifyListener() {			
 			@Override
 			public void modifyText(ModifyEvent e) {
