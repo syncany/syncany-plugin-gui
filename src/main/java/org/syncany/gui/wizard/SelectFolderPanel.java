@@ -32,7 +32,7 @@ public class SelectFolderPanel extends Panel {
 	};
 
 	private Text localDir;
-	private Label descriptionText;
+	private Label descriptionLabel;
 	
 	private Label warningImageLabel;
 	private Label warningMessageLabel;
@@ -64,11 +64,11 @@ public class SelectFolderPanel extends Panel {
 		
 		WidgetDecorator.title(titleLabel);
 
-		descriptionText = new Label(this, SWT.WRAP);
-		descriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionText.setText("..");
+		descriptionLabel = new Label(this, SWT.WRAP);
+		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+		descriptionLabel.setText("..");
 
-		WidgetDecorator.normal(descriptionText);
+		WidgetDecorator.normal(descriptionLabel);
 
 		// Label "Folder:"
 		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false);
@@ -136,7 +136,10 @@ public class SelectFolderPanel extends Panel {
 		Display.getDefault().asyncExec(new Runnable() {			
 			@Override
 			public void run() {
-				descriptionText.setText(descriptionTextStr);
+				if (!descriptionLabel.isDisposed()) {
+					descriptionLabel.setText(descriptionTextStr);
+				}
+				
 				layout();
 			}
 		});

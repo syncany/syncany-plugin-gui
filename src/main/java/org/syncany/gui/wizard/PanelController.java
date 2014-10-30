@@ -34,7 +34,7 @@ public abstract class PanelController {
 		this.eventBus.register(this);		
 	}
 	
-	public void destroy() {
+	public void dispose() {
 		eventBus.unregister(this);		
 		
 		eventBus = null;

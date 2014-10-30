@@ -108,7 +108,7 @@ public class DefaultTrayIcon extends TrayIcon {
 			clearMenuItems();
 		}
 
-		menu = new Menu(shell, SWT.POP_UP);
+		menu = new Menu(trayShell, SWT.POP_UP);
 
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
 		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
@@ -242,7 +242,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	protected void displayNotification(final String subject, final String message) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				ToolTip toolTip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
+				ToolTip toolTip = new ToolTip(trayShell, SWT.BALLOON | SWT.ICON_INFORMATION);
 				
 				toolTip.setText(subject);
 				toolTip.setMessage(message);
