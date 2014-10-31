@@ -100,19 +100,19 @@ public abstract class TrayIcon {
 	}
 
 	protected void showFolder(File folder) {
-		DesktopHelper.openFolder(folder);
+		DesktopHelper.launch(folder.getAbsolutePath());
 	}
 
 	protected void showReportIssue() {
-		DesktopHelper.browse(URL_REPORT_ISSUE);
+		DesktopHelper.launch(URL_REPORT_ISSUE);
 	}
 
 	protected void showDonate() {
-		DesktopHelper.browse(URL_DONATE);
+		DesktopHelper.launch(URL_DONATE);
 	}
 
 	protected void showWebsite() {
-		DesktopHelper.browse(URL_HOMEPAGE);
+		DesktopHelper.launch(URL_HOMEPAGE);
 	}
 
 	protected void exitApplication() {
