@@ -45,7 +45,6 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
-import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
@@ -129,7 +128,6 @@ public class GuiWebSocketClient {
 		UserTO firstDaemonUser = loadFirstDaemonUser(daemonConfig);
 		
 		connect(daemonConfig, firstDaemonUser);	
-		sendListWatchesRequest();
 		
 		while (clientThreadRunning.get()) {
 			Thread.sleep(500);
@@ -211,10 +209,6 @@ public class GuiWebSocketClient {
 		});
 				
 		webSocketChannel.resumeReceives();
-	}
-	
-	private void sendListWatchesRequest() {
-		onRequest(new ListWatchesManagementRequest());		
 	}
 
 	protected void waitAndReconnect() {

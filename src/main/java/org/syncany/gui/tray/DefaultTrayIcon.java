@@ -104,12 +104,14 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildMenuItems(final List<File> watches) {
-		if (menu != null) {
-			clearMenuItems();
+		if (menu == null) {
+			menu = new Menu(shell, SWT.POP_UP);
 		}
+		
+		// Clear old items (if any)
+		clearMenuItems();		
 
-		menu = new Menu(shell, SWT.POP_UP);
-
+		// Create new items
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
 		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
 		statusTextItem.setEnabled(false);
@@ -128,19 +130,19 @@ public class DefaultTrayIcon extends TrayIcon {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
-			for (final File file : watches){
-				if (!watchedFolderMenuItems.containsKey(file.getAbsolutePath())){
-					if (file.exists()){
+			for (final File folder : watches) {
+				if (!watchedFolderMenuItems.containsKey(folder.getAbsolutePath())) {
+					if (folder.exists()) {
 						MenuItem folderMenuItem = new MenuItem(menu, SWT.CASCADE);
-						folderMenuItem.setText(file.getName());
+						folderMenuItem.setText(folder.getName());
 						folderMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
-								showFolder(file);								
+								showFolder(folder);								
 							}
 						});
 					
-						watchedFolderMenuItems.put(file.getAbsolutePath(), folderMenuItem);
+						watchedFolderMenuItems.put(folder.getAbsolutePath(), folderMenuItem);
 					}
 				}
 			}
@@ -204,10 +206,14 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	private void clearMenuItems() {
 		if (menu != null) {
+			// Dispose of SWT menu items
 			while (menu.getItems().length > 0) {
 				MenuItem item = menu.getItem(0);
 				item.dispose();
 			}
+			
+			// Clear menu item cache
+			watchedFolderMenuItems.clear();
 		}
 	}
 
