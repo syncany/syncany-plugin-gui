@@ -116,8 +116,6 @@ public abstract class TrayIcon {
 	}
 
 	protected void exitApplication() {
-		System.out.println("DISPOSING APPLICATION");
-
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}

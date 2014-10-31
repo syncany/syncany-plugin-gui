@@ -45,6 +45,7 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
+import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
@@ -129,11 +130,17 @@ public class GuiWebSocketClient {
 		
 		connect(daemonConfig, firstDaemonUser);	
 		
+		sendListWatchesRequest();
+		
 		while (clientThreadRunning.get()) {
 			Thread.sleep(500);
 		}
 	}
 	
+	private void sendListWatchesRequest() {
+		onRequest(new ListWatchesManagementRequest());
+	}
+
 	private DaemonConfigTO loadDaemonConfig() throws Exception {
 		File daemonConfigFile = new File(UserConfig.getUserConfigDir(), UserConfig.DAEMON_FILE);
 
@@ -214,7 +221,7 @@ public class GuiWebSocketClient {
 	protected void waitAndReconnect() {
 		try {
 			logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...");
-			Thread.sleep(5000);
+			Thread.sleep(4000);
 						
 			connectAndWait();
 		}		
