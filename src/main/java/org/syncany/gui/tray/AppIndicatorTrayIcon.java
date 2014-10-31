@@ -41,7 +41,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
-import org.syncany.config.GuiEventBus;
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
 import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
@@ -82,9 +81,6 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	public AppIndicatorTrayIcon(Shell shell) {
 		super(shell);
-
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);
 
 		startWebServer();
 		startTray();

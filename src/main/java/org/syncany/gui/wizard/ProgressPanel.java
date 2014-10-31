@@ -112,7 +112,10 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().asyncExec(new Runnable() {			
 			@Override
 			public void run() {
-				titleLabel.setText(titleStr);
+				if (!titleLabel.isDisposed()) {
+					titleLabel.setText(titleStr);
+				}
+				
 				layout();
 			}
 		});
@@ -122,7 +125,10 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().asyncExec(new Runnable() {			
 			@Override
 			public void run() {
-				descriptionLabel.setText(descriptionStr);
+				if (!descriptionLabel.isDisposed()) {
+					descriptionLabel.setText(descriptionStr);
+				}
+				
 				layout();
 			}
 		});
@@ -132,7 +138,9 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				progressLogText.append(logLine);
+				if (!progressLogText.isDisposed()) {
+					progressLogText.append(logLine);
+				}
 			}
 		});
 	}
@@ -141,14 +149,20 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				progressBar.setMinimum(0);
-				progressBar.setMaximum(maximumProgress);
-				progressBar.setSelection(0);
+				if (!progressBar.isDisposed()) {
+					progressBar.setMinimum(0);
+					progressBar.setMaximum(maximumProgress);
+					progressBar.setSelection(0);
+				}
 				
-				progressLogCheckButton.setSelection(false);
-
-				progressLogText.setVisible(false);
-				progressLogText.setText("");
+				if (!progressLogCheckButton.isDisposed()) {				
+					progressLogCheckButton.setSelection(false);
+				}
+				
+				if (!progressLogText.isDisposed()) {
+					progressLogText.setVisible(false);
+					progressLogText.setText("");
+				}
 			}
 		});		
 	}
@@ -157,7 +171,9 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				progressBar.setSelection(position);
+				if (!progressBar.isDisposed()) {
+					progressBar.setSelection(position);
+				}
 			}
 		});
 	}
@@ -166,8 +182,13 @@ public class ProgressPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				progressLogCheckButton.setSelection(showDetailsPanel);
-				progressLogText.setVisible(showDetailsPanel);
+				if (!progressLogCheckButton.isDisposed()) {				
+					progressLogCheckButton.setSelection(showDetailsPanel);
+				}
+				
+				if (!progressLogText.isDisposed()) {
+					progressLogText.setVisible(showDetailsPanel);
+				}
 			}
 		});
 	}

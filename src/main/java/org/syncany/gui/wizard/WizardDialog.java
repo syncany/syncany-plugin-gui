@@ -28,7 +28,6 @@ import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
@@ -46,12 +45,13 @@ import com.google.common.collect.Lists;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class WizardDialog extends Dialog {
+public class WizardDialog {
 	public enum Action {
 		PREVIOUS, NEXT, FINISH
 	};
 
-	private Shell shell;
+	private Shell trayShell;
+	private Shell windowShell;
 	private Composite stackComposite;
 	private StackLayout stackLayout;
 
@@ -76,19 +76,16 @@ public class WizardDialog extends Dialog {
 
 		Shell shell = new Shell();
 
-		WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
+		WizardDialog wizardDialog = new WizardDialog(shell);
 		wizardDialog.open();
 
 		shell.dispose();
 	}
 
-	public WizardDialog(Shell parent, int style) {
-		super(parent, style);
-
+	public WizardDialog(Shell trayShell) {
+		this.trayShell = trayShell;
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
-		
-		this.setText(I18n.getString("dialog.wizard.title"));
 	}
 
 	public void open() {
@@ -99,15 +96,15 @@ public class WizardDialog extends Dialog {
 		setCurrentPanel(startPanel, Action.NEXT);
 
 		// Open shell
-		DesktopHelper.centerOnScreen(shell);
+		DesktopHelper.centerOnScreen(windowShell);
 
-		shell.open();
-		shell.layout();
+		windowShell.open();
+		windowShell.layout();
 
 		// Dispatch loop
-		Display display = getParent().getDisplay();
-
-		while (!shell.isDisposed()) {
+		Display display = Display.getDefault();
+		System.out.println("DISPLAY: " + display + " -- disposed: " + display.isDisposed());
+		while (!windowShell.isDisposed()) {
 			if (!display.readAndDispatch()) {
 				display.sleep();
 			}
@@ -127,18 +124,18 @@ public class WizardDialog extends Dialog {
 		shellGridLayout.verticalSpacing = 0;
 		shellGridLayout.numColumns = 2;
 
-		shell = new Shell(getParent(), SWT.DIALOG_TRIM);
-		shell.setToolTipText("");
-		shell.setBackground(WidgetDecorator.COLOR_WIDGET);
-		shell.setSize(640, 480);
-		shell.setText(getText());
-		shell.setLayout(shellGridLayout);		
+		windowShell = new Shell(trayShell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+		windowShell.setToolTipText("");
+		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
+		windowShell.setSize(640, 480);
+		windowShell.setText(I18n.getString("dialog.wizard.title"));
+		windowShell.setLayout(shellGridLayout);		
 
 		// Row 1, Column 1: Image
 		String leftImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-left.png";
 		Image leftImage = SWTResourceManager.getImage(leftImageResource);
 
-		Label leftImageLabel = new Label(shell, SWT.NONE);
+		Label leftImageLabel = new Label(windowShell, SWT.NONE);
 		leftImageLabel.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true, 1, 2));
 		leftImageLabel.setImage(leftImage);
 
@@ -147,7 +144,7 @@ public class WizardDialog extends Dialog {
 		stackLayout.marginHeight = 0;
 		stackLayout.marginWidth = 0;
 
-		stackComposite = new Composite(shell, SWT.NONE);
+		stackComposite = new Composite(windowShell, SWT.NONE);
 		stackComposite.setLayout(stackLayout);
 		stackComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, true, 1, 1));
 
@@ -155,7 +152,7 @@ public class WizardDialog extends Dialog {
 		GridData horizontalLineGridData = new GridData(GridData.FILL_HORIZONTAL);
 		horizontalLineGridData.horizontalSpan = 2;
 
-		Label horizontalLine = new Label(shell, SWT.SEPARATOR | SWT.HORIZONTAL);
+		Label horizontalLine = new Label(windowShell, SWT.SEPARATOR | SWT.HORIZONTAL);
 		horizontalLine.setLayoutData(horizontalLineGridData);
 
 		// Row 3: Column 1+2: Button Composite
@@ -168,7 +165,7 @@ public class WizardDialog extends Dialog {
 		buttonCompositeGridData.horizontalSpan = 2;
 		buttonCompositeGridData.verticalSpan = 1;
 
-		Composite buttonComposite = new Composite(shell, SWT.NONE);
+		Composite buttonComposite = new Composite(windowShell, SWT.NONE);
 		buttonComposite.setLayout(buttonCompositeRowLayout);
 		buttonComposite.setLayoutData(buttonCompositeGridData);
 		buttonComposite.setBackground(WidgetDecorator.COLOR_WIDGET);
@@ -207,7 +204,7 @@ public class WizardDialog extends Dialog {
 			}
 		});
 
-		shell.setDefaultButton(nextButton);
+		windowShell.setDefaultButton(nextButton);
 
 		WidgetDecorator.normal(nextButton, previousButton, cancelButton);
 	}
@@ -221,7 +218,7 @@ public class WizardDialog extends Dialog {
 	private void handleFlow(Action clickAction) {
 		if (stackLayout.topControl == startPanel) {
 			if (panelController != null) {
-				panelController.destroy();
+				panelController.dispose();
 			}
 			
 			panelController = createPanelStrategy(startPanel.getSelection());
@@ -265,15 +262,27 @@ public class WizardDialog extends Dialog {
 			public void run() {
 				ArrayList<Action> allowedActionsList = Lists.newArrayList(allowedActions);
 
-				nextButton.setEnabled(allowedActionsList.contains(Action.NEXT));
-				previousButton.setEnabled(allowedActionsList.contains(Action.PREVIOUS));
+				if (!nextButton.isDisposed()) {
+					nextButton.setEnabled(allowedActionsList.contains(Action.NEXT));
+				}
+				
+				if (!previousButton.isDisposed()) {
+					previousButton.setEnabled(allowedActionsList.contains(Action.PREVIOUS));
+				}
 				
 				if (allowedActionsList.contains(Action.FINISH)) {
-					shell.setDefaultButton(cancelButton);
-					cancelButton.setText(I18n.getString("dialog.default.finish"));
+					if (!windowShell.isDisposed()) {
+						windowShell.setDefaultButton(cancelButton);
+					}
+					
+					if (!cancelButton.isDisposed()) {
+						cancelButton.setText(I18n.getString("dialog.default.finish"));
+					}
 				}
 				else {
-					cancelButton.setText(I18n.getString("dialog.default.cancel"));			
+					if (!cancelButton.isDisposed()) {
+						cancelButton.setText(I18n.getString("dialog.default.cancel"));
+					}
 				}
 			}
 		});
@@ -295,7 +304,13 @@ public class WizardDialog extends Dialog {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				shell.dispose();
+				if (panelController != null) {
+					panelController.dispose();
+				}
+				
+				if (!windowShell.isDisposed()) {
+					windowShell.dispose();
+				}
 			}
 		});
 	}

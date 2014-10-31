@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
 import org.syncany.gui.util.DesktopHelper;
@@ -62,8 +62,9 @@ public abstract class TrayIcon {
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
-
-	protected Shell shell;
+	
+	protected Shell trayShell;
+	protected WizardDialog wizard;
 	protected GuiEventBus eventBus;
 	protected Map<String, String> messages;
 
@@ -72,7 +73,7 @@ public abstract class TrayIcon {
 	private long uploadedFileSize;
 
 	public TrayIcon(Shell shell) {
-		this.shell = shell;
+		this.trayShell = shell;
 		this.messages = new HashMap<String, String>();
 
 		this.eventBus = GuiEventBus.getInstance();
@@ -85,11 +86,15 @@ public abstract class TrayIcon {
 	}
 
 	protected void showNew() {
-		shell.getDisplay().asyncExec(new Runnable() {
+		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				WizardDialog wizardDialog = new WizardDialog(shell, SWT.APPLICATION_MODAL);
-				wizardDialog.open();
+				if (wizard == null) {
+					wizard = new WizardDialog(trayShell);
+					wizard.open();
+					
+					wizard = null;
+				}
 			}
 		});
 	}
@@ -111,6 +116,8 @@ public abstract class TrayIcon {
 	}
 
 	protected void exitApplication() {
+		System.out.println("DISPOSING APPLICATION");
+
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}
