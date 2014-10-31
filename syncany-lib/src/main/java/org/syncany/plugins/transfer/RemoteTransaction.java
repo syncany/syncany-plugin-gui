@@ -64,7 +64,7 @@ public class RemoteTransaction {
 	 * Adds a file to this transaction. Generates a temporary file to store it.
 	 */
 	public void upload(File localFile, RemoteFile remoteFile) throws StorageException {
-		TempRemoteFile temporaryRemoteFile = new TempRemoteFile();
+		TempRemoteFile temporaryRemoteFile = new TempRemoteFile(remoteFile);
 
 		logger.log(Level.INFO, "- Adding file to TX for UPLOAD: " + localFile + " -> Temp. remote file: " + temporaryRemoteFile
 				+ ", final location: " + remoteFile);
@@ -83,7 +83,7 @@ public class RemoteTransaction {
 	 * to store it while the transaction is being finalized.
 	 */
 	public void delete(RemoteFile remoteFile) throws StorageException {
-		TempRemoteFile temporaryRemoteFile = new TempRemoteFile();
+		TempRemoteFile temporaryRemoteFile = new TempRemoteFile(remoteFile);
 
 		logger.log(Level.INFO, "- Adding file to TX for DELETE: " + remoteFile + "-> Temp. remote file: " + temporaryRemoteFile);
 
@@ -216,7 +216,7 @@ public class RemoteTransaction {
 		transferManager.delete(remoteTransactionFile);
 		localTransactionFile.delete();
 
-		logger.log(Level.INFO, "Succesfully committed transaction.");
+		logger.log(Level.INFO, "END of TX.commmit(): Succesfully committed transaction.");
 	}
 
 	private void deleteTempRemoteFiles() throws StorageException {
@@ -234,7 +234,7 @@ public class RemoteTransaction {
 			}
 		}
 
-		logger.log(Level.INFO, "Sucessfully deleted final files.");
+		logger.log(Level.INFO, "END of TX.delTemp(): Sucessfully deleted final files.");
 	}
 
 	private class TransactionStats {
