@@ -27,14 +27,13 @@ package org.syncany.gui.tray;
 public enum TrayIconImage {
 	TRAY_NO_OVERLAY("tray.png"), 
 	TRAY_IN_SYNC("tray-in-sync.png"), 
-	TRAY_PAUSE_SYNC("tray-sync-pause.png"), 
 	TRAY_SYNCING1("tray-syncing1.png"), 
 	TRAY_SYNCING2("tray-syncing2.png"), 
 	TRAY_SYNCING3("tray-syncing3.png"), 
 	TRAY_SYNCING4("tray-syncing4.png"), 
 	TRAY_SYNCING5("tray-syncing5.png"), 
-	TRAY_SYNCING6("tray-syncing6.png"), 
-	TRAY_UP_TO_DATE("tray-uptodate.png");
+	TRAY_SYNCING6("tray-syncing6.png"),
+	TRAY_CONFLICT("tray-conflict.png");
 
 	private String fileName;
 
