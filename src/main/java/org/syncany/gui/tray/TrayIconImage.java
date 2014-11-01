@@ -35,6 +35,7 @@ public enum TrayIconImage {
 	TRAY_SYNCING6("tray-syncing6.png"),
 	TRAY_CONFLICT("tray-conflict.png");
 
+	public static final int MAX_SYNC_IMAGES = 6;
 	private String fileName;
 
 	TrayIconImage(String filenName) {
@@ -45,8 +46,8 @@ public enum TrayIconImage {
 		return fileName;
 	}
 
-	public static TrayIconImage getSyncImage(int idx) {
-		switch (idx + 1) {
+	public static TrayIconImage getSyncImage(int syncImageIndex) {
+		switch (syncImageIndex + 1) {
 		default:
 		case 1:
 			return TRAY_SYNCING1;

@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -38,6 +38,7 @@ import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.StatusEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
@@ -69,7 +70,7 @@ public abstract class TrayIcon {
 	protected Map<String, String> messages;
 
 	private Thread systemTrayAnimationThread;
-	private AtomicBoolean syncing;
+	private AtomicInteger syncingCount;
 	private long uploadedFileSize;
 
 	public TrayIcon(Shell shell) {
@@ -79,7 +80,7 @@ public abstract class TrayIcon {
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 
-		this.syncing = new AtomicBoolean(false);
+		this.syncingCount = new AtomicInteger(0);
 
 		initInternationalization();
 		startAnimationThread();
@@ -121,6 +122,11 @@ public abstract class TrayIcon {
 	}
 
 	@Subscribe
+	public void onStatusEndSyncEvent(StatusEndSyncExternalEvent statusEndSyncEvent) {
+		//if (statusEndSyncEvent)
+	}
+	
+	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
 	}
@@ -132,7 +138,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		syncing.set(true);
+		syncingCount.incrementAndGet();		
 		setStatusText("Starting indexing and upload ...");
 	}
 
@@ -152,20 +158,18 @@ public abstract class TrayIcon {
 			uploadedFileSize = 0;
 		}
 
-		String currentFileSizeStr = FileUtil.formatFileSize(syncEvent.getCurrentFileSize());
+		String uploadedTotalStr = FileUtil.formatFileSize(uploadedFileSize);
 		int uploadedPercent = (int) Math.round((double) uploadedFileSize / syncEvent.getTotalFileSize() * 100);
 
-		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + currentFileSizeStr + ", total "
+		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + uploadedTotalStr + " / "
 				+ uploadedPercent + "%) ...");
+		
 		uploadedFileSize += syncEvent.getCurrentFileSize();
 	}
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		syncing.set(false);
-
-		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-		setStatusText("All files in sync");
+		syncingCount.decrementAndGet();
 	}
 
 	@Subscribe
@@ -179,16 +183,13 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		syncing.set(true);
+		syncingCount.incrementAndGet();
 		setStatusText("Checking for remote changes ...");
 	}
 
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		syncing.set(false);
-
-		setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-		setStatusText("All files in sync");
+		syncingCount.decrementAndGet();
 
 		// Display notification
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
@@ -268,7 +269,7 @@ public abstract class TrayIcon {
 			@Override
 			public void run() {
 				while (true) {
-					while (!syncing.get()) {
+					while (syncingCount.get() <= 0) {
 						try {
 							Thread.sleep(200);
 						}
@@ -277,16 +278,12 @@ public abstract class TrayIcon {
 						}
 					}
 
-					int i = 0;
+					int trayImageIndex = 0;
 
-					while (syncing.get()) {
+					while (syncingCount.get() > 0) {
 						try {
-							setTrayImage(TrayIconImage.getSyncImage(i));
-							i++;
-
-							if (i == 6) {
-								i = 0;
-							}
+							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
+							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 
 							Thread.sleep(REFRESH_TIME);
 						}
@@ -296,6 +293,7 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+					setStatusText("All files in sync");					
 				}
 			}
 		});
