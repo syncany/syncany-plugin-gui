@@ -31,6 +31,8 @@ import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
+import org.syncany.operations.daemon.Watch;
+import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
@@ -38,7 +40,6 @@ import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
-import org.syncany.operations.daemon.messages.LsRemoteEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
@@ -72,7 +73,6 @@ public abstract class TrayIcon {
 	private Thread systemTrayAnimationThread;
 	private AtomicInteger syncingCount;
 	private long uploadedFileSize;
-	private TrayIconImage trayIconImage;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -130,7 +130,23 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onListWatchesResponseReceived(ListWatchesManagementResponse listWatchesResponse) {
-		setWatchedFolders(listWatchesResponse.getWatches());
+		List<File> watchedFolders = new ArrayList<File>();
+		
+		for (Watch watch : listWatchesResponse.getWatches()) {
+			watchedFolders.add(watch.getFolder());
+			
+			if (watch.getStatus() == SyncStatus.SYNCING) {
+				syncingCount.incrementAndGet();
+			}
+		}
+		
+		// Update folders in menu
+		setWatchedFolders(watchedFolders);
+		
+		// Update tray icon
+		if (syncingCount.get() == 0) {
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);			
+		}		
 	}
 
 	@Subscribe
@@ -169,17 +185,6 @@ public abstract class TrayIcon {
 		syncingCount.decrementAndGet();
 	}
 	
-	@Subscribe
-	public void onLsRemoteEndSyncEvent(LsRemoteEndSyncExternalEvent lsRemoteEndSyncEvent) {
-		// Very simple hack to get the initial tray icon with a check mark after the 
-		// launch. Otherwise we'd only get a check mark after an actual sync with 
-		// changes has occurred.
-		
-		if (!lsRemoteEndSyncEvent.hasChanges() && trayIconImage == TrayIconImage.TRAY_NO_OVERLAY) {
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-		}
-	}
-
 	@Subscribe
 	public void onDownDownloadFileSyncEventReceived(DownDownloadFileSyncExternalEvent syncEvent) {
 		String fileDescription = syncEvent.getFileDescription();
@@ -262,11 +267,6 @@ public abstract class TrayIcon {
 			displayNotification(subject, message);
 		}
 	}
-	
-	private void setTrayStatus(TrayIconImage trayIconImage) {
-		this.trayIconImage = trayIconImage;		
-		setTrayImage(trayIconImage);
-	}
 
 	private void initInternationalization() {
 		messages.put("tray.menuitem.new", I18n.getString("tray.menuitem.new"));
@@ -295,7 +295,7 @@ public abstract class TrayIcon {
 
 					while (syncingCount.get() > 0) {
 						try {
-							setTrayStatus(TrayIconImage.getSyncImage(trayImageIndex));
+							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
 							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 
 							Thread.sleep(REFRESH_TIME);
@@ -305,7 +305,7 @@ public abstract class TrayIcon {
 						}
 					}
 
-					setTrayStatus(TrayIconImage.TRAY_IN_SYNC);
+					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 					setStatusText("All files in sync");					
 				}
 			}
@@ -315,7 +315,7 @@ public abstract class TrayIcon {
 	}
 	
 	private void initTrayImage() {
-		setTrayStatus(TrayIconImage.TRAY_NO_OVERLAY);
+		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 	}
 
 	// Abstract methods
