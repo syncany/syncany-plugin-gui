@@ -103,7 +103,7 @@ public class WizardDialog {
 
 		// Dispatch loop
 		Display display = Display.getDefault();
-		System.out.println("DISPLAY: " + display + " -- disposed: " + display.isDisposed());
+	
 		while (!windowShell.isDisposed()) {
 			if (!display.readAndDispatch()) {
 				display.sleep();
