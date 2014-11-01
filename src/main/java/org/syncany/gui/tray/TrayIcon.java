@@ -38,7 +38,7 @@ import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
-import org.syncany.operations.daemon.messages.StatusEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.LsRemoteEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
@@ -72,6 +72,7 @@ public abstract class TrayIcon {
 	private Thread systemTrayAnimationThread;
 	private AtomicInteger syncingCount;
 	private long uploadedFileSize;
+	private TrayIconImage trayIconImage;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -79,11 +80,12 @@ public abstract class TrayIcon {
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
-
-		this.syncingCount = new AtomicInteger(0);
+		
+		this.syncingCount = new AtomicInteger(0);		
 
 		initInternationalization();
-		startAnimationThread();
+		initAnimationThread();
+		initTrayImage();
 	}
 
 	protected void showNew() {
@@ -119,11 +121,6 @@ public abstract class TrayIcon {
 	protected void exitApplication() {
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
-	}
-
-	@Subscribe
-	public void onStatusEndSyncEvent(StatusEndSyncExternalEvent statusEndSyncEvent) {
-		//if (statusEndSyncEvent)
 	}
 	
 	@Subscribe
@@ -170,6 +167,17 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
 		syncingCount.decrementAndGet();
+	}
+	
+	@Subscribe
+	public void onLsRemoteEndSyncEvent(LsRemoteEndSyncExternalEvent lsRemoteEndSyncEvent) {
+		// Very simple hack to get the initial tray icon with a check mark after the 
+		// launch. Otherwise we'd only get a check mark after an actual sync with 
+		// changes has occurred.
+		
+		if (!lsRemoteEndSyncEvent.hasChanges() && trayIconImage == TrayIconImage.TRAY_NO_OVERLAY) {
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+		}
 	}
 
 	@Subscribe
@@ -254,6 +262,11 @@ public abstract class TrayIcon {
 			displayNotification(subject, message);
 		}
 	}
+	
+	private void setTrayStatus(TrayIconImage trayIconImage) {
+		this.trayIconImage = trayIconImage;		
+		setTrayImage(trayIconImage);
+	}
 
 	private void initInternationalization() {
 		messages.put("tray.menuitem.new", I18n.getString("tray.menuitem.new"));
@@ -264,7 +277,7 @@ public abstract class TrayIcon {
 		messages.put("tray.menuitem.website", I18n.getString("tray.menuitem.website"));
 	}
 
-	private void startAnimationThread() {
+	private void initAnimationThread() {
 		systemTrayAnimationThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -282,7 +295,7 @@ public abstract class TrayIcon {
 
 					while (syncingCount.get() > 0) {
 						try {
-							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
+							setTrayStatus(TrayIconImage.getSyncImage(trayImageIndex));
 							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 
 							Thread.sleep(REFRESH_TIME);
@@ -292,13 +305,17 @@ public abstract class TrayIcon {
 						}
 					}
 
-					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+					setTrayStatus(TrayIconImage.TRAY_IN_SYNC);
 					setStatusText("All files in sync");					
 				}
 			}
 		});
 
 		systemTrayAnimationThread.start();
+	}
+	
+	private void initTrayImage() {
+		setTrayStatus(TrayIconImage.TRAY_NO_OVERLAY);
 	}
 
 	// Abstract methods
