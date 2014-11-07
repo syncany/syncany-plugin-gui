@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,27 +54,27 @@ import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferPluginUtil;
 import org.syncany.plugins.transfer.TransferSettings;
 import org.syncany.util.Base58;
-
 import com.google.common.primitives.Ints;
 
 /**
  * The application link class represents a <tt>syncany://</tt> link. It allowed creating
- * and parsing a link. The class has two modes of operation: 
- * 
- * <p>To create a new application link from an existing repository, call the {@link #ApplicationLink(TransferSettings)}
- * constructor and subsequently either call {@link #createPlaintextLink()} or {@link #createEncryptedLink(SaltedSecretKey)}.
+ * and parsing a link. The class has two modes of operation:
+ *
+ * <p>To create a new application link from an existing repository, call the
+ * {@link #ApplicationLink(org.syncany.plugins.transfer.TransferSettings, boolean)} constructor and subsequently either
+ * call {@link #createPlaintextLink()} or {@link #createEncryptedLink(SaltedSecretKey)}.
  * This method will typically be called during the 'init' or 'genlink' process.
- * 
- * <p>To parse an existing application link and return the relevant {@link TransferSettings}, call the 
+ *
+ * <p>To parse an existing application link and return the relevant {@link TransferSettings}, call the
  * {@link #ApplicationLink(String)} constructor and subsequently call {@link #createTransferSettings()}
  * or {@link #createTransferSettings(SaltedSecretKey)}. This method will typically be called during the 'connect' process.
- * 
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Christian Roth <christian.roth@port17.de>
  */
 public class ApplicationLink {
 	private static final Logger logger = Logger.getLogger(ApplicationLink.class.getSimpleName());
-	
+
 	private static final String LINK_FORMAT_NOT_ENCRYPTED = "syncany://2/not-encrypted/%s";
 	private static final String LINK_FORMAT_ENCRYPTED = "syncany://2/%s/%s";
 
@@ -237,7 +237,7 @@ public class ApplicationLink {
 			HttpResponse httpResponse = createHttpClient().execute(postMethod);
 			ApplicationLinkShortenerResponse shortenerResponse = new Persister().read(ApplicationLinkShortenerResponse.class, httpResponse
 					.getEntity().getContent());
-			
+
 			return String.format(LINK_SHORT_URL_FORMAT, shortenerResponse.getShortLinkId());
 		}
 		catch (Exception e) {
@@ -245,7 +245,7 @@ public class ApplicationLink {
 			return applicationLink;
 		}
 	}
-	
+
 	private CloseableHttpClient createHttpClient() {
 		RequestConfig requestConfig = RequestConfig.custom()
 				.setSocketTimeout(2000)
@@ -257,7 +257,7 @@ public class ApplicationLink {
 				.create()
 				.setDefaultRequestConfig(requestConfig)
 				.build();
-		
+
 		return httpClient;
 	}
 
@@ -298,7 +298,7 @@ public class ApplicationLink {
 				plaintextPluginSettingsBytes.length);
 		String pluginSettings = IOUtils.toString(new GZIPInputStream(new ByteArrayInputStream(gzippedPluginSettingsByteArray)));
 
-		// Create transfer settings object 
+		// Create transfer settings object
 		try {
 			TransferPlugin plugin = Plugins.get(pluginId, TransferPlugin.class);
 

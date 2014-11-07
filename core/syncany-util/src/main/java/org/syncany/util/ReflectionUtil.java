@@ -26,22 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Utility class to find classes, methods and fields with certain properties -
+ * typically having an annotation or a certain erasure. 
+ * 
  * @author Christian Roth <christian.roth@port17.de>
  */
 public abstract class ReflectionUtil {
-	@SuppressWarnings("unchecked")
-	public static <T extends Annotation> T[] getAnnotationsForClassByType(Class<?> clazz, Class<T> annotation) {
-		List<T> matchedAnnotations = new ArrayList<>();
-
-		for (Annotation classAnnotation : clazz.getAnnotations()) {
-			if (classAnnotation.annotationType().equals(annotation)) {
-				matchedAnnotations.add((T) classAnnotation);
-			}
-		}
-
-		return (T[]) matchedAnnotations.toArray(new Annotation[0]);
-	}
-
 	public static Field[] getAllFieldsWithAnnotation(Class<?> clazz, Class<? extends Annotation> annotation) {
 		List<Field> matchedAnnotations = new ArrayList<>();
 
@@ -102,7 +92,7 @@ public abstract class ReflectionUtil {
 		return null;
 	}
 
-	// java 1.7 does not support getTypeName() :(
+	// Java 7 does not support getTypeName() :(
 	public static Class<?> getClassFromType(Type type) {
 		String fullName = type.toString();
 
@@ -117,5 +107,4 @@ public abstract class ReflectionUtil {
 
 		return null;
 	}
-
 }
