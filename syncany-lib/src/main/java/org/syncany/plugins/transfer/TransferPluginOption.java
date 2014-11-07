@@ -40,11 +40,13 @@ public class TransferPluginOption {
 	private final Type type;
 	private final boolean encrypted;
 	private final boolean sensitive;
+	private final boolean singular;
 	private final boolean required;
 	private final Class<? extends TransferPluginOptionCallback> callback;
 	private final Class<? extends TransferPluginOptionConverter> converter;
 
-	public TransferPluginOption(Field field, String name, String description, Type type, boolean encrypted, boolean sensitive, boolean required,
+	public TransferPluginOption(Field field, String name, String description, Type type, boolean encrypted, boolean sensitive, boolean singular,
+			boolean required,
 			Class<? extends TransferPluginOptionCallback> callback, Class<? extends TransferPluginOptionConverter> converter) {
 
 		this.field = field;
@@ -53,6 +55,7 @@ public class TransferPluginOption {
 		this.type = type;
 		this.encrypted = encrypted;
 		this.sensitive = sensitive;
+		this.singular = singular;
 		this.required = required;
 		this.callback = callback;
 		this.converter = converter;
@@ -80,6 +83,10 @@ public class TransferPluginOption {
 
 	public boolean isSensitive() {
 		return sensitive;
+	}
+
+	public boolean isSingular() {
+		return singular;
 	}
 
 	public boolean isRequired() {

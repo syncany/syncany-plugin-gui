@@ -166,7 +166,7 @@ public class ConnectOperation extends AbstractInitOperation {
 
 		// Write file 'config.xml'
 		File configFile = new File(appDir, Config.FILE_CONFIG);
-		writeXmlFile(configTO, configFile);
+		configTO.save(configFile);
 
 		// Write file 'syncany'
 		File repoFile = new File(appDir, Config.FILE_REPO);
@@ -255,7 +255,7 @@ public class ConnectOperation extends AbstractInitOperation {
 					try {
 						TransferSettings transferSettings = applicationLink.createTransferSettings(masterKey);
 						configTO.setTransferSettings(transferSettings);
-						
+
 						retryPassword = false;
 					}
 					catch (CipherException e) {
