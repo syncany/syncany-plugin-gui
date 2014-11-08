@@ -112,6 +112,15 @@ def do_update_menu(request):
 	'''---'''
 	menu.append(gtk.SeparatorMenuItem())	
 
+	'''New ...'''
+	menu_item_donate = gtk.MenuItem("New folder ...")
+	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
+	
+	menu.append(menu_item_donate)	
+
+	'''---'''
+	menu.append(gtk.SeparatorMenuItem())	
+
 	'''Folders'''
 	if request is not None:
 		folders = request.xpath("//folder")
@@ -126,14 +135,20 @@ def do_update_menu(request):
 			'''---'''
 			menu.append(gtk.SeparatorMenuItem())	
 	
+	'''Report a bug'''
+	menu_item_issue = gtk.MenuItem("Report a bug")
+	menu_item_issue.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>REPORT_ISSUE</action></clickTrayMenuGuiInternalEvent>")
+	
+	menu.append(menu_item_issue)	
+
 	'''Donate ...'''
-	menu_item_donate = gtk.MenuItem("Donate")
+	menu_item_donate = gtk.MenuItem("Buy us a coffee")
 	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>DONATE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_donate)	
 	
 	'''Website'''
-	menu_item_website = gtk.MenuItem("Website")
+	menu_item_website = gtk.MenuItem("Visit website")
 	menu_item_website.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>WEBSITE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_website)	

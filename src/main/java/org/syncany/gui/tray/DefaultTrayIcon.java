@@ -39,6 +39,12 @@ import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
 /**
+ * The default tray icon uses the default SWT {@link TrayItem}
+ * class and the {@link Menu} to display the tray icon.
+ * 
+ * <p>These classes are supported by all operating systems and
+ * desktop environment,  except Ubuntu/Unity.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -98,32 +104,45 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildMenuItems(final List<File> watches) {
-		if (menu != null) {
-			clearMenuItems();
+		if (menu == null) {
+			menu = new Menu(trayShell, SWT.POP_UP);
 		}
+		
+		// Clear old items (if any)
+		clearMenuItems();		
 
-		menu = new Menu(shell, SWT.POP_UP);
-
+		// Create new items
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
-		statusTextItem.setText("All folders in sync");
+		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
 		statusTextItem.setEnabled(false);
+
+		new MenuItem(menu, SWT.SEPARATOR);
+		
+		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
+		newItem.setText(messages.get("tray.menuitem.new"));
+		newItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showNew();
+			}
+		});
 
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
-			for (final File file : watches){
-				if (!watchedFolderMenuItems.containsKey(file.getAbsolutePath())){
-					if (file.exists()){
+			for (final File folder : watches) {
+				if (!watchedFolderMenuItems.containsKey(folder.getAbsolutePath())) {
+					if (folder.exists()) {
 						MenuItem folderMenuItem = new MenuItem(menu, SWT.CASCADE);
-						folderMenuItem.setText(file.getName());
+						folderMenuItem.setText(folder.getName());
 						folderMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
-								showFolder(file);								
+								showFolder(folder);								
 							}
 						});
 					
-						watchedFolderMenuItems.put(file.getAbsolutePath(), folderMenuItem);
+						watchedFolderMenuItems.put(folder.getAbsolutePath(), folderMenuItem);
 					}
 				}
 			}
@@ -145,6 +164,15 @@ public class DefaultTrayIcon extends TrayIcon {
 			
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
+
+		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
+		reportIssueItem.setText(messages.get("tray.menuitem.issue"));
+		reportIssueItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showReportIssue();
+			}
+		});
 
 		MenuItem donateItem = new MenuItem(menu, SWT.PUSH);
 		donateItem.setText(messages.get("tray.menuitem.donate"));
@@ -178,10 +206,14 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	private void clearMenuItems() {
 		if (menu != null) {
+			// Dispose of SWT menu items
 			while (menu.getItems().length > 0) {
 				MenuItem item = menu.getItem(0);
 				item.dispose();
 			}
+			
+			// Clear menu item cache
+			watchedFolderMenuItems.clear();
 		}
 	}
 
@@ -216,7 +248,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	protected void displayNotification(final String subject, final String message) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				ToolTip toolTip = new ToolTip(shell, SWT.BALLOON | SWT.ICON_INFORMATION);
+				ToolTip toolTip = new ToolTip(trayShell, SWT.BALLOON | SWT.ICON_INFORMATION);
 				
 				toolTip.setText(subject);
 				toolTip.setMessage(message);

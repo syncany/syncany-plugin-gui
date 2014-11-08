@@ -129,6 +129,7 @@ public class GuiWebSocketClient {
 		UserTO firstDaemonUser = loadFirstDaemonUser(daemonConfig);
 		
 		connect(daemonConfig, firstDaemonUser);	
+		
 		sendListWatchesRequest();
 		
 		while (clientThreadRunning.get()) {
@@ -136,6 +137,10 @@ public class GuiWebSocketClient {
 		}
 	}
 	
+	private void sendListWatchesRequest() {
+		onRequest(new ListWatchesManagementRequest());
+	}
+
 	private DaemonConfigTO loadDaemonConfig() throws Exception {
 		File daemonConfigFile = new File(UserConfig.getUserConfigDir(), UserConfig.DAEMON_FILE);
 
@@ -212,15 +217,11 @@ public class GuiWebSocketClient {
 				
 		webSocketChannel.resumeReceives();
 	}
-	
-	private void sendListWatchesRequest() {
-		onRequest(new ListWatchesManagementRequest());		
-	}
 
 	protected void waitAndReconnect() {
 		try {
 			logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...");
-			Thread.sleep(5000);
+			Thread.sleep(4000);
 						
 			connectAndWait();
 		}		

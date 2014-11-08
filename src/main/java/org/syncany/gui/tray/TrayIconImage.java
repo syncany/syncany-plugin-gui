@@ -17,18 +17,25 @@
  */
 package org.syncany.gui.tray;
 
+/**
+ * The tray icon image represents the filename of the
+ * image being displayed in the tray icon.
+ * 
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ * @author Vincent Wiencek <vwiencek@gmail.com>
+ */
 public enum TrayIconImage {
 	TRAY_NO_OVERLAY("tray.png"), 
 	TRAY_IN_SYNC("tray-in-sync.png"), 
-	TRAY_PAUSE_SYNC("tray-sync-pause.png"), 
 	TRAY_SYNCING1("tray-syncing1.png"), 
 	TRAY_SYNCING2("tray-syncing2.png"), 
 	TRAY_SYNCING3("tray-syncing3.png"), 
 	TRAY_SYNCING4("tray-syncing4.png"), 
 	TRAY_SYNCING5("tray-syncing5.png"), 
-	TRAY_SYNCING6("tray-syncing6.png"), 
-	TRAY_UP_TO_DATE("tray-uptodate.png");
+	TRAY_SYNCING6("tray-syncing6.png"),
+	TRAY_CONFLICT("tray-conflict.png");
 
+	public static final int MAX_SYNC_IMAGES = 6;
 	private String fileName;
 
 	TrayIconImage(String filenName) {
@@ -39,8 +46,8 @@ public enum TrayIconImage {
 		return fileName;
 	}
 
-	public static TrayIconImage getSyncImage(int idx) {
-		switch (idx + 1) {
+	public static TrayIconImage getSyncImage(int syncImageIndex) {
+		switch (syncImageIndex + 1) {
 		default:
 		case 1:
 			return TRAY_SYNCING1;

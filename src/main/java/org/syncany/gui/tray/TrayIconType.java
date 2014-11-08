@@ -17,6 +17,13 @@
  */
 package org.syncany.gui.tray;
 
+/**
+ * Type of the tray icon -- either the SWT-based default
+ * tray icon, or a Python-based app indicator based tray
+ * icon for Ubuntu Unity.
+ * 
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ */
 public enum TrayIconType {
 	DEFAULT, APPINDICATOR
 }

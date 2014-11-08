@@ -28,7 +28,11 @@ import org.syncany.operations.gui.GuiOperation;
 import org.syncany.operations.gui.GuiOperationOptions;
 
 /**
+ * This command is used to start the graphical user interface (including
+ * the tray icon) from the command line. 
+ * 
  * @author Vincent Wiencek <vwiencek@gmail.com>
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class GuiCommand extends Command {
 	public static void main(String[] args) throws Exception {

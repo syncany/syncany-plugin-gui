@@ -1,0 +1,6 @@
+?package(syncany-plugin-gui):needs="X11" \
+  section="Applications/Network/File Transfer" \
+  title="Syncany" \
+  command="/usr/bin/sy gui" \
+  icon="/usr/share/icons/hicolor/128x128/apps/syncany.png"
+
