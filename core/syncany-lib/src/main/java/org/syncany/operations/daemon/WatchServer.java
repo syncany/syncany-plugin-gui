@@ -41,6 +41,9 @@ import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.RetrieveFileStatusManagementRequest;
+import org.syncany.operations.daemon.messages.RetrieveFileStatusManagementResponse;
+import org.syncany.operations.daemon.messages.RetrieveFileStatusManagementResponse.FileStatus;
 import org.syncany.operations.daemon.messages.api.FolderRequest;
 import org.syncany.operations.watch.WatchOperation;
 import org.syncany.operations.watch.WatchOperationOptions;
@@ -61,12 +64,12 @@ public class WatchServer {
 	private static final Logger logger = Logger.getLogger(WatchServer.class.getSimpleName());
 	
 	private DaemonConfigTO daemonConfig;	
-	private Map<File, WatchRunner> watchOperations;
+	private Map<File, WatchRunner> watches;
 	private LocalEventBus eventBus;
 	
 	public WatchServer() {
 		this.daemonConfig = null;
-		this.watchOperations = new TreeMap<File, WatchRunner>();
+		this.watches = new TreeMap<File, WatchRunner>();
 		
 		this.eventBus = LocalEventBus.getInstance();
 		this.eventBus.register(this);
@@ -98,7 +101,7 @@ public class WatchServer {
 
 	public void stop() {
 		logger.log(Level.INFO, "Stopping watch server ...  ");		
-		Map<File, WatchRunner> copyOfWatchOperations = Maps.newHashMap(watchOperations);
+		Map<File, WatchRunner> copyOfWatchOperations = Maps.newHashMap(watches);
 		
 		for (Map.Entry<File, WatchRunner> folderEntry : copyOfWatchOperations.entrySet()) {
 			File localDir = folderEntry.getKey();
@@ -107,7 +110,7 @@ public class WatchServer {
 			logger.log(Level.INFO, "- Stopping watch operation at " + localDir + " ...");
 			watchOperationThread.stop();
 			
-			watchOperations.remove(localDir);
+			watches.remove(localDir);
 		}
 	}
 
@@ -130,7 +133,7 @@ public class WatchServer {
 					WatchRunner watchRunner = new WatchRunner(watchConfig, watchOptions, daemonConfig.getPortTO());	
 					watchRunner.start();
 	
-					watchOperations.put(localDir, watchRunner);
+					watches.put(localDir, watchRunner);
 				}
 				else {
 					logger.log(Level.INFO, "- CANNOT start watch, because no config found at " + localDir + " ...");										
@@ -147,23 +150,23 @@ public class WatchServer {
 	 * they actually have stopped.
 	 */
 	private void stopAllWatchOperations() {
-		for (File localDir : watchOperations.keySet()) {
-			WatchRunner watchOperationThread = watchOperations.get(localDir);
+		for (File localDir : watches.keySet()) {
+			WatchRunner watchOperationThread = watches.get(localDir);
 
 			logger.log(Level.INFO, "- Stopping watch operation at " + localDir + " ...");
 			watchOperationThread.stop();
 		}
 		
 		// Check if watch operations actually have stopped.
-		while (watchOperations.keySet().size() > 0) {
-			Map<File, WatchRunner> watchOperationsCopy = new TreeMap<File, WatchRunner>(watchOperations);
+		while (watches.keySet().size() > 0) {
+			Map<File, WatchRunner> watchOperationsCopy = new TreeMap<File, WatchRunner>(watches);
 			
 			for (File localDir : watchOperationsCopy.keySet()) {
 				WatchRunner watchOperationThread = watchOperationsCopy.get(localDir);
 				
 				if (watchOperationThread.hasStopped()) {
 					logger.log(Level.INFO, "- Watch operation at " + localDir + " has stopped");
-					watchOperations.remove(localDir);
+					watches.remove(localDir);
 				}
 			}
 		}
@@ -190,7 +193,7 @@ public class WatchServer {
 	public void onFolderRequestReceived(FolderRequest folderRequest) {
 		File rootFolder = new File(folderRequest.getRoot());
 		
-		if (!watchOperations.containsKey(rootFolder)) {
+		if (!watches.containsKey(rootFolder)) {
 			eventBus.post(new BadRequestResponse(folderRequest.getId(), "Unknown root folder."));
 		}
 	}
@@ -199,8 +202,8 @@ public class WatchServer {
 	public void onListWatchesRequestReceived(ListWatchesManagementRequest request) {
 		ArrayList<Watch> watchList = new ArrayList<>();
 		
-		for (File watchFolder : watchOperations.keySet()) {
-			boolean syncRunning = watchOperations.get(watchFolder).isSyncRunning();
+		for (File watchFolder : watches.keySet()) {
+			boolean syncRunning = watches.get(watchFolder).isSyncRunning();
 			SyncStatus syncStatus = (syncRunning) ? SyncStatus.SYNCING : SyncStatus.IN_SYNC;
 			
 			watchList.add(new Watch(watchFolder, syncStatus));
@@ -210,10 +213,22 @@ public class WatchServer {
 	}
 	
 	@Subscribe
+	public void onRetrieveFileStatusRequestReceived(RetrieveFileStatusManagementRequest request) {
+		File file = request.getFile();
+		FileStatus status = FileStatus.OK;
+		
+		for (File watchFolder : watches.keySet()) {
+			// ...
+		}
+		
+		eventBus.post(new RetrieveFileStatusManagementResponse(request.getId(), file, status));
+	}
+	
+	@Subscribe
 	public void onAddWatchRequestReceived(AddWatchManagementRequest request) {
 		File rootFolder = request.getWatch();
 		
-		if (watchOperations.containsKey(rootFolder)) {
+		if (watches.containsKey(rootFolder)) {
 			eventBus.post(new AddWatchManagementResponse(AddWatchManagementResponse.ERR_ALREADY_EXISTS, request.getId(), "Watch already exists."));
 		}
 		else {			

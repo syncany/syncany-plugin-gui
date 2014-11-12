@@ -31,6 +31,7 @@ import org.syncany.config.LocalEventBus;
 import org.syncany.config.Logging;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
+import org.syncany.gui.shell.ShellServerSocket;
 import org.syncany.gui.tray.TrayIcon;
 import org.syncany.gui.tray.TrayIconFactory;
 import org.syncany.gui.tray.TrayIconType;
@@ -91,7 +92,8 @@ public class GuiOperation extends Operation {
 		initInternationalization();
 		initTray();
 		
-		startDaemon();		
+		startDaemon();	
+		startShellServer();
 		startWebSocketClient();
 				
 		startEventDispatchLoop();
@@ -198,6 +200,10 @@ public class GuiOperation extends Operation {
 			daemonThread.start();
 			daemonStarted = true;
 		}		
+	}
+
+	private void startShellServer() {
+		new ShellServerSocket().start();
 	}
 
 	private void startWebSocketClient() {
