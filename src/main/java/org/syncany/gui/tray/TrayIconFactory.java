@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ import org.syncany.util.EnvironmentUtil;
 
 /**
  * The tray icon factory creates a tray icon given the current
- * {@link Shell} object. 
- * 
+ * {@link Shell} object.
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -36,7 +36,7 @@ public class TrayIconFactory {
 	 * Detects the current operating system and desktop environment
 	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}
 	 * or {@link AppIndicatorTrayIcon}.
-	 * 
+	 *
 	 * <p>This method calls {@link #createTrayIcon(Shell, TrayIconType) createTrayIcon()}
 	 * with the determined {@link TrayIconType}.
 	 */
@@ -44,22 +44,27 @@ public class TrayIconFactory {
 		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
 			return createTrayIcon(shell, TrayIconType.APPINDICATOR);
 		}
+		else if (EnvironmentUtil.isMacOSX()) {
+			return createTrayIcon(shell, TrayIconType.BLACK_WHITE);
+		}
 		else {
 			return createTrayIcon(shell, TrayIconType.DEFAULT);
 		}
 	}
-	
+
 	/**
 	 * Detects the current operating system and desktop environment
 	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}
 	 * or {@link AppIndicatorTrayIcon}, depending on the {@link TrayIconType}.
-	 */	
+	 */
 	public static TrayIcon createTrayIcon(Shell shell, TrayIconType forceType) {
-		if (forceType == TrayIconType.APPINDICATOR) {
-			return new AppIndicatorTrayIcon(shell);
-		}
-		else {
-			return new DefaultTrayIcon(shell);
+		switch (forceType) {
+			case APPINDICATOR:
+				return new AppIndicatorTrayIcon(shell);
+			case BLACK_WHITE:
+				return new DefaultTrayIcon(shell, true);
+			default:
+				return new DefaultTrayIcon(shell);
 		}
 	}
 

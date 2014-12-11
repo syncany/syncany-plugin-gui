@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,31 +49,31 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class GuiOperation extends Operation {	
-	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	
+public class GuiOperation extends Operation {
+	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());
 	private static final String GUI_CONFIG_FILE = "gui.xml";
 	private static final String GUI_CONFIG_EXAMPLE_FILE = "gui-example.xml";
-	
+
 	private GuiConfigTO guiConfig;
-	
-	private GuiEventBus eventBus;	
+
+	private GuiEventBus eventBus;
 	private GuiOperationOptions options;
-	
+
 	private Shell shell;
 	private TrayIcon trayIcon;
 	private boolean daemonStarted;
 	private Thread daemonThread;
-	private GuiWebSocketClient webSocketClient;	
-	
+	private GuiWebSocketClient webSocketClient;
+
 	static {
 		Logging.init();
 		UserConfig.init();
 	}
-	
+
 	public GuiOperation() {
 		this(new GuiOperationOptions());
 	}
-	
+
 	public GuiOperation(GuiOperationOptions options) {
 		super(null);
 		this.options = options;
@@ -82,28 +82,28 @@ public class GuiOperation extends Operation {
 	@Override
 	public OperationResult execute() throws Exception {
 		logger.log(Level.INFO, "Starting GUI operation ...");
-		
+
 		loadOrCreateGuiConfig();
-		
-		initEventBus();		
-		initShutdownHook();		
+
+		initEventBus();
+		initShutdownHook();
 		initDisplayWindow();
 		initInternationalization();
 		initTray();
-		
-		startDaemon();		
+
+		startDaemon();
 		startWebSocketClient();
-				
+
 		startEventDispatchLoop();
-		
+
 		return null;
 	}
-	
-	private void loadOrCreateGuiConfig() {	
+
+	private void loadOrCreateGuiConfig() {
 		try {
 			File configFile = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_FILE);
 			File configFileExample = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_EXAMPLE_FILE);
-			
+
 			if (configFile.exists()) {
 				guiConfig = GuiConfigTO.load(configFile);
 			}
@@ -111,24 +111,24 @@ public class GuiOperation extends Operation {
 				// Write example config to daemon-example.xml, and default config to daemon.xml
 				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
 				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
-				
+
 				GuiConfigTO.save(exampleGuiConfig, configFileExample);
-				
+
 				// Use default settings
 				guiConfig = new GuiConfigTO();
-			}			
+			}
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "Cannot (re-)load config. Using default config.", e);
 			guiConfig = new GuiConfigTO();
 		}
-	}		
+	}
 
 	private void initEventBus() {
 		eventBus = GuiEventBus.getInstance();
 		eventBus.register(this);
 	}
-	
+
 	private void initShutdownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
@@ -137,11 +137,11 @@ public class GuiOperation extends Operation {
 			}
 		});
 	}
-	
+
 	private void initDisplayWindow() {
 		Display.setAppName("Syncany");
 		Display.setAppVersion("1.0");
-		
+
 		shell = new Shell();
 		shell.addDisposeListener(new DisposeListener() {
 			@Override
@@ -152,29 +152,27 @@ public class GuiOperation extends Operation {
 	}
 
 	private void initInternationalization() {
-		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");  
-		
+		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");
+
 		I18n.registerBundleName(intlPackage + "/i18n/messages");
-		I18n.registerBundleFilter("plugin_messages*");		
+		I18n.registerBundleFilter("plugin_messages*");
 	}
-	
+
 	private void initTray() {
 		if (options.getTrayType() != null) {
 			trayIcon = TrayIconFactory.createTrayIcon(shell, options.getTrayType());
 		}
-		else {
-			if (guiConfig.getTray() != null) {
-				trayIcon = TrayIconFactory.createTrayIcon(shell, guiConfig.getTray());
-			}
-			else {
-				trayIcon = TrayIconFactory.createTrayIcon(shell);
-			}
+		else if (guiConfig.getTray() != null) {
+			trayIcon = TrayIconFactory.createTrayIcon(shell, guiConfig.getTray());
 		}
-		
+		else {
+			trayIcon = TrayIconFactory.createTrayIcon(shell);
+		}
+
 		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning
 	}
-	
-	public void startDaemon() {	
+
+	public void startDaemon() {
 		File daemonPidFile = new File(UserConfig.getUserConfigDir(), DaemonOperation.PID_FILE);
 		boolean daemonRunning = PidFileUtil.isProcessRunning(daemonPidFile);
 
@@ -184,24 +182,24 @@ public class GuiOperation extends Operation {
 				public void run() {
 					try {
 						logger.log(Level.INFO, "Starting daemon in separate thread ...");
-						
+
 						new DaemonOperation().execute();
-						
+
 						logger.log(Level.INFO, "SHUTDOWN of daemon complete.");
 					}
 					catch (Exception e) {
 						logger.log(Level.SEVERE, "Cannot start daemon or daemon execution failed.", e);
 					}
-				}					
+				}
 			});
-			
+
 			daemonThread.start();
 			daemonStarted = true;
-		}		
+		}
 	}
 
 	private void startWebSocketClient() {
-		webSocketClient = new GuiWebSocketClient(); 
+		webSocketClient = new GuiWebSocketClient();
 		webSocketClient.start();
 	}
 
@@ -217,21 +215,21 @@ public class GuiOperation extends Operation {
 
 	public void disposeShell() {
 		if (shell != null && !shell.isDisposed()) {
-			Display.getDefault().syncExec(new Runnable() {				
+			Display.getDefault().syncExec(new Runnable() {
 				@Override
 				public void run() {
 					shell.dispose();
 				}
-			});			
+			});
 		}
-	}	
+	}
 
 	public void stopDaemon() throws IOException, InterruptedException {
 		if (daemonStarted) {
 			LocalEventBus.getInstance().post(ControlCommand.SHUTDOWN);
 		}
 	}
-	
+
 	@Subscribe
 	public void onExitGuiEventReceived(ExitGuiInternalEvent quitEvent) {
 		try {
@@ -243,7 +241,7 @@ public class GuiOperation extends Operation {
 		catch (InterruptedException e) {
 			logger.warning("Unable to stop daemon: " + e);
 		}
-		
+
 		disposeShell();
 		System.exit(0);
 	}

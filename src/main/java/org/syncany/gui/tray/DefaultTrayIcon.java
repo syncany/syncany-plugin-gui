@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,10 +41,10 @@ import org.syncany.util.EnvironmentUtil;
 /**
  * The default tray icon uses the default SWT {@link TrayItem}
  * class and the {@link Menu} to display the tray icon.
- * 
+ *
  * <p>These classes are supported by all operating systems and
  * desktop environment,  except Ubuntu/Unity.
- * 
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -54,31 +54,40 @@ public class DefaultTrayIcon extends TrayIcon {
 	private MenuItem statusTextItem;
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
 	private Map<TrayIconImage, Image> images;
+	private final String trayImageResourceRoot;
 
 	public DefaultTrayIcon(final Shell shell) {
+		this(shell, "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/");
+	}
+
+	public DefaultTrayIcon(final Shell shell, boolean blackwhite) {
+		this(shell, "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/bw/");
+	}
+
+	private DefaultTrayIcon(final Shell shell, String imageRoot) {
 		super(shell);
-		
+		trayImageResourceRoot = imageRoot;
+
 		fillImageCache();
 		buildTray();
 	}
 
 	private void fillImageCache() {
 		images = new HashMap<TrayIconImage, Image>();
-		String trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/"; 
-				
+
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
 			Image trayImage = SWTResourceManager.getImage(trayImageFileName, false);
-			
+
 			images.put(trayIconImage, trayImage);
 		}
 	}
-	
+
 	private void buildTray() {
 		Tray tray = Display.getDefault().getSystemTray();
 
 		if (tray != null) {
-			trayItem = new TrayItem(tray, SWT.NONE);				
+			trayItem = new TrayItem(tray, SWT.NONE);
 			setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 
 			buildMenuItems(null);
@@ -107,9 +116,9 @@ public class DefaultTrayIcon extends TrayIcon {
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
 		}
-		
+
 		// Clear old items (if any)
-		clearMenuItems();		
+		clearMenuItems();
 
 		// Create new items
 		statusTextItem = new MenuItem(menu, SWT.PUSH);
@@ -117,7 +126,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		statusTextItem.setEnabled(false);
 
 		new MenuItem(menu, SWT.SEPARATOR);
-		
+
 		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
 		newItem.setText(messages.get("tray.menuitem.new"));
 		newItem.addSelectionListener(new SelectionAdapter() {
@@ -138,30 +147,30 @@ public class DefaultTrayIcon extends TrayIcon {
 						folderMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
-								showFolder(folder);								
+								showFolder(folder);
 							}
 						});
-					
+
 						watchedFolderMenuItems.put(folder.getAbsolutePath(), folderMenuItem);
 					}
 				}
 			}
-			
+
 			for (String filePath : watchedFolderMenuItems.keySet()){
 				boolean removeFilePath = true;
-				
+
 				for (File file : watches) {
 					if (file.getAbsolutePath().equals(filePath)) {
 						removeFilePath = false;
 					}
 				}
-				
+
 				if (removeFilePath) {
 					watchedFolderMenuItems.get(filePath).dispose();
 					watchedFolderMenuItems.keySet().remove(filePath);
 				}
 			}
-			
+
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
 
@@ -211,7 +220,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				MenuItem item = menu.getItem(0);
 				item.dispose();
 			}
-			
+
 			// Clear menu item cache
 			watchedFolderMenuItems.clear();
 		}
@@ -249,17 +258,17 @@ public class DefaultTrayIcon extends TrayIcon {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
 				ToolTip toolTip = new ToolTip(trayShell, SWT.BALLOON | SWT.ICON_INFORMATION);
-				
+
 				toolTip.setText(subject);
 				toolTip.setMessage(message);
-				
+
 				trayItem.setImage(images.get(TrayIconImage.TRAY_NO_OVERLAY));
 				trayItem.setToolTip(toolTip);
-				
+
 				toolTip.setVisible(true);
 				toolTip.setAutoHide(true);
 			}
-		});		
+		});
 	}
 
 	@Override
