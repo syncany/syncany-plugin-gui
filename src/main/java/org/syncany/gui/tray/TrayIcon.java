@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +36,7 @@ import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
+import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
@@ -43,15 +44,17 @@ import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
-import org.syncany.operations.daemon.messages.WatchStartSyncExternalEvent;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -77,7 +80,8 @@ public abstract class TrayIcon {
 	protected Map<String, String> messages;
 
 	private Thread systemTrayAnimationThread;
-	private AtomicInteger syncingCount;
+	private AtomicBoolean syncing;
+	private Map<String, Boolean> clientSyncStatus;
 	private long uploadedFileSize;
 
 	public TrayIcon(Shell shell) {
@@ -87,7 +91,8 @@ public abstract class TrayIcon {
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 		
-		this.syncingCount = new AtomicInteger(0);		
+		this.syncing = new AtomicBoolean(false);	
+		this.clientSyncStatus = Maps.newConcurrentMap();
 
 		initInternationalization();
 		initAnimationThread();
@@ -138,40 +143,39 @@ public abstract class TrayIcon {
 	public void onListWatchesResponseReceived(ListWatchesManagementResponse listWatchesResponse) {
 		logger.log(Level.FINE, "List watches response recevied: " + listWatchesResponse.getWatches().size() + " watch(es)");
 
+		cleanSyncStatus();
 		List<File> watchedFolders = new ArrayList<File>();
 		
 		for (Watch watch : listWatchesResponse.getWatches()) {
 			watchedFolders.add(watch.getFolder());
 			
-			if (watch.getStatus() == SyncStatus.SYNCING) {
-				syncingCount.incrementAndGet();
-				logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
-			}
+			boolean watchFolderIsSyncing = watch.getStatus() == SyncStatus.SYNCING;
+			updateSyncStatus(watch.getFolder().getAbsolutePath(), watchFolderIsSyncing);
 		}
 		
 		// Update folders in menu
 		setWatchedFolders(watchedFolders);
 		
 		// Update tray icon
-		if (syncingCount.get() <= 0) {
+		if (!syncing.get()) {
 			setTrayImage(TrayIconImage.TRAY_IN_SYNC);		
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
-		}		
+		}
 	}
 	
 	@Subscribe
-	public void onWatchStartEventReceived(WatchStartSyncExternalEvent watchStartEvent) {
-		syncingCount.incrementAndGet();
-		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
+	public void onDownChangesDetectedEvent(DownChangesDetectedSyncExternalEvent downChangesDetectedEvent) {
+		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);		
+	}
+
+	@Subscribe
+	public void onUpIndexChangesDetectedEvent(UpIndexChangesDetectedSyncExternalEvent upIndexChangesDetectedEvent) {
+		updateSyncStatus(upIndexChangesDetectedEvent.getRoot(), true);
 	}
 	
 	@Subscribe
-	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchStartEvent) {
-		if (syncingCount.decrementAndGet() < 0) {
-			syncingCount.set(0);			
-		}		
-		
-		logger.log(Level.FINE, "Syncing count: Decreasing to " + syncingCount.get());
+	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchEndEvent) {
+		updateSyncStatus(watchEndEvent.getRoot(), false);
 	}
 
 	@Subscribe
@@ -303,7 +307,7 @@ public abstract class TrayIcon {
 			@Override
 			public void run() {
 				while (true) {
-					while (syncingCount.get() <= 0) {
+					while (!syncing.get()) {
 						try {
 							Thread.sleep(200);
 						}
@@ -314,7 +318,7 @@ public abstract class TrayIcon {
 
 					int trayImageIndex = 0;
 
-					while (syncingCount.get() > 0) {
+					while (syncing.get()) {
 						try {
 							TrayIconImage syncImage = TrayIconImage.getSyncImage(trayImageIndex);
 							setTrayImage(syncImage);
@@ -343,6 +347,26 @@ public abstract class TrayIcon {
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);					
+	}
+	
+	private void cleanSyncStatus() {
+		logger.log(Level.FINE, "Resetting sync status for clients.");					
+		clientSyncStatus.clear();
+	}
+	
+	private void updateSyncStatus(String root, boolean syncStatus) {
+		clientSyncStatus.put(root, syncStatus);
+		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);		
+		
+		// Update 'syncing' variable: Set true if any of the folders is syncing
+		Map<String, Boolean> syncingFolders = Maps.filterValues(clientSyncStatus, new Predicate<Boolean>() {
+			@Override
+			public boolean apply(Boolean syncStatus) {
+				return syncStatus;
+			}
+		});
+		
+		syncing.set(syncingFolders.size() > 0);		
 	}
 
 	// Abstract methods
