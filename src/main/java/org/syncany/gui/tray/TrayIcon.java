@@ -47,6 +47,8 @@ import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
+import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.WatchStartSyncExternalEvent;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -156,13 +158,25 @@ public abstract class TrayIcon {
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
 		}		
 	}
+	
+	@Subscribe
+	public void onWatchStartEventReceived(WatchStartSyncExternalEvent watchStartEvent) {
+		syncingCount.incrementAndGet();
+		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
+	}
+	
+	@Subscribe
+	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchStartEvent) {
+		if (syncingCount.decrementAndGet() < 0) {
+			syncingCount.set(0);			
+		}		
+		
+		logger.log(Level.FINE, "Syncing count: Decreasing to " + syncingCount.get());
+	}
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		syncingCount.incrementAndGet();		
 		setStatusText("Starting indexing and upload ...");
-
-		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
 	}
 
 	@Subscribe
@@ -192,7 +206,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		syncingCountDecrement();
+		// Nothing
 	}
 
 	@Subscribe
@@ -206,16 +220,11 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		syncingCount.incrementAndGet();
 		setStatusText("Checking for remote changes ...");
-
-		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
 	}
 
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		syncingCountDecrement();
-
 		// Display notification
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
@@ -334,14 +343,6 @@ public abstract class TrayIcon {
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);					
-	}
-	
-	private void syncingCountDecrement() {
-		if (syncingCount.decrementAndGet() < 0) {
-			syncingCount.set(0);			
-		}		
-		
-		logger.log(Level.FINE, "Syncing count: Decreasing to " + syncingCount.get());
 	}
 
 	// Abstract methods
