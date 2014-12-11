@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
@@ -60,6 +62,8 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
+	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
+
 	private static int REFRESH_TIME = 500;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
@@ -130,6 +134,8 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onListWatchesResponseReceived(ListWatchesManagementResponse listWatchesResponse) {
+		logger.log(Level.FINE, "List watches response recevied: " + listWatchesResponse.getWatches().size() + " watch(es)");
+
 		List<File> watchedFolders = new ArrayList<File>();
 		
 		for (Watch watch : listWatchesResponse.getWatches()) {
@@ -137,7 +143,7 @@ public abstract class TrayIcon {
 			
 			if (watch.getStatus() == SyncStatus.SYNCING) {
 				syncingCount.incrementAndGet();
-				System.out.println("count++ -> " + syncingCount.get());
+				logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
 			}
 		}
 		
@@ -147,15 +153,16 @@ public abstract class TrayIcon {
 		// Update tray icon
 		if (syncingCount.get() <= 0) {
 			setTrayImage(TrayIconImage.TRAY_IN_SYNC);		
-			System.out.println("setimage -> insync");
+			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
 		}		
 	}
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
 		syncingCount.incrementAndGet();		
-		System.out.println("count++ -> " + syncingCount.get());
 		setStatusText("Starting indexing and upload ...");
+
+		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
 	}
 
 	@Subscribe
@@ -201,6 +208,8 @@ public abstract class TrayIcon {
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
 		syncingCount.incrementAndGet();
 		setStatusText("Checking for remote changes ...");
+
+		logger.log(Level.FINE, "Syncing count: Increasing to " + syncingCount.get());
 	}
 
 	@Subscribe
@@ -298,10 +307,12 @@ public abstract class TrayIcon {
 
 					while (syncingCount.get() > 0) {
 						try {
-							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
-							System.out.println("setimage -> " + trayImageIndex);
-							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
+							TrayIconImage syncImage = TrayIconImage.getSyncImage(trayImageIndex);
+							setTrayImage(syncImage);
 
+							logger.log(Level.FINE, "Syncing image: Setting image to " + syncImage);
+
+							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 							Thread.sleep(REFRESH_TIME);
 						}
 						catch (InterruptedException e) {
@@ -310,8 +321,9 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-					System.out.println("setimage -> insync");
-					setStatusText("All files in sync");					
+					setStatusText("All files in sync");
+					
+					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);					
 				}
 			}
 		});
@@ -321,13 +333,15 @@ public abstract class TrayIcon {
 	
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
+		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);					
 	}
 	
 	private void syncingCountDecrement() {
 		if (syncingCount.decrementAndGet() < 0) {
 			syncingCount.set(0);			
 		}		
-		System.out.println("count-- -> " + syncingCount.get());
+		
+		logger.log(Level.FINE, "Syncing count: Decreasing to " + syncingCount.get());
 	}
 
 	// Abstract methods
