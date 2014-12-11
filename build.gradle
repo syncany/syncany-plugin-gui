@@ -22,7 +22,7 @@ repositories {
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.3.0-alpha"	
+	pluginVersion = "0.3.1-alpha"	
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
 	pluginAppMinVersion = "0.3.0-alpha"
