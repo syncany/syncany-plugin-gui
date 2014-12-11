@@ -137,6 +137,7 @@ public abstract class TrayIcon {
 			
 			if (watch.getStatus() == SyncStatus.SYNCING) {
 				syncingCount.incrementAndGet();
+				System.out.println("count++ -> " + syncingCount.get());
 			}
 		}
 		
@@ -144,14 +145,16 @@ public abstract class TrayIcon {
 		setWatchedFolders(watchedFolders);
 		
 		// Update tray icon
-		if (syncingCount.get() == 0) {
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);			
+		if (syncingCount.get() <= 0) {
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);		
+			System.out.println("setimage -> insync");
 		}		
 	}
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
 		syncingCount.incrementAndGet();		
+		System.out.println("count++ -> " + syncingCount.get());
 		setStatusText("Starting indexing and upload ...");
 	}
 
@@ -182,9 +185,9 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		syncingCount.decrementAndGet();
+		syncingCountDecrement();
 	}
-	
+
 	@Subscribe
 	public void onDownDownloadFileSyncEventReceived(DownDownloadFileSyncExternalEvent syncEvent) {
 		String fileDescription = syncEvent.getFileDescription();
@@ -202,7 +205,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		syncingCount.decrementAndGet();
+		syncingCountDecrement();
 
 		// Display notification
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
@@ -296,6 +299,7 @@ public abstract class TrayIcon {
 					while (syncingCount.get() > 0) {
 						try {
 							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
+							System.out.println("setimage -> " + trayImageIndex);
 							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 
 							Thread.sleep(REFRESH_TIME);
@@ -306,6 +310,7 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+					System.out.println("setimage -> insync");
 					setStatusText("All files in sync");					
 				}
 			}
@@ -316,6 +321,13 @@ public abstract class TrayIcon {
 	
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
+	}
+	
+	private void syncingCountDecrement() {
+		if (syncingCount.decrementAndGet() < 0) {
+			syncingCount.set(0);			
+		}		
+		System.out.println("count-- -> " + syncingCount.get());
 	}
 
 	// Abstract methods

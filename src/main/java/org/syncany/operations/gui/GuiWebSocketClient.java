@@ -197,10 +197,13 @@ public class GuiWebSocketClient {
 		webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
 			@Override
 			protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage textMessage) throws IOException {
+				String messageStr = textMessage.getData();
 				Message message;
 				
 				try {
-					message = MessageFactory.toMessage(textMessage.getData());
+					logger.log(Level.INFO, "GUI received message: " + messageStr);
+					
+					message = MessageFactory.toMessage(messageStr);
 					eventBus.post(message);
 				}
 				catch (Exception e) {
