@@ -25,5 +25,5 @@ package org.syncany.gui.tray;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public enum TrayIconType {
-	DEFAULT, APPINDICATOR, BLACK_WHITE
+	DEFAULT, APPINDICATOR, OSX_NOTIFICATION_CENTER
 }

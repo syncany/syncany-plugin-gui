@@ -33,6 +33,7 @@ import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.tray.TrayIcon;
 import org.syncany.gui.tray.TrayIconFactory;
+import org.syncany.gui.tray.TrayIconTheme;
 import org.syncany.gui.tray.TrayIconType;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
@@ -42,7 +43,6 @@ import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.DaemonOperation;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.util.PidFileUtil;
-
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -159,15 +159,10 @@ public class GuiOperation extends Operation {
 	}
 
 	private void initTray() {
-		if (options.getTrayType() != null) {
-			trayIcon = TrayIconFactory.createTrayIcon(shell, options.getTrayType());
-		}
-		else if (guiConfig.getTray() != null) {
-			trayIcon = TrayIconFactory.createTrayIcon(shell, guiConfig.getTray());
-		}
-		else {
-			trayIcon = TrayIconFactory.createTrayIcon(shell);
-		}
+		TrayIconType type = options.getTrayType() != null ? options.getTrayType() : guiConfig.getTray() != null ? guiConfig.getTray() : null;
+		TrayIconTheme theme = options.getTrayTheme() != null ? options.getTrayTheme() : guiConfig.getTheme() != null ? guiConfig.getTheme() : null;
+
+		trayIcon = TrayIconFactory.createTrayIcon(shell, type, theme);
 
 		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning
 	}

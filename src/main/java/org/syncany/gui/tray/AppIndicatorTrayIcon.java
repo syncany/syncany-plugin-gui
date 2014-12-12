@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,14 +51,14 @@ import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 
 /**
- * The app indicator tray icon uses a Python script to create 
+ * The app indicator tray icon uses a Python script to create
  * a so called "app indicator" (introduced by Ubuntu Unity).
- * 
+ *
  * <p>The class starts a Python script that creates an app indicator
  * and connects to the embedded web and websocket server. The embedded
- * server serves static content (tray icon images) and provides a 
- * websocket server to communicate between the script and this class. 
- * 
+ * server serves static content (tray icon images) and provides a
+ * websocket server to communicate between the script and this class.
+ *
  * @see https://unity.ubuntu.com/projects/appindicators/
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -79,15 +79,15 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private Process pythonProcess;
 	private WebSocketChannel pythonClientChannel;
 
-	public AppIndicatorTrayIcon(Shell shell) {
-		super(shell);
+	public AppIndicatorTrayIcon(Shell shell, TrayIconTheme theme) {
+		super(shell, theme);
 
 		startWebServer();
 		startTray();
 	}
 
 	private void startWebServer() {
-		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/");
+		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/") + "/" + getTheme().toString().toLowerCase() + "/";
 
 		HttpHandler pathHttpHandler = path()
 				.addPrefixPath(WEBSERVER_PATH_WEBSOCKET, websocket(new InternalWebSocketHandler()))
@@ -162,7 +162,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	protected void setTrayImage(TrayIconImage image) {
 		sendWebSocketMessage(new UpdateTrayIconGuiInternalEvent(image.getFileName()));
 	}
-	
+
 	@Override
 	protected void displayNotification(String subject, String message) {
 		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
@@ -203,7 +203,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				case REPORT_ISSUE:
 					showReportIssue();
 					break;
-					
+
 				case DONATE:
 					showDonate();
 					break;

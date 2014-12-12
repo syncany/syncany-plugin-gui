@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ import com.google.common.eventbus.Subscribe;
  * a menu to control the application and the ability to display
  * notifications. The tray icon is the central entry point for
  * the application.
- * 
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -73,8 +73,9 @@ public abstract class TrayIcon {
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
-	
+
 	protected Shell trayShell;
+	private final TrayIconTheme theme;
 	protected WizardDialog wizard;
 	protected GuiEventBus eventBus;
 	protected Map<String, String> messages;
@@ -84,14 +85,15 @@ public abstract class TrayIcon {
 	private Map<String, Boolean> clientSyncStatus;
 	private long uploadedFileSize;
 
-	public TrayIcon(Shell shell) {
+	public TrayIcon(Shell shell, TrayIconTheme theme) {
 		this.trayShell = shell;
+		this.theme = theme;
 		this.messages = new HashMap<String, String>();
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
-		
-		this.syncing = new AtomicBoolean(false);	
+
+		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 
 		initInternationalization();
@@ -106,7 +108,7 @@ public abstract class TrayIcon {
 				if (wizard == null) {
 					wizard = new WizardDialog(trayShell);
 					wizard.open();
-					
+
 					wizard = null;
 				}
 			}
@@ -133,7 +135,11 @@ public abstract class TrayIcon {
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}
-	
+
+	public TrayIconTheme getTheme() {
+		return theme;
+	}
+
 	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
@@ -145,34 +151,34 @@ public abstract class TrayIcon {
 
 		cleanSyncStatus();
 		List<File> watchedFolders = new ArrayList<File>();
-		
+
 		for (Watch watch : listWatchesResponse.getWatches()) {
 			watchedFolders.add(watch.getFolder());
-			
+
 			boolean watchFolderIsSyncing = watch.getStatus() == SyncStatus.SYNCING;
 			updateSyncStatus(watch.getFolder().getAbsolutePath(), watchFolderIsSyncing);
 		}
-		
+
 		// Update folders in menu
 		setWatchedFolders(watchedFolders);
-		
+
 		// Update tray icon
 		if (!syncing.get()) {
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);		
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
 		}
 	}
-	
+
 	@Subscribe
 	public void onDownChangesDetectedEvent(DownChangesDetectedSyncExternalEvent downChangesDetectedEvent) {
-		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);		
+		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);
 	}
 
 	@Subscribe
 	public void onUpIndexChangesDetectedEvent(UpIndexChangesDetectedSyncExternalEvent upIndexChangesDetectedEvent) {
 		updateSyncStatus(upIndexChangesDetectedEvent.getRoot(), true);
 	}
-	
+
 	@Subscribe
 	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchEndEvent) {
 		updateSyncStatus(watchEndEvent.getRoot(), false);
@@ -204,7 +210,7 @@ public abstract class TrayIcon {
 
 		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + uploadedTotalStr + " / "
 				+ uploadedPercent + "%) ...");
-		
+
 		uploadedFileSize += syncEvent.getCurrentFileSize();
 	}
 
@@ -335,29 +341,29 @@ public abstract class TrayIcon {
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 					setStatusText("All files in sync");
-					
-					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);					
+
+					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);
 				}
 			}
 		});
 
 		systemTrayAnimationThread.start();
 	}
-	
+
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
-		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);					
+		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
 	}
-	
+
 	private void cleanSyncStatus() {
-		logger.log(Level.FINE, "Resetting sync status for clients.");					
+		logger.log(Level.FINE, "Resetting sync status for clients.");
 		clientSyncStatus.clear();
 	}
-	
+
 	private void updateSyncStatus(String root, boolean syncStatus) {
 		clientSyncStatus.put(root, syncStatus);
-		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);		
-		
+		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);
+
 		// Update 'syncing' variable: Set true if any of the folders is syncing
 		Map<String, Boolean> syncingFolders = Maps.filterValues(clientSyncStatus, new Predicate<Boolean>() {
 			@Override
@@ -365,8 +371,8 @@ public abstract class TrayIcon {
 				return syncStatus;
 			}
 		});
-		
-		syncing.set(syncingFolders.size() > 0);		
+
+		syncing.set(syncingFolders.size() > 0);
 	}
 
 	// Abstract methods

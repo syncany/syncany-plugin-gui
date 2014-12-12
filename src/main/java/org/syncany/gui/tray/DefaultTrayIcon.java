@@ -49,27 +49,24 @@ import org.syncany.util.EnvironmentUtil;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public class DefaultTrayIcon extends TrayIcon {
-	private TrayItem trayItem;
+	protected TrayItem trayItem;
+	protected String trayImageResourceRoot;
+	protected Map<TrayIconImage, Image> images;
+
 	private Menu menu;
 	private MenuItem statusTextItem;
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
-	private Map<TrayIconImage, Image> images;
-	private final String trayImageResourceRoot;
 
-	public DefaultTrayIcon(final Shell shell) {
-		this(shell, "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/");
-	}
+	public DefaultTrayIcon(final Shell shell, final TrayIconTheme theme) {
+		super(shell, theme);
 
-	public DefaultTrayIcon(final Shell shell, boolean blackwhite) {
-		this(shell, "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/bw/");
-	}
-
-	private DefaultTrayIcon(final Shell shell, String imageRoot) {
-		super(shell);
-		trayImageResourceRoot = imageRoot;
-
+		setTrayImageResourcesRoot();
 		fillImageCache();
 		buildTray();
+	}
+
+	protected void setTrayImageResourcesRoot() {
+		trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/" + getTheme().toString().toLowerCase() + "/";
 	}
 
 	private void fillImageCache() {
