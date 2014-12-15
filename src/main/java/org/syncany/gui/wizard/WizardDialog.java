@@ -58,6 +58,7 @@ public class WizardDialog {
 	private StartPanel startPanel;
 	private SelectFolderPanel selectFolderPanel;
 	private ProgressPanel progressPanel;
+	private PluginInitPanel pluginInitPanel;
 	
 	private Panel currentPanel;
 	private PanelController panelController;
@@ -93,7 +94,7 @@ public class WizardDialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(startPanel, Action.NEXT);
+		setCurrentPanel(pluginInitPanel, Action.NEXT);
 
 		// Open shell
 		DesktopHelper.centerOnScreen(windowShell);
@@ -213,6 +214,7 @@ public class WizardDialog {
 		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
 		selectFolderPanel = new SelectFolderPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
+		pluginInitPanel = new PluginInitPanel(this, stackComposite, SWT.NONE);
 	}
 
 	private void handleFlow(Action clickAction) {
