@@ -35,18 +35,27 @@ import com.google.common.eventbus.Subscribe;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class AddExistingPanelController extends PanelController {
+public class InitPanelController extends PanelController {
 	private StartPanel startPanel;
-	private FolderSelectPanel selectFolderPanel;
+	private FolderSelectPanel folderSelectPanel;
+	private PluginSelectPanel pluginSelectPanel;
+	private PluginSettingsPanel pluginSettingsPanel;
+	private ChoosePasswordPanel choosePasswordPanel;
 	private ProgressPanel progressPanel;
 	
 	private ListWatchesManagementRequest listWatchesRequest;
-	
-	public AddExistingPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel selectFolderPanel, ProgressPanel progressPanel) {
+
+	public InitPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel folderSelectPanel,
+			PluginSelectPanel pluginSelectPanel, PluginSettingsPanel pluginSettingsPanel, ChoosePasswordPanel choosePasswordPanel,
+			ProgressPanel progressPanel) {
+
 		super(wizardDialog);
 		
 		this.startPanel = startPanel;
-		this.selectFolderPanel = selectFolderPanel;
+		this.folderSelectPanel = folderSelectPanel;
+		this.pluginSelectPanel = pluginSelectPanel;
+		this.pluginSettingsPanel = pluginSettingsPanel;
+		this.choosePasswordPanel = choosePasswordPanel;
 		this.progressPanel = progressPanel;
 	}
 
@@ -54,30 +63,49 @@ public class AddExistingPanelController extends PanelController {
 	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
 			if (clickAction == Action.NEXT) {
-				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);
-				selectFolderPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
+				folderSelectPanel.setValidationMethod(SelectFolderValidationMethod.NO_APP_FOLDER);
+				folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
 
-				wizardDialog.validateAndSetCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
+				wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
 			}
 		}
-		else if (wizardDialog.getCurrentPanel() == selectFolderPanel) {
+		else if (wizardDialog.getCurrentPanel() == folderSelectPanel) {
 			if (clickAction == Action.PREVIOUS) {
 				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
 			}
+			else if (clickAction == Action.NEXT) {				
+				wizardDialog.validateAndSetCurrentPanel(pluginSelectPanel, Action.PREVIOUS, Action.NEXT);
+			}
+		}
+		else if (wizardDialog.getCurrentPanel() == pluginSelectPanel) {
+			if (clickAction == Action.PREVIOUS) {
+				wizardDialog.setCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
+			}
 			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText(I18n.getString("dialog.progressPanel.add.title"));
-				progressPanel.setDescriptionText(I18n.getString("dialog.progressPanel.add.text"));
-
-				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
-
-				if (panelValid) {
-					sendAddFolderRequest();
-				}
+				pluginSettingsPanel.init(pluginSelectPanel.getSelectedPlugin());
+				
+				wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
+			}
+		}
+		else if (wizardDialog.getCurrentPanel() == pluginSettingsPanel) {
+			if (clickAction == Action.PREVIOUS) {
+				wizardDialog.setCurrentPanel(pluginSelectPanel, Action.PREVIOUS, Action.NEXT);
+			}
+			else if (clickAction == Action.NEXT) {
+				wizardDialog.validateAndSetCurrentPanel(choosePasswordPanel, Action.PREVIOUS, Action.NEXT);
+			}
+		}
+		else if (wizardDialog.getCurrentPanel() == choosePasswordPanel) {
+			if (clickAction == Action.PREVIOUS) {
+				wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
+			}
+			else if (clickAction == Action.NEXT) {
+				wizardDialog.validateAndSetCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
 			}
 		}
 		else if (wizardDialog.getCurrentPanel() == progressPanel) {
 			if (clickAction == Action.PREVIOUS) {
-				wizardDialog.setCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
+				wizardDialog.setCurrentPanel(choosePasswordPanel, Action.PREVIOUS, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
 				wizardDialog.validateAndSetCurrentPanel(startPanel);
@@ -86,7 +114,7 @@ public class AddExistingPanelController extends PanelController {
 	}
 
 	private void sendAddFolderRequest() {
-		File newWatchFolder = selectFolderPanel.getFolder();
+		File newWatchFolder = folderSelectPanel.getFolder();
 		AddWatchManagementRequest addWatchManagementRequest = new AddWatchManagementRequest(newWatchFolder);
 		
 		progressPanel.resetPanel(3);

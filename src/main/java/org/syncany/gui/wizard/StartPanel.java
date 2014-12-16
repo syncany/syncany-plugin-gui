@@ -73,8 +73,7 @@ public class StartPanel extends Panel {
 		createStorageRadio.setLayoutData(createStorageRadioGridData);
 		createStorageRadio.setBounds(0, 0, 90, 16);
 		createStorageRadio.setText(I18n.getString("dialog.start.option.createOnlineStorage"));
-		createStorageRadio.setForeground(WidgetDecorator.DARK_GRAY);
-		createStorageRadio.setEnabled(false);
+		createStorageRadio.setSelection(true);
 		
 		WidgetDecorator.bigger(createStorageRadio);
 
@@ -83,7 +82,6 @@ public class StartPanel extends Panel {
 
 		Label createStorageText = new Label(this, SWT.WRAP);
 		createStorageText.setLayoutData(createStorageTextGridData);
-		createStorageText.setForeground(WidgetDecorator.DARK_GRAY);
 		createStorageText.setText(I18n.getString("dialog.start.option.createOnlineStorage.helpText"));
 
 		WidgetDecorator.normal(createStorageText);
@@ -123,7 +121,6 @@ public class StartPanel extends Panel {
 		addWatchStorageRadio.setLayoutData(addWatchStorageRadioGridData);
 		addWatchStorageRadio.setBounds(0, 0, 90, 16);
 		addWatchStorageRadio.setText(I18n.getString("dialog.start.option.watchExisting"));
-		addWatchStorageRadio.setSelection(true);
 		
 		WidgetDecorator.bigger(addWatchStorageRadio);
 

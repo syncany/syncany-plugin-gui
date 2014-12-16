@@ -56,9 +56,11 @@ public class WizardDialog {
 	private StackLayout stackLayout;
 
 	private StartPanel startPanel;
-	private SelectFolderPanel selectFolderPanel;
+	private FolderSelectPanel folderSelectPanel;
+	private PluginSelectPanel pluginSelectPanel;
+	private PluginSettingsPanel pluginSettingsPanel;
+	private ChoosePasswordPanel choosePasswordPanel;
 	private ProgressPanel progressPanel;
-	private PluginInitPanel pluginInitPanel;
 	
 	private Panel currentPanel;
 	private PanelController panelController;
@@ -94,7 +96,7 @@ public class WizardDialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(pluginInitPanel, Action.NEXT);
+		setCurrentPanel(startPanel, Action.NEXT);
 
 		// Open shell
 		DesktopHelper.centerOnScreen(windowShell);
@@ -212,9 +214,11 @@ public class WizardDialog {
 	
 	private void buildPanels() {
 		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
-		selectFolderPanel = new SelectFolderPanel(this, stackComposite, SWT.NONE);
+		folderSelectPanel = new FolderSelectPanel(this, stackComposite, SWT.NONE);
+		pluginSelectPanel = new PluginSelectPanel(this, stackComposite, SWT.NONE);
+		pluginSettingsPanel = new PluginSettingsPanel(this, stackComposite, SWT.NONE);
+		choosePasswordPanel = new ChoosePasswordPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
-		pluginInitPanel = new PluginInitPanel(this, stackComposite, SWT.NONE);
 	}
 
 	private void handleFlow(Action clickAction) {
@@ -234,9 +238,11 @@ public class WizardDialog {
 	private PanelController createPanelStrategy(StartPanelSelection startPanelSelection) {
 		switch (startPanelSelection) {
 		case ADD_EXISTING:
-			return new AddExistingPanelController(this, startPanel, selectFolderPanel, progressPanel);
+			return new AddExistingPanelController(this, startPanel, folderSelectPanel, progressPanel);
 
 		case INIT:
+			return new InitPanelController(this, startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel);
+			
 		case CONNECT:
 		default:
 			return null;

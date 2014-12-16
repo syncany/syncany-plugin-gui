@@ -26,7 +26,7 @@ import org.syncany.gui.util.SWTResourceManager;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class SelectFolderPanel extends Panel {
+public class FolderSelectPanel extends Panel {
 	public enum SelectFolderValidationMethod {
 		NO_APP_FOLDER, APP_FOLDER
 	};
@@ -40,7 +40,7 @@ public class SelectFolderPanel extends Panel {
 	private SelectFolderValidationMethod validationMethod;
 	private boolean firstValidationDone;
 
-	public SelectFolderPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
+	public FolderSelectPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
 		super(wizardParentDialog, parent, style);
 		
 		this.createControls();
@@ -165,8 +165,16 @@ public class SelectFolderPanel extends Panel {
 		File selectedDir = new File(localDir.getText());
 		File appDir = new File(selectedDir, Config.DIR_APPLICATION);
 
-		if (appDir.exists()) {
+		if (localDir.getText().isEmpty()) {
+			showWarning("Please enter a valid folder.");
 			WidgetDecorator.markAsInvalid(localDir);
+			
+			return false;			
+		}
+		else if (appDir.exists()) {
+			showWarning("The selected folder already is a Syncany folder.");
+			WidgetDecorator.markAsInvalid(localDir);
+
 			return false;
 		}
 		else {
@@ -175,21 +183,26 @@ public class SelectFolderPanel extends Panel {
 				
 				if (allowCreate) {
 					if (selectedDir.mkdirs()) {
+						hideWarning();
 						WidgetDecorator.markAsValid(localDir);
+						
 						return true;
 					}
 					else {
+						showWarning("The selected folder could not be created.");
 						WidgetDecorator.markAsInvalid(localDir);
+						
 						return false;
 					}
 				}
 				else {
-					WidgetDecorator.markAsInvalid(localDir);
 					return false;
 				}
 			}
 			else {
+				hideWarning();
 				WidgetDecorator.markAsValid(localDir);
+				
 				return true;
 			}
 		}		
