@@ -1,6 +1,8 @@
 package org.syncany.gui.wizard;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
@@ -23,6 +25,8 @@ import org.syncany.plugins.transfer.TransferSettings;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class PluginSettingsPanel extends Panel {
+	private static final Logger logger = Logger.getLogger(PluginSettingsPanel.class.getSimpleName());	
+
 	private Label warningImageLabel;
 	private Label warningMessageLabel;
 
@@ -60,7 +64,7 @@ public class PluginSettingsPanel extends Panel {
 		List<TransferPluginOption> pluginOptions = TransferPluginOptions.getOrderedOptions(selectedPluginSettings.getClass());
 				
 		// Main composite
-		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
@@ -70,22 +74,24 @@ public class PluginSettingsPanel extends Panel {
 		
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
-		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
 		titleLabel.setText(selectedPlugin.getName() + " settings");
 		
 		WidgetDecorator.title(titleLabel);
 		
 		for (final TransferPluginOption pluginOption : pluginOptions) {
-			// Label "Folder:"
+			// Label "Option X:"
 			GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false);
 			selectFolderLabel.verticalIndent = 5;
 			selectFolderLabel.horizontalSpan = 3;
 
+			String optionLabelText = pluginOption.getDescription() + (pluginOption.isSensitive() ? " (not displayed)" : "");
+
 			Label optionLabel = new Label(this, SWT.WRAP);
 			optionLabel.setLayoutData(selectFolderLabel);
-			optionLabel.setText(pluginOption.getDescription());
+			optionLabel.setText(optionLabelText);
 			
-			// Textfield "Folder"
+			// Textfield "Option X"
 			GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
 			optionValueTextGridData.verticalIndent = 0;
 			optionValueTextGridData.horizontalSpan = 2;
@@ -99,14 +105,12 @@ public class PluginSettingsPanel extends Panel {
 			optionValueText.addModifyListener(new ModifyListener() {			
 				@Override
 				public void modifyText(ModifyEvent e) {
-					// Do something.
 					try {
 						selectedPluginSettings.setField(pluginOption.getName(), e.toString());
 					}
 					catch (StorageException e1) {
+						logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + e.toString() + "'", e);						
 						WidgetDecorator.markAsInvalid(optionValueText);
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
 					}
 				}
 			});
@@ -124,7 +128,7 @@ public class PluginSettingsPanel extends Panel {
 		warningImageLabel.setVisible(false);
 
 		warningMessageLabel = new Label(this, SWT.WRAP);
-		warningMessageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
+		warningMessageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
 		warningMessageLabel.setVisible(false);
 		
 		WidgetDecorator.bold(warningMessageLabel);
@@ -135,12 +139,28 @@ public class PluginSettingsPanel extends Panel {
 	@Override
 	public boolean validatePanel() {
 		try {
+			hideWarning();			
 			selectedPluginSettings.validateRequiredFields();
+
+			logger.log(Level.WARNING, "Validation succeeded on panel.");			
 			return true;
 		}
 		catch (StorageException e) {
-			e.printStackTrace();
+			showWarning(e.getMessage());
+			
+			logger.log(Level.WARNING, "Validate error on panel.", e);			
 			return false;
 		}		
+	}
+	
+	private void showWarning(String warningStr) {
+		warningImageLabel.setVisible(true);
+		warningMessageLabel.setVisible(true);			
+		warningMessageLabel.setText(warningStr);
+	}
+	
+	private void hideWarning() {
+		warningImageLabel.setVisible(false);
+		warningMessageLabel.setVisible(false);
 	}
 }

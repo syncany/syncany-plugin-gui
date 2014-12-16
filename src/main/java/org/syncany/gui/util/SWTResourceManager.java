@@ -147,8 +147,9 @@ public class SWTResourceManager {
 				m_imageMap.put(path + "_" + image.getBounds().width, image);
 			}
 			catch (Exception e) {
-				image = getMissingImage();
-				m_imageMap.put(path, image);
+				return null;
+				/*image = getMissingImage();
+				m_imageMap.put(path, image);*/
 			}
 		}
 		return image;

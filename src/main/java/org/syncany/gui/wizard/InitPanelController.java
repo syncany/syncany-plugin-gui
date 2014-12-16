@@ -100,7 +100,14 @@ public class InitPanelController extends PanelController {
 				wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
-				wizardDialog.validateAndSetCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
+				progressPanel.setTitleText("Initializing remote repository");
+				progressPanel.setDescriptionText("Syncany is creating a repository for you. This might take a while.");
+
+				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
+
+				if (panelValid) {
+					sendInitRequest();
+				}								
 			}
 		}
 		else if (wizardDialog.getCurrentPanel() == progressPanel) {
@@ -113,14 +120,14 @@ public class InitPanelController extends PanelController {
 		}
 	}
 
-	private void sendAddFolderRequest() {
+	private void sendInitRequest() {
 		File newWatchFolder = folderSelectPanel.getFolder();
-		AddWatchManagementRequest addWatchManagementRequest = new AddWatchManagementRequest(newWatchFolder);
+		//InitManagementRequest addWatchManagementRequest = new InitManagementRequest(newWatchFolder);
 		
 		progressPanel.resetPanel(3);
 		progressPanel.appendLog("Adding folder "+ newWatchFolder + " ... ");
 
-		eventBus.post(addWatchManagementRequest);		
+		//eventBus.post(addWatchManagementRequest);		
 	}
 
 	@Subscribe

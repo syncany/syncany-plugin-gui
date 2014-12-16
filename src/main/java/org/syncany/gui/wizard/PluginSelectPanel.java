@@ -5,10 +5,17 @@ import java.util.List;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Table;
+import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
+import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.plugins.Plugins;
 import org.syncany.plugins.transfer.TransferPlugin;
 
@@ -32,7 +39,7 @@ public class PluginSelectPanel extends Panel {
 				
 	private void createControls() {		
 		// Main composite
-		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(1, true);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
@@ -54,30 +61,50 @@ public class PluginSelectPanel extends Panel {
 		WidgetDecorator.normal(descriptionLabel);
 		
 		// Plugin list
-		GridData pluginListGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-		pluginListGridData.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
-		pluginListGridData.horizontalSpan = 1;
+		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.TOP, true, true);
+		pluginTableGridData.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
+		pluginTableGridData.horizontalIndent = 5;
 		
-		final org.eclipse.swt.widgets.List pluginList = new org.eclipse.swt.widgets.List(this, SWT.BORDER | SWT.MULTI | SWT.V_SCROLL);
-		pluginList.setLayoutData(pluginListGridData);
+	    final Table pluginTable = new Table(this, SWT.BORDER |  SWT.V_SCROLL);
+		pluginTable.setHeaderVisible(false);
+		pluginTable.setBackground(WidgetDecorator.WHITE);
+		pluginTable.setLayoutData(pluginTableGridData);
 		
-		for (TransferPlugin plugin : plugins) {
-			pluginList.add(plugin.getName());
-		}		
-
-		pluginList.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent event) {
-				if (pluginList.getSelectionIndex() >= 0) {
-					selectedPlugin = plugins.get(pluginList.getSelectionIndex());
+		pluginTable.addSelectionListener(new SelectionAdapter() {
+			public void widgetSelected(SelectionEvent e) {
+				if (pluginTable.getSelectionIndex() >= 0) {
+					selectedPlugin = plugins.get(pluginTable.getSelectionIndex());
 				}
 				else {
-					selectedPlugin = null;					
+					selectedPlugin = null;
 				}
+
+				System.out.println(selectedPlugin);
+			}
+		});		
+		
+		pluginTable.addListener(SWT.MeasureItem, new Listener() {
+			public void handleEvent(Event event) {				
+				event.height = 30; // Row height workaround
 			}
 		});
+		
+	    TableColumn pluginTableColumnImage = new TableColumn(pluginTable, SWT.CENTER);
+	    pluginTableColumnImage.setWidth(30);
 
-		pluginList.setSelection(0);
+	    TableColumn pluginTableColumnText = new TableColumn(pluginTable,  SWT.LEFT);
+	    pluginTableColumnText.setWidth(300);	    
+
+	    for (TransferPlugin plugin : plugins) {	   
+	    	String pluginImageResource = "/org/syncany/plugins/" + plugin.getId() + "/icon24.png";
+		    Image image = SWTResourceManager.getImage(pluginImageResource);
+
+		    TableItem tableItem = new TableItem(pluginTable, SWT.NONE);		    
+		    tableItem.setText(1, plugin.getName());		    
+		    tableItem.setImage(0, image);			    		    
+	    }
+
+		pluginTable.select(0);
 		selectedPlugin = plugins.get(0);
 	}
 
