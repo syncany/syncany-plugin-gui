@@ -152,10 +152,6 @@ public class InitPanelController extends PanelController {
 			// Cipher specs: --no-encryption, --advanced
 			List<CipherSpec> cipherSpecs = CipherSpecs.getDefaultCipherSpecs();
 	
-			// Chunkers (not configurable)
-			ChunkerTO chunkerTO = getDefaultChunkerTO();
-			MultiChunkerTO multiChunkerTO = getDefaultMultiChunkerTO();
-	
 			// Compression: --no-compression
 			List<TransformerTO> transformersTO = getTransformersTO(true, cipherSpecs);
 			
