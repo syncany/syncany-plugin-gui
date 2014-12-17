@@ -239,7 +239,7 @@ public class GuiWebSocketClient {
 			postMessage(MessageFactory.toXml(request));
 		}
 		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to transform request to XML");
+			logger.log(Level.WARNING, "Unable to transform request to XML", e);
 		}
 	}
 

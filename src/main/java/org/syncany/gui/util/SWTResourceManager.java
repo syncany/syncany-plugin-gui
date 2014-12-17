@@ -148,8 +148,6 @@ public class SWTResourceManager {
 			}
 			catch (Exception e) {
 				return null;
-				/*image = getMissingImage();
-				m_imageMap.put(path, image);*/
 			}
 		}
 		return image;
@@ -178,22 +176,6 @@ public class SWTResourceManager {
 			m_imageMap.put(path + "_" + width, scaled);
 		}
 		return scaled;
-	}
-
-	private static final int MISSING_IMAGE_SIZE = 10;
-
-	/**
-	 * @return the small {@link Image} that can be used as placeholder for missing image.
-	 */
-	private static Image getMissingImage() {
-		Image image = new Image(Display.getCurrent(), MISSING_IMAGE_SIZE, MISSING_IMAGE_SIZE);
-		//
-		GC gc = new GC(image);
-		gc.setBackground(getColor(SWT.COLOR_RED));
-		gc.fillRectangle(0, 0, MISSING_IMAGE_SIZE, MISSING_IMAGE_SIZE);
-		gc.dispose();
-		//
-		return image;
 	}
 
 	/**

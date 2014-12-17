@@ -92,7 +92,7 @@ public class FolderSelectPanel extends Panel {
 			@Override
 			public void modifyText(ModifyEvent e) {
 				if (firstValidationDone) {
-					validatePanel();
+					validatePanel(false);
 				}
 			}
 		});
@@ -147,6 +147,10 @@ public class FolderSelectPanel extends Panel {
 	
 	@Override
 	public boolean validatePanel() {
+		return validatePanel(true);		
+	}
+
+	private boolean validatePanel(boolean allowAskFolderCreate) {
 		firstValidationDone = true;
 		
 		switch (validationMethod) {
@@ -154,14 +158,14 @@ public class FolderSelectPanel extends Panel {
 			return isValidAppFolder();
 			
 		case NO_APP_FOLDER:
-			return isValidNoAppFolder();
+			return isValidNoAppFolder(allowAskFolderCreate);
 			
 		default:
 			throw new RuntimeException("Invalid validation method: " + validationMethod);				
 		}
 	}
 
-	private boolean isValidNoAppFolder() {
+	private boolean isValidNoAppFolder(boolean allowAskFolderCreate) {
 		File selectedDir = new File(localDir.getText());
 		File appDir = new File(selectedDir, Config.DIR_APPLICATION);
 
@@ -179,7 +183,7 @@ public class FolderSelectPanel extends Panel {
 		}
 		else {
 			if (!selectedDir.isDirectory()) {
-				boolean allowCreate = askCreateFolder(getShell(), selectedDir);
+				boolean allowCreate = allowAskFolderCreate && askCreateFolder(getShell(), selectedDir);
 				
 				if (allowCreate) {
 					if (selectedDir.mkdirs()) {
@@ -196,6 +200,9 @@ public class FolderSelectPanel extends Panel {
 					}
 				}
 				else {
+					hideWarning();
+					WidgetDecorator.markAsValid(localDir);
+
 					return false;
 				}
 			}

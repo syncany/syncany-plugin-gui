@@ -9,11 +9,9 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 
 /**
- * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ChoosePasswordPanel extends Panel {
@@ -45,7 +43,7 @@ public class ChoosePasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
+		titleLabel.setText("Choose a password");
 		
 		WidgetDecorator.title(titleLabel);
 

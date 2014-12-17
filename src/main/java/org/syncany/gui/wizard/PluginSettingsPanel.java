@@ -106,10 +106,11 @@ public class PluginSettingsPanel extends Panel {
 				@Override
 				public void modifyText(ModifyEvent e) {
 					try {
-						selectedPluginSettings.setField(pluginOption.getName(), e.toString());
+						logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + optionValueText.getText() + "'", e);						
+						selectedPluginSettings.setField(pluginOption.getName(), optionValueText.getText());
 					}
 					catch (StorageException e1) {
-						logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + e.toString() + "'", e);						
+						logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + optionValueText.getText() + "'", e);						
 						WidgetDecorator.markAsInvalid(optionValueText);
 					}
 				}
