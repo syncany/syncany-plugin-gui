@@ -181,4 +181,7 @@ public class ChoosePasswordPanel extends Panel {
 		warningMessageLabel.setVisible(false);
 	}
 
+	public String getPassword() {
+		return passwordText.getText();
+	}
 }

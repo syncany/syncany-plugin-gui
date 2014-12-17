@@ -17,18 +17,22 @@
  */
 package org.syncany.gui.wizard;
 
-import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.syncany.config.to.ConfigTO;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
-import org.syncany.operations.daemon.messages.AddWatchManagementRequest;
 import org.syncany.operations.daemon.messages.AddWatchManagementResponse;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.ControlManagementResponse;
+import org.syncany.operations.daemon.messages.InitManagementRequest;
+import org.syncany.operations.daemon.messages.InitManagementResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.init.InitOperationOptions;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -36,6 +40,8 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class InitPanelController extends PanelController {
+	private static final Logger logger = Logger.getLogger(InitPanelController.class.getSimpleName());	
+
 	private StartPanel startPanel;
 	private FolderSelectPanel folderSelectPanel;
 	private PluginSelectPanel pluginSelectPanel;
@@ -121,18 +127,30 @@ public class InitPanelController extends PanelController {
 	}
 
 	private void sendInitRequest() {
-		File newWatchFolder = folderSelectPanel.getFolder();
-		//InitManagementRequest addWatchManagementRequest = new InitManagementRequest(newWatchFolder);
+		ConfigTO configTO = new ConfigTO();
+		configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 		
-		progressPanel.resetPanel(3);
-		progressPanel.appendLog("Adding folder "+ newWatchFolder + " ... ");
+		InitOperationOptions initOptions = new InitOperationOptions();
+		
+		initOptions.setLocalDir(folderSelectPanel.getFolder());
+		initOptions.setCreateTarget(true);
+		initOptions.setEncryptionEnabled(true);
+		initOptions.setPassword(choosePasswordPanel.getPassword());		
+		initOptions.setConfigTO(configTO);
+		
+		InitManagementRequest initManagementRequest = new InitManagementRequest(initOptions);
+		
+		progressPanel.resetPanel(2);
+		progressPanel.appendLog("Initializing repo for folder "+ folderSelectPanel.getFolder() + " ... ");
 
-		//eventBus.post(addWatchManagementRequest);		
+		eventBus.post(initManagementRequest);		
 	}
 
 	@Subscribe
-	public void onAddWatchManagementResponse(AddWatchManagementResponse response) {
-		if (response.getCode() == AddWatchManagementResponse.OKAY) {
+	public void onAddWatchManagementResponse(InitManagementResponse response) {
+		logger.log(Level.INFO, "Received response from daemon: " + response);
+		
+		if (response.getCode() == 123) {
 			progressPanel.setProgress(1);
 			progressPanel.appendLog("DONE.\nReloading daemon ... ");
 			

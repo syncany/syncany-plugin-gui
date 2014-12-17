@@ -163,4 +163,8 @@ public class PluginSettingsPanel extends Panel {
 		warningImageLabel.setVisible(false);
 		warningMessageLabel.setVisible(false);
 	}
+	
+	public TransferSettings getPluginSettings() {
+		return selectedPluginSettings;
+	}
 }
