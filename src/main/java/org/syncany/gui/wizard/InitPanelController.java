@@ -50,6 +50,7 @@ import org.syncany.operations.daemon.messages.InitManagementResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.init.InitOperationOptions;
+import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.util.StringUtil;
 import org.syncany.util.StringUtil.StringJoinListener;
 
@@ -60,7 +61,7 @@ import com.google.common.eventbus.Subscribe;
  */
 public class InitPanelController extends PanelController {
 	private static final Logger logger = Logger.getLogger(InitPanelController.class.getSimpleName());	
-
+	
 	private StartPanel startPanel;
 	private FolderSelectPanel folderSelectPanel;
 	private PluginSelectPanel pluginSelectPanel;
@@ -68,6 +69,7 @@ public class InitPanelController extends PanelController {
 	private ChoosePasswordPanel choosePasswordPanel;
 	private ProgressPanel progressPanel;
 	
+	private TransferPlugin selectedPlugin;
 	private ListWatchesManagementRequest listWatchesRequest;
 
 	public InitPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel folderSelectPanel,
@@ -82,6 +84,9 @@ public class InitPanelController extends PanelController {
 		this.pluginSettingsPanel = pluginSettingsPanel;
 		this.choosePasswordPanel = choosePasswordPanel;
 		this.progressPanel = progressPanel;
+		
+		this.selectedPlugin = null;
+		this.listWatchesRequest = null;
 	}
 
 	@Override
@@ -107,7 +112,12 @@ public class InitPanelController extends PanelController {
 				wizardDialog.setCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
-				pluginSettingsPanel.init(pluginSelectPanel.getSelectedPlugin());
+				boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != pluginSelectPanel.getSelectedPlugin();
+				
+				if (pluginNewOrChanged) {
+					selectedPlugin = pluginSelectPanel.getSelectedPlugin();
+					pluginSettingsPanel.init(selectedPlugin);
+				}
 				
 				wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
 			}

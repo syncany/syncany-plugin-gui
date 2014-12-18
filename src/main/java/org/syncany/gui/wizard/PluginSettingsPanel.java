@@ -1,7 +1,11 @@
 package org.syncany.gui.wizard;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,24 +38,29 @@ public class PluginSettingsPanel extends Panel {
 	private Label warningImageLabel;
 	private Label warningMessageLabel;
 
-	private TransferPlugin selectedPlugin;
-	private TransferSettings selectedPluginSettings;
+	private TransferPlugin plugin;
+	private TransferSettings pluginSettings;
+	
+	private Map<TransferPluginOption, Text> pluginOptionControlMap;	
+	private Set<TransferPluginOption> invalidPluginOptions;
 	
 	public PluginSettingsPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
-		super(wizardParentDialog, parent, style);	
+		super(wizardParentDialog, parent, style);			
 	}
 				
-	public void init(TransferPlugin selectedPlugin) {		
-		setSelectedPlugin(selectedPlugin);
+	public void init(TransferPlugin plugin) {		
+		setPlugin(plugin);
 		
 		clearControls();
 		createControls();
 	}
 
-	private void setSelectedPlugin(TransferPlugin selectedPlugin) {
+	private void setPlugin(TransferPlugin plugin) {
 		try {
-			this.selectedPluginSettings = selectedPlugin.createEmptySettings();
-			this.selectedPlugin = selectedPlugin;
+			this.plugin = plugin;
+			this.pluginSettings = plugin.createEmptySettings();
+			this.pluginOptionControlMap = new HashMap<>();
+			this.invalidPluginOptions = new HashSet<>();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
@@ -65,7 +74,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createControls() {
-		List<TransferPluginOption> pluginOptions = TransferPluginOptions.getOrderedOptions(selectedPluginSettings.getClass());
+		List<TransferPluginOption> pluginOptions = TransferPluginOptions.getOrderedOptions(pluginSettings.getClass());
 				
 		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
@@ -79,7 +88,7 @@ public class PluginSettingsPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
-		titleLabel.setText(selectedPlugin.getName() + " settings");
+		titleLabel.setText(plugin.getName() + " settings");
 		
 		WidgetDecorator.title(titleLabel);
 		
@@ -102,22 +111,22 @@ public class PluginSettingsPanel extends Panel {
 		
 		WidgetDecorator.bold(warningMessageLabel);
 
-		pack();
+		pack();		
 	}
 	
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
 		Field pluginField = pluginOption.getField();
 				
 		// Label "Option X:"
-		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-		selectFolderLabel.verticalIndent = 5;
-		selectFolderLabel.horizontalSpan = 3;
+		GridData pluginOptionLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+		pluginOptionLabelGridData.verticalIndent = 5;
+		pluginOptionLabelGridData.horizontalSpan = 3;
 
-		String optionLabelText = pluginOption.getDescription() + (pluginOption.isSensitive() ? " (not displayed)" : "");
+		String pluginOptionLabelText = pluginOption.getDescription() + (pluginOption.isSensitive() ? " (not displayed)" : "");
 
-		Label optionLabel = new Label(this, SWT.WRAP);
-		optionLabel.setLayoutData(selectFolderLabel);
-		optionLabel.setText(optionLabelText);
+		Label pluginOptionLabel = new Label(this, SWT.WRAP);
+		pluginOptionLabel.setLayoutData(pluginOptionLabelGridData);
+		pluginOptionLabel.setText(pluginOptionLabelText);
 		
 		// Textfield "Option X"
 		GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -136,11 +145,14 @@ public class PluginSettingsPanel extends Panel {
 		setPluginOptionVerifyListener(pluginOption, pluginOptionValueText);
 		
 		WidgetDecorator.normal(pluginOptionValueText);
+		
+		// Set cache
+		pluginOptionControlMap.put(pluginOption, pluginOptionValueText);
 	}
 
 	private void setPluginOptionDefaultValue(Text pluginOptionValueText, Field pluginField) {
 		try {
-			String defaultValue = selectedPluginSettings.getField(pluginField.getName());
+			String defaultValue = pluginSettings.getField(pluginField.getName());
 			
 			if (defaultValue != null && !defaultValue.isEmpty()) {
 				pluginOptionValueText.setText(defaultValue); 
@@ -155,39 +167,54 @@ public class PluginSettingsPanel extends Panel {
 		pluginOptionValueText.addModifyListener(new ModifyListener() {			
 			@Override
 			public void modifyText(ModifyEvent e) {
-				try {
-					logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'", e);						
-					selectedPluginSettings.setField(pluginOption.getField().getName(), pluginOptionValueText.getText());
-					WidgetDecorator.markAsValid(pluginOptionValueText);
-				}
-				catch (StorageException e1) {
-					logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'", e);						
-					WidgetDecorator.markAsInvalid(pluginOptionValueText);
-				}
-				
-	            ValidationResult validationResult = pluginOption.isValid(pluginOptionValueText.getText());
-				
-	            switch (validationResult) {
-	            case INVALID_NOT_SET:
-	            	if (pluginOption.isRequired()) {
-	            		WidgetDecorator.markAsInvalid(pluginOptionValueText);
-	            	}
-	            	else {
-	            		WidgetDecorator.markAsValid(pluginOptionValueText);
-	            	}
-	            	break;
-	            	
-	            case INVALID_TYPE:
-	            	logger.log(Level.SEVERE, " Invalid type in field '" + pluginOption.getName() + "'. This should be caught by verify listener!");
-            		WidgetDecorator.markAsInvalid(pluginOptionValueText);
-            		break;
-            		
-	            case VALID:
-            		WidgetDecorator.markAsValid(pluginOptionValueText);
-            		break;
-	            }
-			}
-		});	
+				modifyPluginOptionText(pluginOption, pluginOptionValueText);				
+			}			
+		});
+	}
+	
+	private void modifyPluginOptionText(TransferPluginOption pluginOption, Text pluginOptionValueText) {
+		try {
+			// Set field (at least try to; fails if type mismatches)
+			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'");						
+			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionValueText.getText());
+			
+			// Validate value (fails if content mismatches)
+	        ValidationResult validationResult = pluginOption.isValid(pluginOptionValueText.getText());
+			
+	        switch (validationResult) {
+	        case INVALID_NOT_SET:
+	        	if (pluginOption.isRequired()) {
+	        		invalidPluginOptions.add(pluginOption);
+	        		WidgetDecorator.markAsInvalid(pluginOptionValueText);
+	        	}
+	        	else {
+	        		invalidPluginOptions.remove(pluginOption);
+	        		WidgetDecorator.markAsValid(pluginOptionValueText);
+	        	}
+	        	
+	        	break;
+	        	
+	        case INVALID_TYPE:
+	        	logger.log(Level.SEVERE, " Invalid type in field '" + pluginOption.getName() + "'. This should be caught by verify listener!");
+	    		
+	        	invalidPluginOptions.add(pluginOption);
+	    		WidgetDecorator.markAsInvalid(pluginOptionValueText);
+
+	    		break;
+	    		
+	        case VALID:
+	    		invalidPluginOptions.remove(pluginOption);
+	    		WidgetDecorator.markAsValid(pluginOptionValueText);
+
+	    		break;
+	        }
+		}
+		catch (StorageException e) {
+			logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'", e);						
+
+        	invalidPluginOptions.add(pluginOption);
+        	WidgetDecorator.markAsInvalid(pluginOptionValueText);
+		}	
 	}
 	
 	private void setPluginOptionVerifyListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText) {
@@ -209,9 +236,33 @@ public class PluginSettingsPanel extends Panel {
 
 	@Override
 	public boolean validatePanel() {
+		return validateIndividualFields() && validateFieldDependencies();		
+	}
+	
+	private boolean validateIndividualFields() {
+		for (Map.Entry<TransferPluginOption, Text> optionControlEntry : pluginOptionControlMap.entrySet()) {
+			TransferPluginOption pluginOption = optionControlEntry.getKey();
+			Text pluginOptionText = optionControlEntry.getValue();
+			
+			modifyPluginOptionText(pluginOption, pluginOptionText);
+		}
+		
+		boolean validFields = invalidPluginOptions.size() == 0;
+		
+		if (validFields) {
+			hideWarning();
+			return true;
+		}
+		else {
+			showWarning("Please fill check that you've filled all fields correctly.");
+			return false;
+		}
+	}
+	
+	private boolean validateFieldDependencies() {
 		try {
-			hideWarning();			
-			selectedPluginSettings.validateRequiredFields();
+			pluginSettings.validateRequiredFields();
+			hideWarning();				
 
 			logger.log(Level.WARNING, "Validation succeeded on panel.");			
 			return true;
@@ -223,7 +274,7 @@ public class PluginSettingsPanel extends Panel {
 			return false;
 		}		
 	}
-	
+
 	private void showWarning(String warningStr) {
 		warningImageLabel.setVisible(true);
 		warningMessageLabel.setVisible(true);			
@@ -236,6 +287,6 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 	public TransferSettings getPluginSettings() {
-		return selectedPluginSettings;
+		return pluginSettings;
 	}
 }
