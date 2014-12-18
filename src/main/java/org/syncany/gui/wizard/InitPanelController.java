@@ -44,11 +44,8 @@ import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
-import org.syncany.operations.daemon.messages.ControlManagementResponse;
 import org.syncany.operations.daemon.messages.InitManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementResponse;
-import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
-import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.init.InitOperationOptions;
 import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.util.StringUtil;
@@ -59,7 +56,7 @@ import com.google.common.eventbus.Subscribe;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class InitPanelController extends PanelController {
+public class InitPanelController extends ReloadDaemonPanelController {
 	private static final Logger logger = Logger.getLogger(InitPanelController.class.getSimpleName());	
 	
 	private StartPanel startPanel;
@@ -70,13 +67,12 @@ public class InitPanelController extends PanelController {
 	private ProgressPanel progressPanel;
 	
 	private TransferPlugin selectedPlugin;
-	private ListWatchesManagementRequest listWatchesRequest;
 
 	public InitPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel folderSelectPanel,
 			PluginSelectPanel pluginSelectPanel, PluginSettingsPanel pluginSettingsPanel, ChoosePasswordPanel choosePasswordPanel,
 			ProgressPanel progressPanel) {
 
-		super(wizardDialog);
+		super(wizardDialog, progressPanel);
 		
 		this.startPanel = startPanel;
 		this.folderSelectPanel = folderSelectPanel;
@@ -86,7 +82,6 @@ public class InitPanelController extends PanelController {
 		this.progressPanel = progressPanel;
 		
 		this.selectedPlugin = null;
-		this.listWatchesRequest = null;
 	}
 
 	@Override
@@ -284,56 +279,17 @@ public class InitPanelController extends PanelController {
 		logger.log(Level.INFO, "Received response from daemon: " + response);
 		
 		if (response.getCode() == 200) {
-			progressPanel.setProgress(1);
+			progressPanel.increase();
 			progressPanel.appendLog("DONE.\nReloading daemon ... ");
 			
 			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
 		}
 		else {
-			progressPanel.setProgress(3);
+			progressPanel.finish();
 			progressPanel.setShowDetails(true);
 			progressPanel.appendLog("ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n" + response.getMessage());
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
-		}
-	}
-	
-	@Subscribe
-	public void onControlManagementResponseReceived(ControlManagementResponse response) {
-		if (response.getCode() == 200) {
-			progressPanel.setProgress(2);
-			progressPanel.appendLog("DONE.\nRefreshing menus ... ");
-
-			listWatchesRequest = new ListWatchesManagementRequest();			
-			eventBus.post(listWatchesRequest);
-		}
-		else {
-			progressPanel.setProgress(3);
-			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to reload daemon (code: " + response.getCode() + ")\n" + response.getMessage());
-			
-			wizardDialog.setAllowedActions(Action.PREVIOUS);			
-		}
-	}
-
-	@Subscribe
-	public void onListWatchesManagementResponse(ListWatchesManagementResponse response) {
-		boolean isMatchingResponse = listWatchesRequest != null && listWatchesRequest.getId() == response.getRequestId();
-		
-		if (isMatchingResponse) {
-			if (response.getCode() == 200) {
-				progressPanel.setProgress(3);
-				progressPanel.appendLog("DONE.\nAdding folder successful.");
-				
-				wizardDialog.setAllowedActions(Action.FINISH);			
-			}
-			else {
-				progressPanel.setProgress(3);
-				progressPanel.setShowDetails(true);
-				progressPanel.appendLog("ERROR.\n\nUnable to list folders (code: " + response.getCode() + ")\n" + response.getMessage());
-	
-				wizardDialog.setAllowedActions(Action.PREVIOUS);			
-			}
 		}
 	}
 }

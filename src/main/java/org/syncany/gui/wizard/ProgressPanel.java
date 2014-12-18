@@ -167,12 +167,35 @@ public class ProgressPanel extends Panel {
 		});		
 	}
 	
+	@Deprecated
 	public void setProgress(final int position) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				if (!progressBar.isDisposed()) {
 					progressBar.setSelection(position);
+				}
+			}
+		});
+	}	
+
+	public void increase() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (!progressBar.isDisposed()) {
+					progressBar.setSelection(progressBar.getSelection() + 1);
+				}
+			}
+		});
+	}
+	
+	public void finish() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (!progressBar.isDisposed()) {
+					progressBar.setSelection(progressBar.getMaximum());
 				}
 			}
 		});
