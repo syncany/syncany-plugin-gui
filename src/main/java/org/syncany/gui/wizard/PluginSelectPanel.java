@@ -43,6 +43,7 @@ public class PluginSelectPanel extends Panel {
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
+		mainCompositeGridLayout.marginBottom = 25;
 
 		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));		
 		setLayout(mainCompositeGridLayout);
@@ -78,8 +79,6 @@ public class PluginSelectPanel extends Panel {
 				else {
 					selectedPlugin = null;
 				}
-
-				System.out.println(selectedPlugin);
 			}
 		});		
 		
