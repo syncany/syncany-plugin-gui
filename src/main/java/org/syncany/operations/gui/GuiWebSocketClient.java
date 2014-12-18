@@ -229,7 +229,7 @@ public class GuiWebSocketClient {
 			connectAndWait();
 		}		
 		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to reconnect to daemon");
+			logger.log(Level.WARNING, "Unable to reconnect to daemon", e);
 		}
 	}
 
@@ -249,7 +249,7 @@ public class GuiWebSocketClient {
 		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
 			@Override
 			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
-				throwable.printStackTrace();
+				logger.log(Level.SEVERE, "WS Error", throwable);
 			}
 
 			@Override
