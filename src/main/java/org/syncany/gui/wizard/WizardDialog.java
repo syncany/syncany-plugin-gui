@@ -58,8 +58,10 @@ public class WizardDialog {
 	private StartPanel startPanel;
 	private FolderSelectPanel folderSelectPanel;
 	private PluginSelectPanel pluginSelectPanel;
+	private ConnectTypeSelectPanel connectTypeSelectPanel;
 	private PluginSettingsPanel pluginSettingsPanel;
 	private ChoosePasswordPanel choosePasswordPanel;
+	private EnterPasswordPanel enterPasswordPanel;
 	private ProgressPanel progressPanel;
 	
 	private Panel currentPanel;
@@ -218,8 +220,10 @@ public class WizardDialog {
 		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
 		folderSelectPanel = new FolderSelectPanel(this, stackComposite, SWT.NONE);
 		pluginSelectPanel = new PluginSelectPanel(this, stackComposite, SWT.NONE);
+		connectTypeSelectPanel = new ConnectTypeSelectPanel(this, stackComposite, SWT.NONE);
 		pluginSettingsPanel = new PluginSettingsPanel(this, stackComposite, SWT.NONE);
 		choosePasswordPanel = new ChoosePasswordPanel(this, stackComposite, SWT.NONE);
+		enterPasswordPanel = new EnterPasswordPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
 	}
 
@@ -246,6 +250,8 @@ public class WizardDialog {
 			return new InitPanelController(this, startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel);
 			
 		case CONNECT:
+			return new ConnectPanelController(this, startPanel, folderSelectPanel, connectTypeSelectPanel, pluginSettingsPanel, enterPasswordPanel, progressPanel);
+
 		default:
 			return null;
 		}
@@ -298,7 +304,7 @@ public class WizardDialog {
 		});
 	}
 	
-	protected boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
+	public boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
 		boolean currentPanelValid = currentPanel == null || currentPanel.validatePanel();
 
 		if (currentPanelValid) {

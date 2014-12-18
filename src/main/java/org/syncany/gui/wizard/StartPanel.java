@@ -96,8 +96,6 @@ public class StartPanel extends Panel {
 		connectStorageRadio.setLayoutData(connectStorageRadioGridData);
 		connectStorageRadio.setBounds(0, 0, 90, 16);
 		connectStorageRadio.setText(I18n.getString("dialog.start.option.connectExisting"));
-		connectStorageRadio.setForeground(WidgetDecorator.DARK_GRAY);
-		connectStorageRadio.setEnabled(false);
 		
 		WidgetDecorator.bigger(connectStorageRadio);
 
@@ -106,7 +104,6 @@ public class StartPanel extends Panel {
 
 		Label connectStorageText = new Label(this, SWT.WRAP);
 		connectStorageText.setLayoutData(connectStorageTextGridData);
-		connectStorageText.setForeground(WidgetDecorator.DARK_GRAY);
 		connectStorageText.setText(I18n.getString("dialog.start.option.connectExisting.helpText"));
 
 		WidgetDecorator.normal(connectStorageText);
