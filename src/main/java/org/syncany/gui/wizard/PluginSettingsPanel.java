@@ -1,5 +1,6 @@
 package org.syncany.gui.wizard;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,13 +13,17 @@ import java.util.logging.Logger;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.util.SWTResourceManager;
@@ -77,7 +82,7 @@ public class PluginSettingsPanel extends Panel {
 		List<TransferPluginOption> pluginOptions = TransferPluginOptions.getOrderedOptions(pluginSettings.getClass());
 				
 		// Main composite
-		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
@@ -87,7 +92,7 @@ public class PluginSettingsPanel extends Panel {
 		
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
-		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
 		titleLabel.setText(plugin.getName() + " settings");
 		
 		WidgetDecorator.title(titleLabel);
@@ -106,7 +111,7 @@ public class PluginSettingsPanel extends Panel {
 		warningImageLabel.setVisible(false);
 
 		warningMessageLabel = new Label(this, SWT.WRAP);
-		warningMessageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1));
+		warningMessageLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false, 2, 1));
 		warningMessageLabel.setVisible(false);
 		
 		WidgetDecorator.bold(warningMessageLabel);
@@ -119,20 +124,28 @@ public class PluginSettingsPanel extends Panel {
 				
 		// Label "Option X:"
 		GridData pluginOptionLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-		pluginOptionLabelGridData.verticalIndent = 5;
+		pluginOptionLabelGridData.verticalIndent = 2;
 		pluginOptionLabelGridData.horizontalSpan = 3;
 
-		String pluginOptionLabelText = pluginOption.getDescription() + (pluginOption.isSensitive() ? " (not displayed)" : "");
+		String pluginOptionLabelText = pluginOption.getDescription();
+		
+		if (pluginOption.isSensitive()) {
+			pluginOptionLabelText += (pluginOption.isRequired()) ? " (not displayed)" : " (not displayed, optional)";
+		}
+		else {
+			pluginOptionLabelText += (pluginOption.isRequired()) ? "" : " (optional)";
+		}
 
 		Label pluginOptionLabel = new Label(this, SWT.WRAP);
 		pluginOptionLabel.setLayoutData(pluginOptionLabelGridData);
 		pluginOptionLabel.setText(pluginOptionLabelText);
 		
-		// Textfield "Option X"
+		// Textfield "Option X"		
 		GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
 		optionValueTextGridData.verticalIndent = 0;
-		optionValueTextGridData.horizontalSpan = 2;
+		optionValueTextGridData.horizontalSpan = (pluginField.getType() == File.class) ? 2 : 3;
 		optionValueTextGridData.minimumWidth = 200;
+		optionValueTextGridData.grabExcessHorizontalSpace = true;
 
 		int optionValueTextStyle = (pluginOption.isSensitive()) ? SWT.BORDER | SWT.PASSWORD : SWT.BORDER;
 		
@@ -143,11 +156,30 @@ public class PluginSettingsPanel extends Panel {
 		setPluginOptionDefaultValue(pluginOptionValueText, pluginField);
 		setPluginOptionModifyListener(pluginOption, pluginOptionValueText);
 		setPluginOptionVerifyListener(pluginOption, pluginOptionValueText);
-		
+	
 		WidgetDecorator.normal(pluginOptionValueText);
+
+		// Add 'Select ..' button for 'File' fields
+		if (pluginField.getType() == File.class) {
+			Button pluginOptionFileSelectButton = new Button(this, SWT.NONE);
+			pluginOptionFileSelectButton.setText("Select ...");
+			
+			setPluginOptionFileSelectListener(pluginOption, pluginOptionValueText, pluginOptionFileSelectButton);			
+		}
 		
 		// Set cache
 		pluginOptionControlMap.put(pluginOption, pluginOptionValueText);
+	}
+
+	private void setPluginOptionFileSelectListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText,
+			final Button pluginOptionFileSelectButton) {
+		
+		pluginOptionFileSelectButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				onSelectFileClick(pluginOptionValueText);
+			}
+		});
 	}
 
 	private void setPluginOptionDefaultValue(Text pluginOptionValueText, Field pluginField) {
@@ -232,6 +264,18 @@ public class PluginSettingsPanel extends Panel {
 	            e.doit = newValue.isEmpty() || validationResult != ValidationResult.INVALID_TYPE;		            
 	        }
 	    });
+	}
+	
+
+	private void onSelectFileClick(Text pluginOptionValueText) {
+		DirectoryDialog directoryDialog = new DirectoryDialog(getShell());
+		directoryDialog.setFilterPath(pluginOptionValueText.getText());
+		
+		String selectedFolder = directoryDialog.open();
+
+		if (selectedFolder != null && selectedFolder.length() > 0) {
+			pluginOptionValueText.setText(selectedFolder);
+		}
 	}
 
 	@Override
