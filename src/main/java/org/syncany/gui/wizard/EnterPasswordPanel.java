@@ -42,7 +42,7 @@ public class EnterPasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText("Choose a password");
+		titleLabel.setText("Enter the password");
 		
 		WidgetDecorator.title(titleLabel);
 

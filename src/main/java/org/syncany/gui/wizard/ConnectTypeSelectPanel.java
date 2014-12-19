@@ -18,16 +18,22 @@
 package org.syncany.gui.wizard;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
+import org.eclipse.swt.events.FocusEvent;
+import org.eclipse.swt.events.FocusListener;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.syncany.gui.util.I18n;
+import org.syncany.plugins.transfer.TransferPlugin;
 
 /**
- * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ConnectTypeSelectPanel extends Panel {
@@ -36,16 +42,26 @@ public class ConnectTypeSelectPanel extends Panel {
 	}
 
 	private Button connectLinkRadio;
+	private Text connectLinkText;
 	private Button connectManuallyRadio;
+	private PluginSelectComposite pluginSelectComposite;
+	
+	private boolean firstValidationDone;	
 
 	public ConnectTypeSelectPanel(WizardDialog parentDialog, Composite composite, int style) {
 		super(parentDialog, composite, style);
 
+		this.createControls();
+		this.firstValidationDone = false;
+	}
+	
+	private void createControls() {
 		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
+		mainCompositeGridLayout.marginBottom = 10;
 
 		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		setLayout(mainCompositeGridLayout);
@@ -65,9 +81,9 @@ public class ConnectTypeSelectPanel extends Panel {
 
 		// Radio button "Create new repo"
 		GridData connectLinkRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		connectLinkRadioGridData.verticalIndent = 23;
+		connectLinkRadioGridData.verticalIndent = 0;
 		connectLinkRadioGridData.horizontalIndent = 0;
-		connectLinkRadioGridData.heightHint = 20;
+		//connectLinkRadioGridData.heightHint = 0;
 
 		connectLinkRadio = new Button(this, SWT.RADIO);
 		connectLinkRadio.setLayoutData(connectLinkRadioGridData);
@@ -75,16 +91,59 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectLinkRadio.setText("Connect via syncany:// link");
 		connectLinkRadio.setSelection(true);
 		
+		connectLinkRadio.addSelectionListener(new SelectionAdapter() {			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				connectLinkText.setForeground(WidgetDecorator.BLACK);
+				pluginSelectComposite.clearSelection();
+
+				validatePanelIfFirstValidationDone();				
+			}			
+		});
+
 		WidgetDecorator.bigger(connectLinkRadio);
 
-		GridData connectLinkTextGridData = new GridData(GridData.FILL_BOTH);
+		GridData connectLinkTextGridData = new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1);
 		connectLinkTextGridData.horizontalIndent = 25;
+		connectLinkTextGridData.minimumHeight = 80;
 
-		Text createStorageText = new Text(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
-		createStorageText.setLayoutData(connectLinkTextGridData);
-		createStorageText.setText("(Paste syncany:// link)");
-		createStorageText.setForeground(WidgetDecorator.GRAY);		
+		final String connectLinkTextDefaultValue = "(Paste syncany:// link)";
+		
+		connectLinkText = new Text(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
+		connectLinkText.setLayoutData(connectLinkTextGridData);
+		connectLinkText.setText(connectLinkTextDefaultValue);
+		connectLinkText.setForeground(WidgetDecorator.GRAY);		
+		connectLinkText.setBackground(WidgetDecorator.WHITE);
+		
+		connectLinkText.addModifyListener(new ModifyListener() {			
+			@Override
+			public void modifyText(ModifyEvent e) {
+				validatePanelIfFirstValidationDone();
+			}
+		});
+		
+		connectLinkText.addFocusListener(new FocusListener() {			
+			@Override
+			public void focusGained(FocusEvent e) {
+				if (connectLinkText.getText().equals(connectLinkTextDefaultValue)) {
+					connectLinkText.setText("");
+				}
+				
+				connectLinkRadio.setSelection(true);
+				connectLinkText.setForeground(WidgetDecorator.BLACK);	
 
+				connectManuallyRadio.setSelection(false);								
+
+				validatePanelIfFirstValidationDone();
+			}
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				if (connectLinkText.getText().equals("")) {
+					connectLinkText.setText(connectLinkTextDefaultValue);
+				}
+			}			
+		});
 
 		// Radio button "Connect to existing repo"
 		GridData connectManuallyRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
@@ -95,14 +154,60 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectManuallyRadio = new Button(this, SWT.RADIO);
 		connectManuallyRadio.setLayoutData(connectManuallyRadioGridData);
 		connectManuallyRadio.setBounds(0, 0, 90, 16);
-		connectManuallyRadio.setText(I18n.getString("dialog.start.option.connectExisting"));
+		connectManuallyRadio.setText("Connect by manually entering details");
+		connectManuallyRadio.addSelectionListener(new SelectionAdapter() {			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				connectLinkText.setForeground(WidgetDecorator.GRAY);	
+				validatePanelIfFirstValidationDone();
+			}			
+		});
 		
 		WidgetDecorator.bigger(connectManuallyRadio);
+		
+		GridData pluginSelectCompositeGridData = new GridData(GridData.FILL_BOTH);
+		pluginSelectCompositeGridData.horizontalIndent = 25;
+		pluginSelectCompositeGridData.minimumHeight = 40;
+		
+		pluginSelectComposite = new PluginSelectComposite(this, SWT.NONE);
+		pluginSelectComposite.setLayoutData(pluginSelectCompositeGridData);		
+		pluginSelectComposite.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) {
+				connectLinkRadio.setSelection(false);
+				connectLinkText.setForeground(WidgetDecorator.GRAY);	
+
+				connectManuallyRadio.setSelection(true);
+				
+				validatePanelIfFirstValidationDone();
+			}
+		});
 	}
 
 	@Override
 	public boolean validatePanel() {
-		return connectLinkRadio.getSelection() || connectManuallyRadio.getSelection();
+		firstValidationDone = true;
+		
+		if (connectLinkRadio.getSelection()) {
+			if (connectLinkText.getText().startsWith("syncany://")) {
+				WidgetDecorator.markAsValid(connectLinkText);
+				return true;
+			}
+			else {
+				WidgetDecorator.markAsInvalid(connectLinkText);
+				return false;
+			}
+		}
+		else {
+			WidgetDecorator.markAsValid(connectLinkText);
+			return pluginSelectComposite.getSelectedPlugin() != null;
+		}
+	}
+	
+	private void validatePanelIfFirstValidationDone() {
+		if (firstValidationDone) {
+			validatePanel();
+		}		
 	}
 
 	public ConnectPanelSelection getSelection() {
@@ -112,5 +217,9 @@ public class ConnectTypeSelectPanel extends Panel {
 		else {
 			return ConnectPanelSelection.MANUAL;
 		}
+	}
+	
+	public TransferPlugin getSelectedPlugin() {
+		return pluginSelectComposite.getSelectedPlugin();
 	}
 }

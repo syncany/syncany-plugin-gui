@@ -60,8 +60,8 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText(I18n.getString("dialog.progressPanel.add.title"));
-				progressPanel.setDescriptionText(I18n.getString("dialog.progressPanel.add.text"));
+				progressPanel.setTitleText("Adding Syncany folder");
+				progressPanel.setDescriptionText("Syncany is adding your folder to the configuration and restarting the daemon. This shouldn't take long.");
 
 				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
 

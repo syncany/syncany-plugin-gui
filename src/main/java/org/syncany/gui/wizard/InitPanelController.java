@@ -107,9 +107,10 @@ public class InitPanelController extends ReloadDaemonPanelController {
 				wizardDialog.setCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
+				boolean pluginIsSet = pluginSelectPanel.getSelectedPlugin() != null;
 				boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != pluginSelectPanel.getSelectedPlugin();
 				
-				if (pluginNewOrChanged) {
+				if (pluginIsSet && pluginNewOrChanged) {
 					selectedPlugin = pluginSelectPanel.getSelectedPlugin();
 					pluginSettingsPanel.init(selectedPlugin);
 				}

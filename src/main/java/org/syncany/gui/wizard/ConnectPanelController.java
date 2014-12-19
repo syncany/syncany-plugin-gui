@@ -17,40 +17,17 @@
  */
 package org.syncany.gui.wizard;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.syncany.chunk.Chunker;
-import org.syncany.chunk.CipherTransformer;
-import org.syncany.chunk.FixedChunker;
-import org.syncany.chunk.GzipTransformer;
-import org.syncany.chunk.MultiChunker;
-import org.syncany.chunk.ZipMultiChunker;
-import org.syncany.config.to.ConfigTO;
-import org.syncany.config.to.RepoTO;
-import org.syncany.config.to.RepoTO.ChunkerTO;
-import org.syncany.config.to.RepoTO.MultiChunkerTO;
-import org.syncany.config.to.RepoTO.TransformerTO;
-import org.syncany.crypto.CipherSpec;
-import org.syncany.crypto.CipherSpecs;
-import org.syncany.crypto.CipherUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.ConnectTypeSelectPanel.ConnectPanelSelection;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
-import org.syncany.operations.daemon.messages.InitManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementResponse;
-import org.syncany.operations.init.InitOperationOptions;
 import org.syncany.plugins.transfer.TransferPlugin;
-import org.syncany.util.StringUtil;
-import org.syncany.util.StringUtil.StringJoinListener;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -116,6 +93,14 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 					wizardDialog.validateAndSetCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
 				}
 				else {
+					boolean pluginIsSet = connectTypeSelectPanel.getSelectedPlugin() != null;
+					boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != connectTypeSelectPanel.getSelectedPlugin();
+					
+					if (pluginIsSet && pluginNewOrChanged) {
+						selectedPlugin = connectTypeSelectPanel.getSelectedPlugin();
+						pluginSettingsPanel.init(selectedPlugin);
+					}
+					
 					wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
 				}				
 			}
@@ -134,12 +119,12 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 					wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
 				}
 				else {
-					wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
+					wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
 				}					
 			}
 			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText("Initializing remote repository");
-				progressPanel.setDescriptionText("Syncany is creating a repository for you. This might take a while.");
+				progressPanel.setTitleText("Connecting to remote repository");
+				progressPanel.setDescriptionText("Syncany is connecting to the remote repository for you. This might take a while.");
 
 				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
 
