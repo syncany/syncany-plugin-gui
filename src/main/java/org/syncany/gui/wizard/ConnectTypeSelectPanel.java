@@ -222,4 +222,8 @@ public class ConnectTypeSelectPanel extends Panel {
 	public TransferPlugin getSelectedPlugin() {
 		return pluginSelectComposite.getSelectedPlugin();
 	}
+	
+	public String getApplicationLink() {
+		return connectLinkText.getText();
+	}
 }

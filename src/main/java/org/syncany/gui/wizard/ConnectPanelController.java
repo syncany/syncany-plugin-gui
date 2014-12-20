@@ -20,13 +20,18 @@ package org.syncany.gui.wizard;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.syncany.config.to.ConfigTO;
+import org.syncany.crypto.CipherUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.ConnectTypeSelectPanel.ConnectPanelSelection;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
+import org.syncany.operations.daemon.messages.ConnectManagementRequest;
+import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
-import org.syncany.operations.daemon.messages.InitManagementResponse;
+import org.syncany.operations.init.ConnectOperationOptions;
+import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
 import org.syncany.plugins.transfer.TransferPlugin;
 
 import com.google.common.eventbus.Subscribe;
@@ -129,8 +134,7 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
 
 				if (panelValid) {
-					//sendInitRequest();
-					System.out.println("Do something.");
+					sendConnectRequest();
 				}								
 			}
 		}
@@ -144,8 +148,42 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 		}
 	}
 
+	private void sendConnectRequest() {
+		try {			
+			ConfigTO configTO = new ConfigTO();
+			configTO.setDisplayName(System.getProperty("user.name"));
+			configTO.setMachineName(CipherUtil.createRandomAlphabeticString(20));
+
+			ConnectOperationOptions connectOptions = new ConnectOperationOptions();
+			
+			connectOptions.setDaemon(true);
+			connectOptions.setLocalDir(folderSelectPanel.getFolder());
+			connectOptions.setPassword(enterPasswordPanel.getPassword());			
+			connectOptions.setConfigTO(configTO);
+
+			if (connectTypeSelectPanel.getSelection() == ConnectPanelSelection.LINK) {
+				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_LINK);
+				connectOptions.setConnectLink(connectTypeSelectPanel.getApplicationLink());
+			}
+			else {
+				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_TO);				
+				configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
+			}
+						
+			ConnectManagementRequest connectManagementRequest = new ConnectManagementRequest(connectOptions);
+			
+			progressPanel.resetPanel(3);
+			progressPanel.appendLog("Connecting to repo for folder "+ folderSelectPanel.getFolder() + " ... ");
+	
+			eventBus.post(connectManagementRequest);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	@Subscribe
-	public void onInitResponse(InitManagementResponse response) {
+	public void onConnectResponse(ConnectManagementResponse response) {
 		logger.log(Level.INFO, "Received response from daemon: " + response);
 		
 		if (response.getCode() == 200) {

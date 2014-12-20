@@ -189,12 +189,12 @@ public class InitPanelController extends ReloadDaemonPanelController {
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
+	}	
+
 	/* < duplicate code, see InitCommand > */ 
 	// TODO [high] Duplicate code!!
 	
-	private List<TransformerTO> getTransformersTO(boolean gzipEnabled, List<CipherSpec> cipherSpecs) {
+	protected List<TransformerTO> getTransformersTO(boolean gzipEnabled, List<CipherSpec> cipherSpecs) {
 		List<TransformerTO> transformersTO = new ArrayList<TransformerTO>();
 
 		if (gzipEnabled) {
@@ -254,7 +254,7 @@ public class InitPanelController extends ReloadDaemonPanelController {
 		return gzipTransformerTO;
 	}
 
-	private TransformerTO getCipherTransformerTO(List<CipherSpec> cipherSpec) {
+	protected TransformerTO getCipherTransformerTO(List<CipherSpec> cipherSpec) {
 		String cipherSuitesIdStr = StringUtil.join(cipherSpec, ",", new StringJoinListener<CipherSpec>() {
 			@Override
 			public String getString(CipherSpec cipherSpec) {
@@ -274,7 +274,7 @@ public class InitPanelController extends ReloadDaemonPanelController {
 	}
 	
 	/* </ end of duplicate code> */ 
-
+	
 	@Subscribe
 	public void onInitResponse(InitManagementResponse response) {
 		logger.log(Level.INFO, "Received response from daemon: " + response);

@@ -58,7 +58,7 @@ public class ConfigTO {
 	@Convert(SaltedSecretKeyConverter.class)
 	private SaltedSecretKey masterKey;
 
-	@Element(name = "connection", required = true)
+	@Element(name = "connection", required = false) 
 	private TransferSettings transferSettings;
 
 	@Element(name = "cacheKeepBytes", required = false)
