@@ -73,7 +73,7 @@ public abstract class TrayIcon {
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
-	
+
 	protected Shell trayShell;
 	protected WizardDialog wizard;
 	protected GuiEventBus eventBus;
@@ -90,8 +90,8 @@ public abstract class TrayIcon {
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
-		
-		this.syncing = new AtomicBoolean(false);	
+
+		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 
 		initInternationalization();
@@ -106,7 +106,7 @@ public abstract class TrayIcon {
 				if (wizard == null) {
 					wizard = new WizardDialog(trayShell);
 					wizard.open();
-					
+
 					wizard = null;
 				}
 			}
@@ -133,7 +133,7 @@ public abstract class TrayIcon {
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}
-	
+
 	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
@@ -145,34 +145,34 @@ public abstract class TrayIcon {
 
 		cleanSyncStatus();
 		List<File> watchedFolders = new ArrayList<File>();
-		
+
 		for (Watch watch : listWatchesResponse.getWatches()) {
 			watchedFolders.add(watch.getFolder());
-			
+
 			boolean watchFolderIsSyncing = watch.getStatus() == SyncStatus.SYNCING;
 			updateSyncStatus(watch.getFolder().getAbsolutePath(), watchFolderIsSyncing);
 		}
-		
+
 		// Update folders in menu
 		setWatchedFolders(watchedFolders);
-		
+
 		// Update tray icon
 		if (!syncing.get()) {
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);		
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
 		}
 	}
-	
+
 	@Subscribe
 	public void onDownChangesDetectedEvent(DownChangesDetectedSyncExternalEvent downChangesDetectedEvent) {
-		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);		
+		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);
 	}
 
 	@Subscribe
 	public void onUpIndexChangesDetectedEvent(UpIndexChangesDetectedSyncExternalEvent upIndexChangesDetectedEvent) {
 		updateSyncStatus(upIndexChangesDetectedEvent.getRoot(), true);
 	}
-	
+
 	@Subscribe
 	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchEndEvent) {
 		updateSyncStatus(watchEndEvent.getRoot(), false);
@@ -180,17 +180,17 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		setStatusText("Starting indexing and upload ...");
+		setStatusText(syncEvent.getRoot(), "Starting indexing and upload ...");
 	}
 
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
-		setStatusText("Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");
+		setStatusText(syncEvent.getRoot(), "Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");
 	}
 
 	@Subscribe
 	public void onUploadFileEventReceived(UpUploadFileSyncExternalEvent syncEvent) {
-		setStatusText("Uploading " + syncEvent.getFilename() + " ...");
+		setStatusText(syncEvent.getRoot(), "Uploading " + syncEvent.getFilename() + " ...");
 	}
 
 	@Subscribe
@@ -202,15 +202,16 @@ public abstract class TrayIcon {
 		String uploadedTotalStr = FileUtil.formatFileSize(uploadedFileSize);
 		int uploadedPercent = (int) Math.round((double) uploadedFileSize / syncEvent.getTotalFileSize() * 100);
 
-		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + uploadedTotalStr + " / "
+		setStatusText(syncEvent.getRoot(), "Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " ("
+				+ uploadedTotalStr + " / "
 				+ uploadedPercent + "%) ...");
-		
+
 		uploadedFileSize += syncEvent.getCurrentFileSize();
 	}
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		// Nothing
+		setStatusText(syncEvent.getRoot(), messages.get("tray.menuitem.status.insync"));
 	}
 
 	@Subscribe
@@ -219,12 +220,12 @@ public abstract class TrayIcon {
 		int currentFileIndex = syncEvent.getCurrentFileIndex();
 		int maxFileCount = syncEvent.getMaxFileCount();
 
-		setStatusText("Downloading " + fileDescription + " " + currentFileIndex + "/" + maxFileCount + " ...");
+		setStatusText(syncEvent.getRoot(), "Downloading " + fileDescription + " " + currentFileIndex + "/" + maxFileCount + " ...");
 	}
 
 	@Subscribe
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		setStatusText("Checking for remote changes ...");
+		setStatusText(syncEvent.getRoot(), "Checking for remote changes ...");
 	}
 
 	@Subscribe
@@ -334,30 +335,30 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-					setStatusText("All files in sync");
-					
-					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);					
+					setStatusText(null, "All files in sync");
+
+					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);
 				}
 			}
 		});
 
 		systemTrayAnimationThread.start();
 	}
-	
+
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
-		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);					
+		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
 	}
-	
+
 	private void cleanSyncStatus() {
-		logger.log(Level.FINE, "Resetting sync status for clients.");					
+		logger.log(Level.FINE, "Resetting sync status for clients.");
 		clientSyncStatus.clear();
 	}
-	
+
 	private void updateSyncStatus(String root, boolean syncStatus) {
 		clientSyncStatus.put(root, syncStatus);
-		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);		
-		
+		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);
+
 		// Update 'syncing' variable: Set true if any of the folders is syncing
 		Map<String, Boolean> syncingFolders = Maps.filterValues(clientSyncStatus, new Predicate<Boolean>() {
 			@Override
@@ -365,8 +366,8 @@ public abstract class TrayIcon {
 				return syncStatus;
 			}
 		});
-		
-		syncing.set(syncingFolders.size() > 0);		
+
+		syncing.set(syncingFolders.size() > 0);
 	}
 
 	// Abstract methods
@@ -375,7 +376,7 @@ public abstract class TrayIcon {
 
 	protected abstract void setWatchedFolders(List<File> folders);
 
-	protected abstract void setStatusText(String statusText);
+	protected abstract void setStatusText(String root, String statusText);
 
 	protected abstract void displayNotification(String subject, String message);
 
