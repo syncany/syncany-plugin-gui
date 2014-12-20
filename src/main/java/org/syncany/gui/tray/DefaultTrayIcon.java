@@ -112,30 +112,46 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	private void buildMenuItems(final List<File> watches) {
 		this.watches = watches;
+		
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
 		}
 
-		// Clear old items (if any)
 		clearMenuItems();
-		for (String root : statusTexts.keySet()) {
-			// Create new items
+		
+		buildStatusTextMenuItems();
+		buildNewWatchMenuItem();
+		buildWatchMenuItems();
+		buildStaticMenuItems();		
+	}
 
-			if (!statusTexts.get(root).equals(messages.get("tray.menuitem.status.insync"))) {
+	private void buildStatusTextMenuItems() {
+		// Create per-folder status text item
+		for (String root : statusTexts.keySet()) {
+			boolean watchIsInSync = statusTexts.get(root).equals(messages.get("tray.menuitem.status.insync")); 
+			
+			if (!watchIsInSync) {
+				String statusTextPrefix = new File(root).getName(); 
+				
 				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
-				statusTextItem.setText(statusTexts.get(root));
+				statusTextItem.setText(statusTextPrefix + "\n" + statusTexts.get(root));
 				statusTextItem.setEnabled(false);
+				
 				statusTextItems.put(root, statusTextItem);
 			}
 		}
 
+		// Or, if they are all in sync, create a global one
 		if (statusTextItems.isEmpty()) {
 			MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
 			statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
 			statusTextItem.setEnabled(false);
+			
 			statusTextItems.put("GLOBAL", statusTextItem);
-		}
-
+		}	
+	}
+	
+	private void buildNewWatchMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
@@ -146,7 +162,9 @@ public class DefaultTrayIcon extends TrayIcon {
 				showNew();
 			}
 		});
+	}
 
+	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
@@ -184,7 +202,9 @@ public class DefaultTrayIcon extends TrayIcon {
 
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
+	}
 
+	private void buildStaticMenuItems() {
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
 		reportIssueItem.setText(messages.get("tray.menuitem.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {
