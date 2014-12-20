@@ -1,7 +1,9 @@
 package org.syncany.gui.wizard;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,12 +28,15 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.plugins.transfer.OAuthGenerator;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferPluginOption;
 import org.syncany.plugins.transfer.TransferPluginOption.ValidationResult;
 import org.syncany.plugins.transfer.TransferPluginOptions;
+import org.syncany.plugins.transfer.TransferPluginUtil;
 import org.syncany.plugins.transfer.TransferSettings;
 
 /**
@@ -45,6 +50,9 @@ public class PluginSettingsPanel extends Panel {
 
 	private TransferPlugin plugin;
 	private TransferSettings pluginSettings;
+	
+	private OAuthGenerator oAuthGenerator;
+	private Text oAuthText;
 	
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;	
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -64,6 +72,9 @@ public class PluginSettingsPanel extends Panel {
 		try {
 			this.plugin = plugin;
 			this.pluginSettings = plugin.createEmptySettings();
+			
+			this.oAuthGenerator = null;
+			
 			this.pluginOptionControlMap = new HashMap<>();
 			this.invalidPluginOptions = new HashSet<>();
 		}
@@ -97,8 +108,14 @@ public class PluginSettingsPanel extends Panel {
 		
 		WidgetDecorator.title(titleLabel);
 		
+		// Create OAuth controls
+		createOAuthControls();
+		
+		// Create fields
 		for (TransferPluginOption pluginOption : pluginOptions) {
-			createPluginOptionControl(pluginOption);			
+			if (pluginOption.isVisible()) {
+				createPluginOptionControl(pluginOption);
+			}
 		}
 
 		// Warning message and label
@@ -119,6 +136,68 @@ public class PluginSettingsPanel extends Panel {
 		pack();		
 	}
 	
+	private void createOAuthControls() {
+		Class<? extends OAuthGenerator> oAuthGeneratorClass = TransferPluginUtil.getOAuthGeneratorClass(pluginSettings.getClass());
+
+		if (oAuthGeneratorClass != null) {
+			try {
+				Constructor<? extends OAuthGenerator> optionCallbackClassConstructor = oAuthGeneratorClass.getDeclaredConstructor(pluginSettings.getClass());
+				oAuthGenerator = optionCallbackClassConstructor.newInstance(pluginSettings);			
+			}
+			catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			try {
+				final URI oAuthURL = oAuthGenerator.generateAuthUrl();
+				
+				// OAuth help text
+				Label descriptionLabel = new Label(this, SWT.WRAP);
+				descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+				descriptionLabel.setText("This plugin needs to authenticate your account so that Syncany can access it. Please click on the 'Authorize' button to do that.");
+				
+				WidgetDecorator.normal(descriptionLabel);
+				
+				// Label "Token:"
+				GridData oAuthTokenLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+				oAuthTokenLabelGridData.verticalIndent = 2;
+				oAuthTokenLabelGridData.horizontalSpan = 3;
+
+				Label pluginOptionLabel = new Label(this, SWT.WRAP);
+				pluginOptionLabel.setLayoutData(oAuthTokenLabelGridData);
+				pluginOptionLabel.setText("Token");
+				
+				// Textfield "Token"		
+				GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+				optionValueTextGridData.verticalIndent = 0;
+				optionValueTextGridData.horizontalSpan = 2;
+				optionValueTextGridData.minimumWidth = 200;
+				optionValueTextGridData.grabExcessHorizontalSpace = true;
+
+				oAuthText = new Text(this, SWT.BORDER);
+				oAuthText.setLayoutData(optionValueTextGridData);
+				oAuthText.setBackground(WidgetDecorator.WHITE);
+				
+				WidgetDecorator.normal(oAuthText);
+
+				// Add 'Authorize ..' button for 'File' fields
+				Button oAuthAuthorizeButton = new Button(this, SWT.NONE);
+				oAuthAuthorizeButton.setText("Authorize ...");
+					
+				oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+						DesktopHelper.launch(oAuthURL.toString());
+					}
+				});							
+			}
+			catch (Exception e) {
+				// TODO [high] This should not be a runtime exception. what if the network isnt available?!
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
 		Field pluginField = pluginOption.getField();
 				
@@ -280,7 +359,14 @@ public class PluginSettingsPanel extends Panel {
 
 	@Override
 	public boolean validatePanel() {
-		return validateIndividualFields() && validateFieldDependencies();		
+		hideWarning();
+		
+		// Validation order is important, OAuth needs to be before 
+		// cross-field dependencies!
+		
+		return validateIndividualFields()
+				&& validateOAuthToken()
+				&& validateFieldDependencies();
 	}
 	
 	private boolean validateIndividualFields() {
@@ -294,7 +380,6 @@ public class PluginSettingsPanel extends Panel {
 		boolean validFields = invalidPluginOptions.size() == 0;
 		
 		if (validFields) {
-			hideWarning();
 			return true;
 		}
 		else {
@@ -305,8 +390,7 @@ public class PluginSettingsPanel extends Panel {
 	
 	private boolean validateFieldDependencies() {
 		try {
-			pluginSettings.validateRequiredFields();
-			hideWarning();				
+			pluginSettings.validateRequiredFields();		
 
 			logger.log(Level.WARNING, "Validation succeeded on panel.");			
 			return true;
@@ -317,6 +401,26 @@ public class PluginSettingsPanel extends Panel {
 			logger.log(Level.WARNING, "Validate error on panel.", e);			
 			return false;
 		}		
+	}
+	
+	private boolean validateOAuthToken() {
+		if (oAuthGenerator != null) {
+			try {
+				oAuthGenerator.checkToken(oAuthText.getText()); // Sets pluginSettings.accessToken, or similar!
+				
+				logger.log(Level.INFO, "OAuth token check succeeded.");
+				return true;
+			}
+			catch (Exception e) {
+				showWarning("Invalid auth token. Please retry authenticating.");
+				
+				logger.log(Level.INFO, "OAuth token check failed. ", e);
+				return false;
+			}
+		}
+		else {
+			return true;
+		}
 	}
 
 	private void showWarning(String warningStr) {
