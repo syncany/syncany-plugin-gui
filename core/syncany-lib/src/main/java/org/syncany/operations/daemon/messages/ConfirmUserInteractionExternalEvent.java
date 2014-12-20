@@ -15,12 +15,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.crypto.specs;
+package org.syncany.operations.daemon.messages;
 
-import org.syncany.crypto.CipherSpecs;
+import org.syncany.operations.daemon.messages.api.ExternalEvent;
 
-public class TwofishGcm128CipherSpec extends TwofishGcmCipherSpec {
-	public TwofishGcm128CipherSpec() {
-		super(CipherSpecs.TWOFISH_128_GCM, "Twofish/GCM/NoPadding", 128, 128, false);
+public class ConfirmUserInteractionExternalEvent extends ExternalEvent {
+	private String header;
+	private String message;
+	private String question;
+
+	public ConfirmUserInteractionExternalEvent() {
+		// Nothing
+	}
+
+	public ConfirmUserInteractionExternalEvent(String header, String message, String question) {
+		this.header = header;
+		this.message = message;
+		this.question = question;
+	}
+
+	public String getHeader() {
+		return header;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public String getQuestion() {
+		return question;
 	}
 }
