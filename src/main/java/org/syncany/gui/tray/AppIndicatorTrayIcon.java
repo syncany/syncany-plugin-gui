@@ -154,7 +154,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	public void setStatusText(String statusText) {
+	public void setStatusText(String root, String statusText) {
 		sendWebSocketMessage(new UpdateStatusTextGuiInternalEvent(statusText));
 	}
 
@@ -162,7 +162,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	protected void setTrayImage(TrayIconImage image) {
 		sendWebSocketMessage(new UpdateTrayIconGuiInternalEvent(image.getFileName()));
 	}
-	
+
 	@Override
 	protected void displayNotification(String subject, String message) {
 		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
@@ -203,7 +203,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				case REPORT_ISSUE:
 					showReportIssue();
 					break;
-					
+
 				case DONATE:
 					showDonate();
 					break;
