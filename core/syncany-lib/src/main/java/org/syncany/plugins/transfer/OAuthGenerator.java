@@ -15,26 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.daemon.messages;
+package org.syncany.plugins.transfer;
 
-import org.simpleframework.xml.Element;
-import org.syncany.operations.daemon.messages.api.ManagementResponse;
-import org.syncany.operations.init.InitOperationResult;
+import java.net.URI;
 
-public class InitManagementResponse extends ManagementResponse {
-	@Element(required = true)
-	private InitOperationResult result;
-
-	public InitManagementResponse() {
-		// Nothing
-	}
-	
-	public InitManagementResponse(int code, InitOperationResult result, int requestId) {
-		super(code, requestId, null);
-		this.result = result;
-	}
-
-	public InitOperationResult getResult() {
-		return result;
-	}
+/**
+ * @author Philipp Heckel <philipp.heckel@gmail.com>
+ * @author Christian Roth <christian.roth@port17.de>
+ */
+public interface OAuthGenerator {
+	  public URI generateAuthUrl() throws StorageException;
+	  public void checkToken(String token) throws StorageException;
 }
