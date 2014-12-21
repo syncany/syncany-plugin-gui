@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.util.DesktopHelper;
@@ -256,7 +257,7 @@ public class PluginSettingsPanel extends Panel {
 		pluginOptionFileSelectButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				onSelectFileClick(pluginOptionValueText);
+				onSelectFileClick(pluginOption, pluginOptionValueText);
 			}
 		});
 	}
@@ -346,14 +347,29 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 
-	private void onSelectFileClick(Text pluginOptionValueText) {
-		DirectoryDialog directoryDialog = new DirectoryDialog(getShell());
-		directoryDialog.setFilterPath(pluginOptionValueText.getText());
-		
-		String selectedFolder = directoryDialog.open();
-
-		if (selectedFolder != null && selectedFolder.length() > 0) {
-			pluginOptionValueText.setText(selectedFolder);
+	private void onSelectFileClick(TransferPluginOption pluginOption, Text pluginOptionValueText) {		
+		if (1 == 1) {
+			String filterPath = new File(pluginOptionValueText.getText()).getParent();
+			
+			FileDialog fileDialog = new FileDialog(getShell(), SWT.OPEN);
+			fileDialog.setFilterExtensions(new String[] { "*.html" });
+			fileDialog.setFilterPath(filterPath);
+			
+			String selectedFile = fileDialog.open();
+			
+			if (selectedFile != null && selectedFile.length() > 0) {
+				pluginOptionValueText.setText(selectedFile);
+			}			
+		}
+		else {
+			DirectoryDialog directoryDialog = new DirectoryDialog(getShell());
+			directoryDialog.setFilterPath(pluginOptionValueText.getText());
+			
+			String selectedFolder = directoryDialog.open();
+	
+			if (selectedFolder != null && selectedFolder.length() > 0) {
+				pluginOptionValueText.setText(selectedFolder);
+			}
 		}
 	}
 
