@@ -361,12 +361,14 @@ public class PluginSettingsPanel extends Panel {
 	public boolean validatePanel() {
 		hideWarning();
 		
-		// Validation order is important, OAuth needs to be before 
+		// Validation order is important, because the validate*() methods
+		// also mark fields 'red'. Also: OAuth needs to be before 
 		// cross-field dependencies!
 		
-		return validateIndividualFields()
-				&& validateOAuthToken()
-				&& validateFieldDependencies();
+		boolean individualFieldsValid = validateIndividualFields();
+		boolean oAuthFieldsValid = validateOAuthToken();
+		
+		return individualFieldsValid && oAuthFieldsValid && validateFieldDependencies();
 	}
 	
 	private boolean validateIndividualFields() {
@@ -405,17 +407,28 @@ public class PluginSettingsPanel extends Panel {
 	
 	private boolean validateOAuthToken() {
 		if (oAuthGenerator != null) {
-			try {
-				oAuthGenerator.checkToken(oAuthText.getText()); // Sets pluginSettings.accessToken, or similar!
+			if (oAuthText.getText().isEmpty()) {
+				showWarning("Please fill the token field. It's there for a reason.");
+				WidgetDecorator.markAsInvalid(oAuthText);
 				
-				logger.log(Level.INFO, "OAuth token check succeeded.");
-				return true;
-			}
-			catch (Exception e) {
-				showWarning("Invalid auth token. Please retry authenticating.");
-				
-				logger.log(Level.INFO, "OAuth token check failed. ", e);
+				logger.log(Level.INFO, "OAuth token is empty.");
 				return false;
+			}
+			else {
+				try {				
+					oAuthGenerator.checkToken(oAuthText.getText()); // Sets pluginSettings.accessToken, or similar!				
+					WidgetDecorator.markAsValid(oAuthText);
+					
+					logger.log(Level.INFO, "OAuth token check succeeded.");
+					return true;
+				}
+				catch (Exception e) {
+					showWarning("Invalid auth token. Please retry authenticating.");
+					WidgetDecorator.markAsInvalid(oAuthText);
+					
+					logger.log(Level.INFO, "OAuth token check failed. ", e);
+					return false;
+				}
 			}
 		}
 		else {
