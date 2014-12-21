@@ -60,18 +60,15 @@ public class TransferPluginOptions {
 			boolean hasDescription = setupAnnotation != null && !setupAnnotation.description().equals("");
 			boolean hasCallback = setupAnnotation != null && !setupAnnotation.callback().isInterface();
 			boolean hasConverter = setupAnnotation != null && !setupAnnotation.converter().isInterface();
-			boolean hasFileType = setupAnnotation != null && setupAnnotation.fileType() != null;
-			
+
 			String name = (hasName) ? elementAnnotation.name() : field.getName();
 			String description = (hasDescription) ? setupAnnotation.description() : field.getName();
-			FileType fileType = (hasFileType) ? setupAnnotation.fileType() : null;
+			Class<? extends TransferPluginOptionCallback> callback = (hasCallback) ? setupAnnotation.callback() : null;
+			Class<? extends TransferPluginOptionConverter> converter = (hasConverter) ? setupAnnotation.converter() : null;
 			boolean required = elementAnnotation.required();
 			boolean sensitive = setupAnnotation != null && setupAnnotation.sensitive();
 			boolean singular = setupAnnotation != null && setupAnnotation.singular();
-			boolean visible = setupAnnotation != null && setupAnnotation.visible();
 			boolean encrypted = field.getAnnotation(Encrypted.class) != null;
-			Class<? extends TransferPluginOptionCallback> callback = (hasCallback) ? setupAnnotation.callback() : null;
-			Class<? extends TransferPluginOptionConverter> converter = (hasConverter) ? setupAnnotation.converter() : null;
 
 			boolean isNestedOption = TransferSettings.class.isAssignableFrom(field.getType());
 
@@ -81,11 +78,11 @@ public class TransferPluginOptions {
 				}
 
 				Class<? extends TransferSettings> fieldClass = (Class<? extends TransferSettings>) field.getType();
-				options.add(new NestedTransferPluginOption(field, name, description, fieldClass, fileType, encrypted, sensitive, singular, visible, required, callback, converter,
+				options.add(new NestedTransferPluginOption(field, name, description, fieldClass, encrypted, sensitive, singular, required, callback, converter,
 						getOrderedOptions(fieldClass)));
 			}
 			else {
-				options.add(new TransferPluginOption(field, name, description, field.getType(), fileType, encrypted, sensitive, singular, visible, required, callback, converter));
+				options.add(new TransferPluginOption(field, name, description, field.getType(), encrypted, sensitive, singular, required, callback, converter));
 			}
 		}
 

@@ -17,10 +17,8 @@
  */
 package org.syncany.crypto.specs;
 
-import org.syncany.crypto.CipherSpecs;
-
 public class AesGcm256CipherSpec extends AesGcmCipherSpec {
-	public AesGcm256CipherSpec() {
-		super(CipherSpecs.AES_256_GCM, "AES/GCM/NoPadding", 256, 128, false);
+	public AesGcm256CipherSpec(int id) {
+		super(id, "AES/GCM/NoPadding", 256, 128, false);
 	}
 }
