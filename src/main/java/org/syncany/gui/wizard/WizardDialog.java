@@ -260,6 +260,14 @@ public class WizardDialog {
 	public Panel getCurrentPanel() {
 		return currentPanel;
 	}
+	
+	public Shell getTrayShell() {
+		return trayShell;
+	}
+
+	public Shell getWindowShell() {
+		return windowShell;
+	}
 
 	public void setCurrentPanel(Panel newPanel, Action... allowedActions) {
 		// Set current panel
