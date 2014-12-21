@@ -25,9 +25,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
 import org.syncany.chunk.Chunker;
 import org.syncany.chunk.CipherTransformer;
 import org.syncany.chunk.FixedChunker;
@@ -46,8 +43,6 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
-import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEvent;
-import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalManagementRequest;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementResponse;
@@ -297,22 +292,5 @@ public class InitPanelController extends ReloadDaemonPanelController {
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
-	}
-	
-	@Subscribe
-	public void onUserConfirmEventReceived(final ConfirmUserInteractionExternalEvent confirmUserEvent) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				MessageBox messageBox = new MessageBox(wizardDialog.getWindowShell(), SWT.ICON_QUESTION | SWT.YES | SWT.NO);
-				messageBox.setText(confirmUserEvent.getHeader());
-				messageBox.setMessage(confirmUserEvent.getMessage() + "\n\n" + confirmUserEvent.getQuestion() + "?");
-
-				int response = messageBox.open();
-				boolean userConfirms = response == SWT.YES;
-
-				eventBus.post(new ConfirmUserInteractionExternalManagementRequest(userConfirms));
-			}
-		});		
 	}
 }
