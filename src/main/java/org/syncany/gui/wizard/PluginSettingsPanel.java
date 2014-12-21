@@ -26,11 +26,13 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.util.DesktopHelper;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.plugins.transfer.FileType;
 import org.syncany.plugins.transfer.OAuthGenerator;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -53,7 +55,9 @@ public class PluginSettingsPanel extends Panel {
 	private TransferSettings pluginSettings;
 	
 	private OAuthGenerator oAuthGenerator;
-	private Text oAuthText;
+	private Button oAuthAuthorizeButton;
+	private Text oAuthTokenText;
+	private URI oAuthUrl;
 	
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;	
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -149,54 +153,81 @@ public class PluginSettingsPanel extends Panel {
 				throw new RuntimeException(e);
 			}
 
-			try {
-				final URI oAuthURL = oAuthGenerator.generateAuthUrl();
-				
-				// OAuth help text
-				Label descriptionLabel = new Label(this, SWT.WRAP);
-				descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-				descriptionLabel.setText("This plugin needs to authenticate your account so that Syncany can access it. Please click on the 'Authorize' button to do that.");
-				
-				WidgetDecorator.normal(descriptionLabel);
-				
-				// Label "Token:"
-				GridData oAuthTokenLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-				oAuthTokenLabelGridData.verticalIndent = 2;
-				oAuthTokenLabelGridData.horizontalSpan = 3;
+			// OAuth help text
+			Label descriptionLabel = new Label(this, SWT.WRAP);
+			descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+			descriptionLabel.setText("This plugin needs to authenticate your account so that Syncany can access it. Please click on the 'Authorize' button to do that.");
+			
+			WidgetDecorator.normal(descriptionLabel);
+			
+			// Label "Token:"
+			GridData oAuthTokenLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+			oAuthTokenLabelGridData.verticalIndent = 2;
+			oAuthTokenLabelGridData.horizontalSpan = 3;
 
-				Label pluginOptionLabel = new Label(this, SWT.WRAP);
-				pluginOptionLabel.setLayoutData(oAuthTokenLabelGridData);
-				pluginOptionLabel.setText("Token");
-				
-				// Textfield "Token"		
-				GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-				optionValueTextGridData.verticalIndent = 0;
-				optionValueTextGridData.horizontalSpan = 2;
-				optionValueTextGridData.minimumWidth = 200;
-				optionValueTextGridData.grabExcessHorizontalSpace = true;
+			Label oAuthTokenLabel = new Label(this, SWT.WRAP);
+			oAuthTokenLabel.setLayoutData(oAuthTokenLabelGridData);
+			oAuthTokenLabel.setText("Token");
+			
+			// Textfield "Token"		
+			GridData oAuthTokenTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+			oAuthTokenTextGridData.verticalIndent = 0;
+			oAuthTokenTextGridData.horizontalSpan = 2;
+			oAuthTokenTextGridData.minimumWidth = 200;
+			oAuthTokenTextGridData.grabExcessHorizontalSpace = true;
 
-				oAuthText = new Text(this, SWT.BORDER);
-				oAuthText.setLayoutData(optionValueTextGridData);
-				oAuthText.setBackground(WidgetDecorator.WHITE);
-				
-				WidgetDecorator.normal(oAuthText);
+			oAuthTokenText = new Text(this, SWT.BORDER);
+			oAuthTokenText.setLayoutData(oAuthTokenTextGridData);
+			oAuthTokenText.setBackground(WidgetDecorator.WHITE);
+			
+			WidgetDecorator.normal(oAuthTokenText);
 
-				// Add 'Authorize ..' button for 'File' fields
-				Button oAuthAuthorizeButton = new Button(this, SWT.NONE);
-				oAuthAuthorizeButton.setText("Authorize ...");
-					
-				oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
-					@Override
-					public void widgetSelected(SelectionEvent e) {
-						DesktopHelper.launch(oAuthURL.toString());
-					}
-				});							
-			}
-			catch (Exception e) {
-				// TODO [high] This should not be a runtime exception. what if the network isnt available?!
-				throw new RuntimeException(e);
-			}
+			// Add 'Authorize ..' button for 'File' fields
+			oAuthAuthorizeButton = new Button(this, SWT.NONE);
+			oAuthAuthorizeButton.setText("Connecting ...");
+			oAuthAuthorizeButton.setEnabled(false);
+			
+			oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					DesktopHelper.launch(oAuthUrl.toString());
+				}
+			});							
+			
+			// Asynchronously get OAuth URL
+			asyncRetrieveOAuthUrlAndEnableAuthButton();			
 		}
+	}
+
+	private void asyncRetrieveOAuthUrlAndEnableAuthButton() {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					oAuthUrl = oAuthGenerator.generateAuthUrl();
+						
+					Display.getDefault().asyncExec(new Runnable() {			
+						@Override
+						public void run() {
+							oAuthAuthorizeButton.setText("Authorize ...");
+							oAuthAuthorizeButton.setEnabled(true);
+						}
+					});
+				}
+				catch (final Exception e) {
+					Display.getDefault().asyncExec(new Runnable() {			
+						@Override
+						public void run() {
+							showWarning("Cannot retrieve OAuth URL: " + e.getMessage());
+							logger.log(Level.WARNING, "Cannot retrieve OAuth URL.", e);
+							
+							oAuthAuthorizeButton.setText("Error!");
+						}
+					});
+				}
+			}
+			
+		}, "GetOAuthUrl").start();
 	}
 
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
@@ -344,15 +375,14 @@ public class PluginSettingsPanel extends Panel {
 	            e.doit = newValue.isEmpty() || validationResult != ValidationResult.INVALID_TYPE;		            
 	        }
 	    });
-	}
-	
+	}	
 
 	private void onSelectFileClick(TransferPluginOption pluginOption, Text pluginOptionValueText) {		
-		if (1 == 1) {
+		if (pluginOption.getFileType() == FileType.FILE) {
 			String filterPath = new File(pluginOptionValueText.getText()).getParent();
 			
 			FileDialog fileDialog = new FileDialog(getShell(), SWT.OPEN);
-			fileDialog.setFilterExtensions(new String[] { "*.html" });
+			fileDialog.setFilterExtensions(new String[] { "*.*" });
 			fileDialog.setFilterPath(filterPath);
 			
 			String selectedFile = fileDialog.open();
@@ -423,24 +453,24 @@ public class PluginSettingsPanel extends Panel {
 	
 	private boolean validateOAuthToken() {
 		if (oAuthGenerator != null) {
-			if (oAuthText.getText().isEmpty()) {
+			if (oAuthTokenText.getText().isEmpty()) {
 				showWarning("Please fill the token field. It's there for a reason.");
-				WidgetDecorator.markAsInvalid(oAuthText);
+				WidgetDecorator.markAsInvalid(oAuthTokenText);
 				
 				logger.log(Level.INFO, "OAuth token is empty.");
 				return false;
 			}
 			else {
 				try {				
-					oAuthGenerator.checkToken(oAuthText.getText()); // Sets pluginSettings.accessToken, or similar!				
-					WidgetDecorator.markAsValid(oAuthText);
+					oAuthGenerator.checkToken(oAuthTokenText.getText()); // Sets pluginSettings.accessToken, or similar!				
+					WidgetDecorator.markAsValid(oAuthTokenText);
 					
 					logger.log(Level.INFO, "OAuth token check succeeded.");
 					return true;
 				}
 				catch (Exception e) {
 					showWarning("Invalid auth token. Please retry authenticating.");
-					WidgetDecorator.markAsInvalid(oAuthText);
+					WidgetDecorator.markAsInvalid(oAuthTokenText);
 					
 					logger.log(Level.INFO, "OAuth token check failed. ", e);
 					return false;

@@ -12,7 +12,6 @@ import org.syncany.plugins.transfer.TransferPlugin;
  */
 public class PluginSelectPanel extends Panel {
 	private Label descriptionLabel;
-
 	private PluginSelectComposite pluginSelectComposite;
 	
 	public PluginSelectPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
