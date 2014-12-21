@@ -15,12 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.crypto.specs;
+package org.syncany.plugins.transfer;
 
-import org.syncany.crypto.CipherSpecs;
+import java.net.URI;
 
-public class TwofishGcm128CipherSpec extends TwofishGcmCipherSpec {
-	public TwofishGcm128CipherSpec() {
-		super(CipherSpecs.TWOFISH_128_GCM, "Twofish/GCM/NoPadding", 128, 128, false);
-	}
+/**
+ * @author Philipp Heckel <philipp.heckel@gmail.com>
+ * @author Christian Roth <christian.roth@port17.de>
+ */
+public interface OAuthGenerator {
+	  public URI generateAuthUrl() throws StorageException;
+	  public void checkToken(String token) throws StorageException;
 }
