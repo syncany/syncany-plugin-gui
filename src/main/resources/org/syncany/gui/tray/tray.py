@@ -41,16 +41,16 @@ import re
 from lxml import etree
 
 def fetch_image(relativeUrl):
-	global baseUrl, imagesMap
+	global baseUrl, images_map
 	
 	#caching images in dictionary
-	if not relativeUrl in imagesMap:
+	if not relativeUrl in images_map:
 		tf = tempfile.NamedTemporaryFile(delete=True)
 		fname,x = urllib.urlretrieve(baseUrl + relativeUrl, tf.name +".png")
 		do_print("Caching image '" + relativeUrl + "' to '" + fname + "'")
-		imagesMap[relativeUrl] = fname
+		images_map[relativeUrl] = fname
 	
-	return imagesMap[relativeUrl]
+	return images_map[relativeUrl]
 
 def do_notify(request):
 	do_print("Creating notification ...")
@@ -79,49 +79,70 @@ def do_update_icon(request):
 	return None
 	
 def do_update_text(request):
-	global menu_item_status
+	global status_texts, watches_last_request
 	
-	gtk.gdk.threads_enter()
+	# Set status text for this watch
+	root = request.find("root").text
+	text = request.find("text").text
 	
-	label = menu_item_status.get_child()
-	label.set_text(request.find("text").text)
+	if root is None:
+		status_texts.clear()
 	
-	menu_item_status.show()
-	
-	gtk.gdk.threads_leave()
+	else:
+		status_texts[root] = text
+
+	# Rebuild menu
+	do_update_menu(watches_last_request)	
 	
 	return None			
 	
 def do_update_menu(request):
-	global menu, menu_item_status
-	global status_text
+	global menu, status_texts, status_text_default, watches_last_request
 
 	gtk.gdk.threads_enter()
+	
+	# For next status text update
+	watches_last_request = request
 
 	# Remove all children
 	for child in menu.get_children():
 		menu.remove(child)		
 	
-	'''Status'''
-	menu_item_status.child.set_text(status_text)
-	menu_item_status.set_can_default(0);	
-	menu_item_status.set_sensitive(0);
-
-	menu.append(menu_item_status)
+	# Status
+	status_text_items_count = 0
 	
-	'''---'''
+	for root, text in status_texts.iteritems():
+		watch_is_in_sync = text == status_text_default
+		
+		if not watch_is_in_sync:
+			status_text_items_count += 1
+			
+			menu_item_status = gtk.MenuItem(os.path.basename(root) + "\n" + text)
+			menu_item_status.set_can_default(0);	
+			menu_item_status.set_sensitive(0);
+
+			menu.append(menu_item_status)
+	
+	if status_text_items_count == 0:
+		menu_item_status = gtk.MenuItem(status_text_default)
+		menu_item_status.set_can_default(0);	
+		menu_item_status.set_sensitive(0);
+
+		menu.append(menu_item_status)
+	
+	# ---
 	menu.append(gtk.SeparatorMenuItem())	
 
-	'''New ...'''
+	# New ...
 	menu_item_donate = gtk.MenuItem("New folder ...")
 	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_donate)	
 
-	'''---'''
+	# ---
 	menu.append(gtk.SeparatorMenuItem())	
 
-	'''Folders'''
+	# Folders
 	if request is not None:
 		folders = request.xpath("//folder")
 	
@@ -132,40 +153,40 @@ def do_update_menu(request):
 			menu.append(menu_item_folder)
 		
 		if len(folders) > 0:
-			'''---'''
+			# ---
 			menu.append(gtk.SeparatorMenuItem())	
 	
-	'''Report a bug'''
+	# Report a bug
 	menu_item_issue = gtk.MenuItem("Report a bug")
 	menu_item_issue.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>REPORT_ISSUE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_issue)	
 
-	'''Donate ...'''
+	# Donate ...
 	menu_item_donate = gtk.MenuItem("Buy us a coffee")
 	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>DONATE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_donate)	
 	
-	'''Website'''
+	# Website
 	menu_item_website = gtk.MenuItem("Visit website")
 	menu_item_website.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>WEBSITE</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_website)	
 	
-	'''---'''
+	# ---
 	menu.append(gtk.SeparatorMenuItem())	
 
-	'''Quit'''
+	# Quit
 	menu_item_quit = gtk.MenuItem("Exit")
 	menu_item_quit.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>EXIT</action></clickTrayMenuGuiInternalEvent>")
 		
 	menu.append(menu_item_quit)	
 	
-	'''Set as menu for indicator'''
+	# Set as menu for indicator
 	indicator.set_menu(menu)
 
-	'''Show'''
+	# Show
 	menu.show_all()
 	gtk.gdk.threads_leave()
 	
@@ -275,7 +296,7 @@ def ws_start_client():
 	ws.run_forever()
 
 def main():
-	'''Init application and menu'''
+	# Init application and menu'''
 	init_tray_icon()
 	init_menu()	
 	
@@ -291,10 +312,11 @@ def main():
 
 if __name__ == "__main__":
 	# Global variables
-	imagesMap = dict()
-	status_text = "All files in sync"
+	images_map = dict()
+	status_text_default = "All files in sync"
+	status_texts = dict()
+	watches_last_request = None
 	
-	updating_count = 0
 	indicator = None
 	ws = None
 	ws_server_thread = None
@@ -302,7 +324,6 @@ if __name__ == "__main__":
 		
 	# Default values
 	menu = gtk.Menu()
-	menu_item_status = gtk.MenuItem(status_text)
 
 	# Go!
 	main()

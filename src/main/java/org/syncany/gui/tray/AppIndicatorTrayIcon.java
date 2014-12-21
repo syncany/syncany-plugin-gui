@@ -155,7 +155,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	@Override
 	public void setStatusText(String root, String statusText) {
-		sendWebSocketMessage(new UpdateStatusTextGuiInternalEvent(statusText));
+		sendWebSocketMessage(new UpdateStatusTextGuiInternalEvent(root, statusText));
 	}
 
 	@Override

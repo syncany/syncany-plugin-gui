@@ -277,6 +277,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				else {
 					statusTexts.clear();
 				}
+				
 				buildMenuItems();
 			}
 		});

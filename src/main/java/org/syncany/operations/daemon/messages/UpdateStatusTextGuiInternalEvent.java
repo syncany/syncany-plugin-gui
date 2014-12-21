@@ -20,6 +20,9 @@ package org.syncany.operations.daemon.messages;
 import org.simpleframework.xml.Element;
 
 public class UpdateStatusTextGuiInternalEvent extends GuiInternalEvent {
+	@Element(name = "root", required = false)
+	private String root;
+
 	@Element(name = "text")
 	private String text;
 
@@ -27,10 +30,15 @@ public class UpdateStatusTextGuiInternalEvent extends GuiInternalEvent {
 		// Nothing
 	}
 
-	public UpdateStatusTextGuiInternalEvent(String text) {
+	public UpdateStatusTextGuiInternalEvent(String root, String text) {
+		this.root = root;
 		this.text = text;
 	}
 
+	public String getRoot() {
+		return root;
+	}
+	
 	public String getText() {
 		return text;
 	}
