@@ -15,37 +15,39 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.config.to;
+package org.syncany.operations.daemon;
 
-import org.simpleframework.xml.Element;
-import org.simpleframework.xml.Root;
+import org.syncany.operations.OperationOptions;
 
-/**
- * This class is the access object to user-password pairs in XML.
- * 
- * @author Pim Otte
- */
-@Root(strict = false)
-public class UserTO {
-	@Element(required = true)
-	private String username;
-
-	@Element(required = true)
-	private String password;
-
-	public String getUsername() {
-		return username;
+public class DaemonOperationOptions implements OperationOptions {
+	public enum DaemonAction {
+		RUN, LIST, ADD, REMOVE
 	}
-
-	public void setUsername(String username) {
-		this.username = username;
+	
+	private DaemonAction action = null;
+	private String watchRoot = null;
+	
+	public DaemonOperationOptions() {
+		// Nothing
 	}
-
-	public String getPassword() {
-		return password;
+	
+	public DaemonOperationOptions(DaemonAction action) {
+		this.action = action;
 	}
-
-	public void setPassword(String password) {
-		this.password = password;
+	
+	public DaemonAction getAction() {
+		return action;
+	}
+	
+	public void setAction(DaemonAction action) {
+		this.action = action;
+	}
+	
+	public String getWatchRoot() {
+		return watchRoot;
+	}
+	
+	public void setWatchRoot(String watchRoot) {
+		this.watchRoot = watchRoot;
 	}
 }
