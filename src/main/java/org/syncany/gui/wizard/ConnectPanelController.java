@@ -20,6 +20,7 @@ package org.syncany.gui.wizard;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.swt.widgets.Display;
 import org.syncany.config.to.ConfigTO;
 import org.syncany.crypto.CipherUtil;
 import org.syncany.gui.util.I18n;
@@ -30,6 +31,8 @@ import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
+import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
+import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
 import org.syncany.operations.init.ApplicationLink;
 import org.syncany.operations.init.ConnectOperationOptions;
 import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
@@ -110,34 +113,42 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			connectTypeSelection = connectTypeSelectPanel.getSelection();
 
 			if (connectTypeSelection == ConnectPanelSelection.LINK) {
-				boolean panelValid = connectTypeSelectPanel.validatePanel();
-				
-				if (panelValid) {
-					applicationLink = connectTypeSelectPanel.getApplicationLink();
-					
-					if (applicationLink.isEncrypted()) {						
-						wizardDialog.setCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
-					}
-					else {
-						initProgressPanelLabels();
-						wizardDialog.setCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
-						
-						sendConnectRequest();
-					}
-				}
+				handleFlowConnectTypeSelectPanelNextWithLink();				
 			}
-			else {
-				boolean pluginIsSet = connectTypeSelectPanel.getSelectedPlugin() != null;
-				boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != connectTypeSelectPanel.getSelectedPlugin();
-				
-				if (pluginIsSet && pluginNewOrChanged) {
-					selectedPlugin = connectTypeSelectPanel.getSelectedPlugin();
-					pluginSettingsPanel.init(selectedPlugin);
-				}
-				
-				wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
+			else if (connectTypeSelection == ConnectPanelSelection.MANUAL) {
+				handleFlowConnectTypeSelectPanelNextWithManual();				
 			}				
 		}
+	}
+
+	private void handleFlowConnectTypeSelectPanelNextWithLink() {
+		boolean panelValid = connectTypeSelectPanel.validatePanel();
+		
+		if (panelValid) {
+			applicationLink = connectTypeSelectPanel.getApplicationLink();
+			
+			if (applicationLink.isEncrypted()) {						
+				wizardDialog.setCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
+			}
+			else {
+				initProgressPanelLabels();
+				wizardDialog.setCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
+				
+				sendConnectRequest();
+			}
+		}
+	}
+	
+	private void handleFlowConnectTypeSelectPanelNextWithManual() {
+		boolean pluginIsSet = connectTypeSelectPanel.getSelectedPlugin() != null;
+		boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != connectTypeSelectPanel.getSelectedPlugin();
+		
+		if (pluginIsSet && pluginNewOrChanged) {
+			selectedPlugin = connectTypeSelectPanel.getSelectedPlugin();
+			pluginSettingsPanel.init(selectedPlugin);
+		}
+		
+		wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
 	}
 
 	private void handelFlowFolderSelectPanel(Action clickAction) {
@@ -154,7 +165,10 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
 		}
 		else if (clickAction == Action.NEXT) {
-			wizardDialog.validateAndSetCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
+			initProgressPanelLabels();
+			wizardDialog.setCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
+			
+			sendConnectRequest();
 		}
 	}
 
@@ -168,12 +182,18 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			}					
 		}
 		else if (clickAction == Action.NEXT) {
-			initProgressPanelLabels();
-			boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
-
-			if (panelValid) {
-				sendConnectRequest();
-			}								
+			if (connectTypeSelection == ConnectPanelSelection.MANUAL) {
+				eventBus.post(new GetPasswordUserInteractionExternalManagementRequest(enterPasswordPanel.getPassword()));
+				wizardDialog.setCurrentPanel(progressPanel);				
+			}
+			else {
+				initProgressPanelLabels();
+				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
+	
+				if (panelValid) {
+					sendConnectRequest();
+				}
+			}
 		}
 	}
 
@@ -210,7 +230,6 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			}
 			else {
 				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_TO);	
-				connectOptions.setPassword(enterPasswordPanel.getPassword());
 				configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 			}
 						
@@ -226,6 +245,16 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 		}
 	}
 
+	@Subscribe
+	public void onGetPasswordEventReceived(final GetPasswordUserInteractionExternalEvent getPasswordUserEvent) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				wizardDialog.setCurrentPanel(enterPasswordPanel, Action.NEXT);
+			}
+		});		
+	}
+	
 	@Subscribe
 	public void onConnectResponse(ConnectManagementResponse response) {
 		logger.log(Level.INFO, "Received response from daemon: " + response);

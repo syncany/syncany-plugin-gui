@@ -119,13 +119,15 @@ public class PluginSelectComposite extends Composite {
 			List<TransferPluginOption> pluginOptions = TransferPluginOptions.getOrderedOptions(pluginSettings.getClass());
 			
 			for (TransferPluginOption pluginOption : pluginOptions) {
-				boolean optionSupported = pluginOption.getType() == String.class
-						|| pluginOption.getType() == int.class
-						|| pluginOption.getType() == File.class;
-				
-				if (!optionSupported) {					
-					logger.log(Level.FINE, "- Plugin '" + plugin.getId() + "' is NOT supported by the GUI; reason is option '" + pluginOption.getName() + "' of type '" + pluginOption.getType() + "'.");
-					return false;
+				if (pluginOption.isVisible()) {
+					boolean optionSupported = pluginOption.getType() == String.class
+							|| pluginOption.getType() == int.class
+							|| pluginOption.getType() == File.class;
+					
+					if (!optionSupported) {					
+						logger.log(Level.FINE, "- Plugin '" + plugin.getId() + "' is NOT supported by the GUI; reason is option '" + pluginOption.getName() + "' of type '" + pluginOption.getType() + "'.");
+						return false;
+					}
 				}
 			}
 			
