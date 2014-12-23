@@ -82,13 +82,15 @@ def do_update_text(request):
 	global status_texts, watches_last_request
 	
 	# Set status text for this watch
-	root = request.find("root").text
-	text = request.find("text").text
-	
-	if root is None:
+	root_element = request.find("root")
+			
+	if root_element is None:
 		status_texts.clear()
 	
 	else:
+		root = request.find("root").text
+		text = request.find("text").text
+
 		status_texts[root] = text
 
 	# Rebuild menu

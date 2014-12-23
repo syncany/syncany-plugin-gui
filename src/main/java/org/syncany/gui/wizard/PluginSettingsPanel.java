@@ -204,8 +204,9 @@ public class PluginSettingsPanel extends Panel {
 			@Override
 			public void run() {
 				try {
-					oAuthUrl = oAuthGenerator.generateAuthUrl();
-						
+					oAuthUrl = oAuthGenerator.generateAuthUrl();					
+					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
+					
 					Display.getDefault().asyncExec(new Runnable() {			
 						@Override
 						public void run() {
@@ -406,7 +407,9 @@ public class PluginSettingsPanel extends Panel {
 	@Override
 	public boolean validatePanel() {
 		hideWarning();
-		
+				
+		logger.log(Level.WARNING, "Validating settings panel ...");			
+
 		// Validation order is important, because the validate*() methods
 		// also mark fields 'red'. Also: OAuth needs to be before 
 		// cross-field dependencies!
@@ -418,6 +421,8 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 	private boolean validateIndividualFields() {
+		logger.log(Level.WARNING, " - Validating individual fields ...");			
+		
 		for (Map.Entry<TransferPluginOption, Text> optionControlEntry : pluginOptionControlMap.entrySet()) {
 			TransferPluginOption pluginOption = optionControlEntry.getKey();
 			Text pluginOptionText = optionControlEntry.getValue();
@@ -437,6 +442,8 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 	private boolean validateFieldDependencies() {
+		logger.log(Level.WARNING, " - Validating field dependencies ...");			
+		
 		try {
 			pluginSettings.validateRequiredFields();		
 
@@ -462,6 +469,8 @@ public class PluginSettingsPanel extends Panel {
 			}
 			else {
 				try {				
+					logger.log(Level.INFO, "OAuth: Checking token " + oAuthTokenText.getText() + " ...");
+					
 					oAuthGenerator.checkToken(oAuthTokenText.getText()); // Sets pluginSettings.accessToken, or similar!				
 					WidgetDecorator.markAsValid(oAuthTokenText);
 					
