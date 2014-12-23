@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.plugins.Plugin;
 import org.syncany.plugins.Plugins;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -32,7 +33,8 @@ import org.syncany.plugins.transfer.TransferSettings;
  */
 public class PluginSelectComposite extends Composite {
 	private static final Logger logger = Logger.getLogger(PluginSelectComposite.class.getSimpleName());	
-
+	private static final String PLUGIN_ICON_RESOURCE_FORMAT = "/" + Plugin.class.getPackage().getName().replace('.', '/') + "/%s/icon24.png";
+	
 	private Table pluginTable;
 	private List<TransferPlugin> plugins;
 	private TransferPlugin selectedPlugin;
@@ -102,7 +104,7 @@ public class PluginSelectComposite extends Composite {
 
 	    for (TransferPlugin plugin : plugins) {	   	    	
 		    if (isSupportedPlugin(plugin)) {
-		    	String pluginImageResource = "/org/syncany/plugins/" + plugin.getId() + "/icon24.png";
+		    	String pluginImageResource = String.format(PLUGIN_ICON_RESOURCE_FORMAT, plugin.getId());
 			    Image image = SWTResourceManager.getImage(pluginImageResource);
 	
 			    TableItem tableItem = new TableItem(pluginTable, SWT.NONE);		    
