@@ -88,6 +88,7 @@ public class FolderSelectPanel extends Panel {
 		localDir = new Text(this, SWT.BORDER);
 		localDir.setLayoutData(folderTextGridData);
 		localDir.setBackground(WidgetDecorator.WHITE);
+
 		localDir.addModifyListener(new ModifyListener() {			
 			@Override
 			public void modifyText(ModifyEvent e) {

@@ -17,6 +17,9 @@
  */
 package org.syncany.gui.wizard;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
@@ -31,12 +34,16 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.syncany.operations.init.ApplicationLink;
+import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ConnectTypeSelectPanel extends Panel {
+	private static final Logger logger = Logger.getLogger(ConnectTypeSelectPanel.class.getSimpleName());	
+
 	public enum ConnectPanelSelection {
 		LINK, MANUAL
 	}
@@ -47,6 +54,7 @@ public class ConnectTypeSelectPanel extends Panel {
 	private PluginSelectComposite pluginSelectComposite;
 	
 	private boolean firstValidationDone;	
+	private ApplicationLink applicationLink;
 
 	public ConnectTypeSelectPanel(WizardDialog parentDialog, Composite composite, int style) {
 		super(parentDialog, composite, style);
@@ -118,7 +126,7 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectLinkText.addModifyListener(new ModifyListener() {			
 			@Override
 			public void modifyText(ModifyEvent e) {
-				validatePanelIfFirstValidationDone();
+				// validatePanelIfFirstValidationDone();
 			}
 		});
 		
@@ -189,14 +197,18 @@ public class ConnectTypeSelectPanel extends Panel {
 		firstValidationDone = true;
 		
 		if (connectLinkRadio.getSelection()) {
-			if (connectLinkText.getText().startsWith("syncany://")) {
+			try {
+				applicationLink = new ApplicationLink(connectLinkText.getText());
+				
 				WidgetDecorator.markAsValid(connectLinkText);
 				return true;
 			}
-			else {
+			catch (StorageException e) {
+				logger.log(Level.WARNING, "Validation of link failed.", e);
+				
 				WidgetDecorator.markAsInvalid(connectLinkText);
 				return false;
-			}
+			}			
 		}
 		else {
 			WidgetDecorator.markAsValid(connectLinkText);
@@ -223,7 +235,11 @@ public class ConnectTypeSelectPanel extends Panel {
 		return pluginSelectComposite.getSelectedPlugin();
 	}
 	
-	public String getApplicationLink() {
+	public String getApplicationLinkText() {
 		return connectLinkText.getText();
+	}
+
+	public ApplicationLink getApplicationLink() {
+		return applicationLink;
 	}
 }

@@ -30,6 +30,7 @@ import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
+import org.syncany.operations.init.ApplicationLink;
 import org.syncany.operations.init.ConnectOperationOptions;
 import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -50,6 +51,7 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 	private ProgressPanel progressPanel;
 	
 	private ConnectPanelSelection connectTypeSelection;
+	private ApplicationLink applicationLink;
 	private TransferPlugin selectedPlugin;
 
 	public ConnectPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel folderSelectPanel,
@@ -72,80 +74,118 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 	@Override
 	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
-			if (clickAction == Action.NEXT) {
-				folderSelectPanel.setValidationMethod(SelectFolderValidationMethod.NO_APP_FOLDER);
-				folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
-
-				wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
-			}
+			handleFlowStartPanel(clickAction);			
 		}
 		else if (wizardDialog.getCurrentPanel() == folderSelectPanel) {
-			if (clickAction == Action.PREVIOUS) {
-				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
-			}
-			else if (clickAction == Action.NEXT) {				
-				wizardDialog.validateAndSetCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
-			}
+			handelFlowFolderSelectPanel(clickAction);			
 		}
 		else if (wizardDialog.getCurrentPanel() == connectTypeSelectPanel) {
-			if (clickAction == Action.PREVIOUS) {
-				wizardDialog.setCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
-			}
-			else if (clickAction == Action.NEXT) {
-				connectTypeSelection = connectTypeSelectPanel.getSelection();
-
-				if (connectTypeSelection == ConnectPanelSelection.LINK) {
-					wizardDialog.validateAndSetCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
-				}
-				else {
-					boolean pluginIsSet = connectTypeSelectPanel.getSelectedPlugin() != null;
-					boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != connectTypeSelectPanel.getSelectedPlugin();
-					
-					if (pluginIsSet && pluginNewOrChanged) {
-						selectedPlugin = connectTypeSelectPanel.getSelectedPlugin();
-						pluginSettingsPanel.init(selectedPlugin);
-					}
-					
-					wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
-				}				
-			}
+			handleFlowConnectTypeSelectPanel(clickAction);
 		}
 		else if (wizardDialog.getCurrentPanel() == pluginSettingsPanel) {
-			if (clickAction == Action.PREVIOUS) {
-				wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
-			}
-			else if (clickAction == Action.NEXT) {
-				wizardDialog.validateAndSetCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
-			}
+			handleFlowPluginSettingsPanel(clickAction);
 		}
 		else if (wizardDialog.getCurrentPanel() == enterPasswordPanel) {
-			if (clickAction == Action.PREVIOUS) {
-				if (connectTypeSelection == ConnectPanelSelection.LINK) {
-					wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
-				}
-				else {
-					wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
-				}					
-			}
-			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText("Connecting to remote repository");
-				progressPanel.setDescriptionText("Syncany is connecting to the remote repository for you. This might take a while.");
-
-				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
-
-				if (panelValid) {
-					sendConnectRequest();
-				}								
-			}
+			handleFlowEnterPasswordPanel(clickAction);
 		}
 		else if (wizardDialog.getCurrentPanel() == progressPanel) {
-			if (clickAction == Action.PREVIOUS) {
-				wizardDialog.setCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
-			}
-			else if (clickAction == Action.NEXT) {
-				wizardDialog.validateAndSetCurrentPanel(startPanel);
-			}
+			handleFlowProgressPanel(clickAction);
 		}
+	}
+	
+	private void handleFlowStartPanel(Action clickAction) {
+		if (clickAction == Action.NEXT) {
+			folderSelectPanel.setValidationMethod(SelectFolderValidationMethod.NO_APP_FOLDER);
+			folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
+
+			wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
+		}
+	}
+	
+	private void handleFlowConnectTypeSelectPanel(Action clickAction) {
+		if (clickAction == Action.PREVIOUS) {
+			wizardDialog.setCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
+		}
+		else if (clickAction == Action.NEXT) {
+			connectTypeSelection = connectTypeSelectPanel.getSelection();
+
+			if (connectTypeSelection == ConnectPanelSelection.LINK) {
+				boolean panelValid = connectTypeSelectPanel.validatePanel();
+				
+				if (panelValid) {
+					applicationLink = connectTypeSelectPanel.getApplicationLink();
+					
+					if (applicationLink.isEncrypted()) {						
+						wizardDialog.setCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
+					}
+					else {
+						initProgressPanelLabels();
+						wizardDialog.setCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
+						
+						sendConnectRequest();
+					}
+				}
+			}
+			else {
+				boolean pluginIsSet = connectTypeSelectPanel.getSelectedPlugin() != null;
+				boolean pluginNewOrChanged = selectedPlugin == null || selectedPlugin != connectTypeSelectPanel.getSelectedPlugin();
+				
+				if (pluginIsSet && pluginNewOrChanged) {
+					selectedPlugin = connectTypeSelectPanel.getSelectedPlugin();
+					pluginSettingsPanel.init(selectedPlugin);
+				}
+				
+				wizardDialog.validateAndSetCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
+			}				
+		}
+	}
+
+	private void handelFlowFolderSelectPanel(Action clickAction) {
+		if (clickAction == Action.PREVIOUS) {
+			wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
+		}
+		else if (clickAction == Action.NEXT) {				
+			wizardDialog.validateAndSetCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
+		}
+	}
+
+	private void handleFlowPluginSettingsPanel(Action clickAction) {
+		if (clickAction == Action.PREVIOUS) {
+			wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
+		}
+		else if (clickAction == Action.NEXT) {
+			wizardDialog.validateAndSetCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
+		}
+	}
+
+	private void handleFlowEnterPasswordPanel(Action clickAction) {
+		if (clickAction == Action.PREVIOUS) {
+			if (connectTypeSelection == ConnectPanelSelection.LINK) {
+				wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
+			}
+			else {
+				wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);	
+			}					
+		}
+		else if (clickAction == Action.NEXT) {
+			initProgressPanelLabels();
+			boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
+
+			if (panelValid) {
+				sendConnectRequest();
+			}								
+		}
+	}
+
+	private void handleFlowProgressPanel(Action clickAction) {
+		if (clickAction == Action.NEXT) {
+			wizardDialog.validateAndSetCurrentPanel(startPanel);
+		}
+	}
+
+	private void initProgressPanelLabels() {
+		progressPanel.setTitleText("Connecting to remote repository");
+		progressPanel.setDescriptionText("Syncany is connecting to the remote repository for you. This might take a while.");
 	}
 
 	private void sendConnectRequest() {
@@ -157,16 +197,20 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			ConnectOperationOptions connectOptions = new ConnectOperationOptions();
 			
 			connectOptions.setDaemon(true);
-			connectOptions.setLocalDir(folderSelectPanel.getFolder());
-			connectOptions.setPassword(enterPasswordPanel.getPassword());			
+			connectOptions.setLocalDir(folderSelectPanel.getFolder());					
 			connectOptions.setConfigTO(configTO);
 
 			if (connectTypeSelectPanel.getSelection() == ConnectPanelSelection.LINK) {
 				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_LINK);
-				connectOptions.setConnectLink(connectTypeSelectPanel.getApplicationLink());
+				connectOptions.setConnectLink(connectTypeSelectPanel.getApplicationLinkText());
+				
+				if (applicationLink.isEncrypted()) {
+					connectOptions.setPassword(enterPasswordPanel.getPassword());
+				}
 			}
 			else {
-				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_TO);				
+				connectOptions.setStrategy(ConnectOptionsStrategy.CONNECTION_TO);	
+				connectOptions.setPassword(enterPasswordPanel.getPassword());
 				configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 			}
 						

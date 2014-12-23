@@ -275,6 +275,8 @@ public class WizardDialog {
 		
 		stackLayout.topControl = currentPanel;
 		stackComposite.layout();	
+		
+		currentPanel.setFocus();
 
 		// Toggle buttons
 		setAllowedActions(allowedActions);
