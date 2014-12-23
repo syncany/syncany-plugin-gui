@@ -24,8 +24,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
-import org.eclipse.swt.events.ModifyEvent;
-import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
@@ -123,12 +121,7 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectLinkText.setForeground(WidgetDecorator.GRAY);		
 		connectLinkText.setBackground(WidgetDecorator.WHITE);
 		
-		connectLinkText.addModifyListener(new ModifyListener() {			
-			@Override
-			public void modifyText(ModifyEvent e) {
-				// validatePanelIfFirstValidationDone();
-			}
-		});
+		// No live validation, because short-links are resolved against syncany.org!
 		
 		connectLinkText.addFocusListener(new FocusListener() {			
 			@Override
@@ -203,7 +196,7 @@ public class ConnectTypeSelectPanel extends Panel {
 				WidgetDecorator.markAsValid(connectLinkText);
 				return true;
 			}
-			catch (StorageException e) {
+			catch (StorageException | IllegalArgumentException e) {
 				logger.log(Level.WARNING, "Validation of link failed.", e);
 				
 				WidgetDecorator.markAsInvalid(connectLinkText);
