@@ -166,9 +166,12 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 		}
 		else if (clickAction == Action.NEXT) {
 			initProgressPanelLabels();
-			wizardDialog.setCurrentPanel(progressPanel, Action.PREVIOUS, Action.NEXT);
 			
-			sendConnectRequest();
+			boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
+			
+			if (panelValid) {			
+				sendConnectRequest();
+			}
 		}
 	}
 
