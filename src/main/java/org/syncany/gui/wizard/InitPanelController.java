@@ -288,7 +288,7 @@ public class InitPanelController extends ReloadDaemonPanelController {
 		else {
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n" + response.getMessage());
+			progressPanel.appendLog("ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n\nError message (see log for details):\n" + response.getMessage());
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
