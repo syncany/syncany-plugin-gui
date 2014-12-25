@@ -22,10 +22,8 @@ import java.io.File;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
-import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.AddWatchManagementRequest;
 import org.syncany.operations.daemon.messages.AddWatchManagementResponse;
-import org.syncany.operations.daemon.messages.ControlManagementRequest;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -49,7 +47,7 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
 			if (clickAction == Action.NEXT) {
-				selectFolderPanel.setValidationMethod(SelectFolderValidationMethod.APP_FOLDER);
+				selectFolderPanel.reset(SelectFolderValidationMethod.APP_FOLDER);
 				selectFolderPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
 
 				wizardDialog.validateAndSetCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
@@ -93,10 +91,7 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 	@Subscribe
 	public void onAddWatchManagementResponse(AddWatchManagementResponse response) {
 		if (response.getCode() == AddWatchManagementResponse.OKAY) {
-			progressPanel.increase();
-			progressPanel.appendLog("DONE.\nReloading daemon ... ");
-			
-			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
+			sendReloadDaemonAndMenusCommand();
 		}
 		else {
 			progressPanel.finish();

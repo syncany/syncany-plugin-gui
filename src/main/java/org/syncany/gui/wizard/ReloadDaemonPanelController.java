@@ -21,8 +21,10 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.syncany.gui.wizard.WizardDialog.Action;
+import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEvent;
 import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.ControlManagementResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
@@ -39,6 +41,13 @@ public abstract class ReloadDaemonPanelController extends PanelController {
 	public ReloadDaemonPanelController(WizardDialog wizardDialog, ProgressPanel progressPanel) {
 		super(wizardDialog);		
 		this.progressPanel = progressPanel;
+	}
+
+	protected void sendReloadDaemonAndMenusCommand() {
+		progressPanel.increase();
+		progressPanel.appendLog("DONE.\nReloading daemon ... ");
+
+		eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
 	}
 
 	@Subscribe

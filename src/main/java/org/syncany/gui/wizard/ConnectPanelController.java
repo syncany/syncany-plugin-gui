@@ -27,10 +27,8 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.ConnectTypeSelectPanel.ConnectPanelSelection;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
-import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
-import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
 import org.syncany.operations.init.ApplicationLink;
@@ -98,7 +96,7 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 	
 	private void handleFlowStartPanel(Action clickAction) {
 		if (clickAction == Action.NEXT) {
-			folderSelectPanel.setValidationMethod(SelectFolderValidationMethod.NO_APP_FOLDER);
+			folderSelectPanel.reset(SelectFolderValidationMethod.NO_APP_FOLDER);
 			folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
 
 			wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
@@ -263,10 +261,7 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 		logger.log(Level.INFO, "Received response from daemon: " + response);
 		
 		if (response.getCode() == 200) {
-			progressPanel.increase();
-			progressPanel.appendLog("DONE.\nReloading daemon ... ");
-			
-			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
+			sendReloadDaemonAndMenusCommand();
 		}
 		else {
 			progressPanel.finish();

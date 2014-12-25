@@ -129,8 +129,13 @@ public class FolderSelectPanel extends Panel {
 		WidgetDecorator.bold(warningMessageLabel);
 	}
 	
-	public void setValidationMethod(SelectFolderValidationMethod validationMethod) {
+	public void reset(SelectFolderValidationMethod validationMethod) {
 		this.validationMethod = validationMethod;
+		
+		firstValidationDone = false;		
+		localDir.setText("");		
+		
+		hideWarning();
 	}
 	
 	public void setDescriptionText(final String descriptionTextStr) {

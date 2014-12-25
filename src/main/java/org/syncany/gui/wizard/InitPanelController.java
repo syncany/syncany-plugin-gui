@@ -30,11 +30,10 @@ import org.syncany.crypto.CipherUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
-import org.syncany.operations.daemon.ControlServer.ControlCommand;
-import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementResponse;
 import org.syncany.operations.init.InitOperationOptions;
+import org.syncany.plugins.transfer.StorageTestResult;
 import org.syncany.plugins.transfer.TransferPlugin;
 
 import com.google.common.eventbus.Subscribe;
@@ -74,7 +73,7 @@ public class InitPanelController extends ReloadDaemonPanelController {
 	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
 			if (clickAction == Action.NEXT) {
-				folderSelectPanel.setValidationMethod(SelectFolderValidationMethod.NO_APP_FOLDER);
+				folderSelectPanel.reset(SelectFolderValidationMethod.NO_APP_FOLDER);
 				folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
 
 				wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
@@ -178,18 +177,48 @@ public class InitPanelController extends ReloadDaemonPanelController {
 		logger.log(Level.INFO, "Received response from daemon: " + response);
 
 		if (response.getCode() == 200) {
-			progressPanel.increase();
-			progressPanel.appendLog("DONE.\nReloading daemon ... ");
-
-			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
+			sendReloadDaemonAndMenusCommand();			
 		}
 		else {
+			String errorMessage = "ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n";
+			
+			switch (response.getCode()) {
+			case InitManagementResponse.NOK_FAILED_TEST:
+				StorageTestResult testResult = response.getResult().getTestResult();
+				
+				errorMessage += "Testing the remote storage failed.\n\n"
+						+ "- Was the connection successful: " + toYesNo(testResult.isTargetCanConnect()) + "\n"
+						+ "- Files can be created: " + toYesNo(testResult.isTargetCanCreate()) + "\n"
+						+ "- Files can be written to: " + toYesNo(testResult.isTargetCanWrite()) + "\n"
+						+ "- The target folder/repo exists: " + toYesNo(testResult.isTargetExists()) + "\n";
+				
+				if (testResult.getErrorMessage() != null) {
+					errorMessage += "\nDetailed error message:\n\n" + testResult.getErrorMessage();
+				}
+				 
+				break;
+			
+			//case InitManagementResponse.NOK_FAILED_UNKNOWN:
+				//break;
+			case InitManagementResponse.NOK_OPERATION_FAILED:
+				errorMessage += "The operation failed entirely. The following exception was thrown:\n\n"
+						+ response.getMessage(); 
+				
+				break;
+
+			default: 
+				break;
+			}	
+			
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to initialize folder (code: " + response.getCode()
-					+ ")\n\nError message (see log for details):\n" + response.getMessage());
+			progressPanel.appendLog(errorMessage);
 
 			wizardDialog.setAllowedActions(Action.PREVIOUS);
 		}
+	}
+
+	private String toYesNo(boolean value) {
+		return value ? "YES" : "NO";
 	}
 }
