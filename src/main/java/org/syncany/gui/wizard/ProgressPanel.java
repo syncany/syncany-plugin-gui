@@ -151,8 +151,8 @@ public class ProgressPanel extends Panel {
 			public void run() {
 				if (!progressBar.isDisposed()) {
 					progressBar.setMinimum(0);
-					progressBar.setMaximum(maximumProgress);
-					progressBar.setSelection(0);
+					progressBar.setMaximum(maximumProgress + 1);
+					progressBar.setSelection(1);
 				}
 				
 				if (!progressLogCheckButton.isDisposed()) {				

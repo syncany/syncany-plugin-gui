@@ -200,7 +200,17 @@ public class ConnectPanelController extends AbstractInitPanelController {
 
 	private void handleFlowProgressPanel(Action clickAction) {
 		if (clickAction == Action.PREVIOUS) {
-			// TODO [high] Back-flow for failed connect.			
+			if (connectTypeSelection == ConnectPanelSelection.LINK) {
+				if (applicationLink.isEncrypted()) {
+					wizardDialog.setCurrentPanel(enterPasswordPanel, Action.PREVIOUS, Action.NEXT);
+				}
+				else {
+					wizardDialog.setCurrentPanel(connectTypeSelectPanel, Action.PREVIOUS, Action.NEXT);
+				}
+			}
+			else {
+				wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
+			}			
 		}
 		else if (clickAction == Action.NEXT) {
 			wizardDialog.validateAndSetCurrentPanel(startPanel);
