@@ -31,6 +31,7 @@ import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.InitManagementResponse;
 import org.syncany.operations.init.ApplicationLink;
 import org.syncany.operations.init.ConnectOperationOptions;
 import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
@@ -41,7 +42,7 @@ import com.google.common.eventbus.Subscribe;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class ConnectPanelController extends ReloadDaemonPanelController {
+public class ConnectPanelController extends AbstractInitPanelController {
 	private static final Logger logger = Logger.getLogger(ConnectPanelController.class.getSimpleName());	
 	
 	private StartPanel startPanel;
@@ -264,11 +265,40 @@ public class ConnectPanelController extends ReloadDaemonPanelController {
 			sendReloadDaemonAndMenusCommand();
 		}
 		else {
+			String errorMessage = formatErrorMessage(response); 			
+
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n" + response.getMessage());
+			progressPanel.appendLog(errorMessage);
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
+	}
+	
+	private String formatErrorMessage(ConnectManagementResponse response) {
+		String errorMessage = "ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n";
+		
+		switch (response.getCode()) {
+		case ConnectManagementResponse.NOK_FAILED_TEST:
+			errorMessage += formatTestResultMessage(response.getResult().getTestResult());				 
+			break;
+		
+		case ConnectManagementResponse.NOK_FAILED_UNKNOWN:
+			errorMessage += "The initialization failed due to an unknown error.";				
+			break;
+			
+		case ConnectManagementResponse.NOK_OPERATION_FAILED:
+			errorMessage += "The operation failed entirely. An exception was thrown.";				
+			break;
+
+		default: 
+			break;
+		}	
+		
+		if (response.getMessage() != null) {
+			errorMessage += "\n\n" + response.getMessage();
+		}
+		
+		return errorMessage;
 	}
 }
