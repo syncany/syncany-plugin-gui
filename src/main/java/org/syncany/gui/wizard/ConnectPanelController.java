@@ -31,7 +31,6 @@ import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
-import org.syncany.operations.daemon.messages.InitManagementResponse;
 import org.syncany.operations.init.ApplicationLink;
 import org.syncany.operations.init.ConnectOperationOptions;
 import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
@@ -200,7 +199,10 @@ public class ConnectPanelController extends AbstractInitPanelController {
 	}
 
 	private void handleFlowProgressPanel(Action clickAction) {
-		if (clickAction == Action.NEXT) {
+		if (clickAction == Action.PREVIOUS) {
+			// TODO [high] Back-flow for failed connect.			
+		}
+		else if (clickAction == Action.NEXT) {
 			wizardDialog.validateAndSetCurrentPanel(startPanel);
 		}
 	}
