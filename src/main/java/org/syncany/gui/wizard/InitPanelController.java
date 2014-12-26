@@ -17,6 +17,7 @@
  */
 package org.syncany.gui.wizard;
 
+import java.io.File;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,7 +33,10 @@ import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.messages.InitManagementRequest;
 import org.syncany.operations.daemon.messages.InitManagementResponse;
+import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.init.InitOperationOptions;
+import org.syncany.operations.init.InitOperationResult;
 import org.syncany.plugins.transfer.TransferPlugin;
 
 import com.google.common.eventbus.Subscribe;
@@ -49,12 +53,15 @@ public class InitPanelController extends AbstractInitPanelController {
 	private PluginSettingsPanel pluginSettingsPanel;
 	private ChoosePasswordPanel choosePasswordPanel;
 	private ProgressPanel progressPanel;
-
+	private InitSuccessPanel initSuccessPanel;
+	
+	private File localDir;
 	private TransferPlugin selectedPlugin;
+	private InitOperationResult initResult;
 
 	public InitPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel folderSelectPanel,
 			PluginSelectPanel pluginSelectPanel, PluginSettingsPanel pluginSettingsPanel, ChoosePasswordPanel choosePasswordPanel,
-			ProgressPanel progressPanel) {
+			ProgressPanel progressPanel, InitSuccessPanel initSuccessPanel) {
 
 		super(wizardDialog, progressPanel);
 
@@ -64,8 +71,11 @@ public class InitPanelController extends AbstractInitPanelController {
 		this.pluginSettingsPanel = pluginSettingsPanel;
 		this.choosePasswordPanel = choosePasswordPanel;
 		this.progressPanel = progressPanel;
+		this.initSuccessPanel = initSuccessPanel;
 
+		this.localDir = null;
 		this.selectedPlugin = null;
+		this.initResult = null;
 	}
 
 	@Override
@@ -83,6 +93,7 @@ public class InitPanelController extends AbstractInitPanelController {
 				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
+				localDir = folderSelectPanel.getFolder();
 				wizardDialog.validateAndSetCurrentPanel(pluginSelectPanel, Action.PREVIOUS, Action.NEXT);
 			}
 		}
@@ -148,8 +159,12 @@ public class InitPanelController extends AbstractInitPanelController {
 			configTO.setMachineName(CipherUtil.createRandomAlphabeticString(20));
 			configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 
+			GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
+			genlinkOptions.setShortUrl(true);
+			
 			InitOperationOptions initOptions = new InitOperationOptions();
 
+			initOptions.setGenlinkOptions(genlinkOptions);
 			initOptions.setLocalDir(folderSelectPanel.getFolder());
 			initOptions.setCreateTarget(true);
 			initOptions.setEncryptionEnabled(true);
@@ -176,6 +191,10 @@ public class InitPanelController extends AbstractInitPanelController {
 		logger.log(Level.INFO, "Received response from daemon: " + response);
 
 		if (response.getCode() == 200) {
+			if (response.getResult() != null) {
+				initResult = response.getResult();
+			}
+			
 			sendReloadDaemonAndMenusCommand();			
 		}
 		else {
@@ -186,6 +205,18 @@ public class InitPanelController extends AbstractInitPanelController {
 			progressPanel.appendLog(errorMessage);
 
 			wizardDialog.setAllowedActions(Action.PREVIOUS);
+		}
+	}
+	
+	@Subscribe
+	public void onListWatchesManagementResponse(ListWatchesManagementResponse response) {
+		if (initResult != null && initResult.getGenLinkResult() != null) {
+			String applicationLink = initResult.getGenLinkResult().getShareLink();
+			
+			initSuccessPanel.setApplicationLinkText(applicationLink);
+			initSuccessPanel.setLocalDir(localDir);
+	
+			wizardDialog.setCurrentPanel(initSuccessPanel, Action.FINISH);
 		}
 	}
 

@@ -63,6 +63,7 @@ public class WizardDialog {
 	private ChoosePasswordPanel choosePasswordPanel;
 	private EnterPasswordPanel enterPasswordPanel;
 	private ProgressPanel progressPanel;
+	private InitSuccessPanel initSuccessPanel;
 	
 	private Panel currentPanel;
 	private PanelController panelController;
@@ -223,6 +224,7 @@ public class WizardDialog {
 		choosePasswordPanel = new ChoosePasswordPanel(this, stackComposite, SWT.NONE);
 		enterPasswordPanel = new EnterPasswordPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
+		initSuccessPanel = new InitSuccessPanel(this, stackComposite, SWT.NONE);		
 	}
 
 	private void handleFlow(Action clickAction) {
@@ -245,7 +247,7 @@ public class WizardDialog {
 			return new AddExistingPanelController(this, startPanel, folderSelectPanel, progressPanel);
 
 		case INIT:
-			return new InitPanelController(this, startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel);
+			return new InitPanelController(this, startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel, initSuccessPanel);
 			
 		case CONNECT:
 			return new ConnectPanelController(this, startPanel, folderSelectPanel, connectTypeSelectPanel, pluginSettingsPanel, enterPasswordPanel, progressPanel);
@@ -267,17 +269,22 @@ public class WizardDialog {
 		return windowShell;
 	}
 
-	public void setCurrentPanel(Panel newPanel, Action... allowedActions) {
-		// Set current panel
-		currentPanel = newPanel;
+	public void setCurrentPanel(final Panel newPanel, final Action... allowedActions) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				// Set current panel
+				currentPanel = newPanel;
+				
+				stackLayout.topControl = currentPanel;
+				stackComposite.layout();	
+				
+				currentPanel.setFocus();
 		
-		stackLayout.topControl = currentPanel;
-		stackComposite.layout();	
-		
-		currentPanel.setFocus();
-
-		// Toggle buttons
-		setAllowedActions(allowedActions);
+				// Toggle buttons
+				setAllowedActions(allowedActions);
+			}
+		});
 	}
 	
 	public void setAllowedActions(final Action... allowedActions) {
