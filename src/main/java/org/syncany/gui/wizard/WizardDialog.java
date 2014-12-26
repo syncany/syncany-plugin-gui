@@ -98,8 +98,6 @@ public class WizardDialog {
 		createContents();
 		buildPanels();
 		
-		// pluginSettingsPanel.init(Plugins.get("sftp", TransferPlugin.class));
-		// setCurrentPanel(pluginSettingsPanel, Action.NEXT);
 		setCurrentPanel(startPanel, Action.NEXT);
 
 		// Open shell

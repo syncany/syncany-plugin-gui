@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.FocusListener;
@@ -31,7 +32,6 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Text;
 import org.syncany.operations.init.ApplicationLink;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -47,7 +47,7 @@ public class ConnectTypeSelectPanel extends Panel {
 	}
 
 	private Button connectLinkRadio;
-	private Text connectLinkText;
+	private StyledText connectLinkText;
 	private Button connectManuallyRadio;
 	private PluginSelectComposite pluginSelectComposite;
 	
@@ -89,7 +89,6 @@ public class ConnectTypeSelectPanel extends Panel {
 		GridData connectLinkRadioGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
 		connectLinkRadioGridData.verticalIndent = 0;
 		connectLinkRadioGridData.horizontalIndent = 0;
-		//connectLinkRadioGridData.heightHint = 0;
 
 		connectLinkRadio = new Button(this, SWT.RADIO);
 		connectLinkRadio.setLayoutData(connectLinkRadioGridData);
@@ -115,7 +114,7 @@ public class ConnectTypeSelectPanel extends Panel {
 
 		final String connectLinkTextDefaultValue = "(Paste syncany:// link)";
 		
-		connectLinkText = new Text(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
+		connectLinkText = new StyledText(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
 		connectLinkText.setLayoutData(connectLinkTextGridData);
 		connectLinkText.setText(connectLinkTextDefaultValue);
 		connectLinkText.setForeground(WidgetDecorator.GRAY);		
