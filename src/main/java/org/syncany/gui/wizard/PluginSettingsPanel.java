@@ -1,5 +1,7 @@
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -30,7 +32,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.syncany.gui.util.DesktopHelper;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.plugins.transfer.FileType;
 import org.syncany.plugins.transfer.OAuthGenerator;
@@ -109,7 +111,7 @@ public class PluginSettingsPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(plugin.getName() + " settings");
+		titleLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.title", plugin.getName()));
 		
 		WidgetDecorator.title(titleLabel);
 		
@@ -156,7 +158,7 @@ public class PluginSettingsPanel extends Panel {
 			// OAuth help text
 			Label descriptionLabel = new Label(this, SWT.WRAP);
 			descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-			descriptionLabel.setText("This plugin needs to authenticate your account so that Syncany can access it. Please click on the 'Authorize' button to do that.");
+			descriptionLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.description"));
 			
 			WidgetDecorator.normal(descriptionLabel);
 			
@@ -167,7 +169,7 @@ public class PluginSettingsPanel extends Panel {
 
 			Label oAuthTokenLabel = new Label(this, SWT.WRAP);
 			oAuthTokenLabel.setLayoutData(oAuthTokenLabelGridData);
-			oAuthTokenLabel.setText("Token");
+			oAuthTokenLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.token"));
 			
 			// Textfield "Token"		
 			GridData oAuthTokenTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -184,13 +186,13 @@ public class PluginSettingsPanel extends Panel {
 
 			// Add 'Authorize ..' button for 'File' fields
 			oAuthAuthorizeButton = new Button(this, SWT.NONE);
-			oAuthAuthorizeButton.setText("Connecting ...");
+			oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting"));
 			oAuthAuthorizeButton.setEnabled(false);
 			
 			oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
-					DesktopHelper.launch(oAuthUrl.toString());
+					DesktopUtil.launch(oAuthUrl.toString());
 				}
 			});							
 			
@@ -210,7 +212,7 @@ public class PluginSettingsPanel extends Panel {
 					Display.getDefault().asyncExec(new Runnable() {			
 						@Override
 						public void run() {
-							oAuthAuthorizeButton.setText("Authorize ...");
+							oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
 							oAuthAuthorizeButton.setEnabled(true);
 						}
 					});
@@ -219,10 +221,10 @@ public class PluginSettingsPanel extends Panel {
 					Display.getDefault().asyncExec(new Runnable() {			
 						@Override
 						public void run() {
-							showWarning("Cannot retrieve OAuth URL: " + e.getMessage());
+							showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.errorCannotRetrieveOAuthURL", e.getMessage()));
 							logger.log(Level.WARNING, "Cannot retrieve OAuth URL.", e);
 							
-							oAuthAuthorizeButton.setText("Error!");
+							oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.error"));
 						}
 					});
 				}
@@ -242,10 +244,12 @@ public class PluginSettingsPanel extends Panel {
 		String pluginOptionLabelText = pluginOption.getDescription();
 		
 		if (pluginOption.isSensitive()) {
-			pluginOptionLabelText += (pluginOption.isRequired()) ? " (not displayed)" : " (not displayed, optional)";
+			pluginOptionLabelText += " " + ((pluginOption.isRequired()) 
+					? _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayed")
+					: _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayedOptional"));
 		}
 		else {
-			pluginOptionLabelText += (pluginOption.isRequired()) ? "" : " (optional)";
+			pluginOptionLabelText += (pluginOption.isRequired()) ? "" : " " + _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.optional");
 		}
 
 		Label pluginOptionLabel = new Label(this, SWT.WRAP);
@@ -274,7 +278,7 @@ public class PluginSettingsPanel extends Panel {
 		// Add 'Select ..' button for 'File' fields
 		if (pluginField.getType() == File.class) {
 			Button pluginOptionFileSelectButton = new Button(this, SWT.NONE);
-			pluginOptionFileSelectButton.setText("Select ...");
+			pluginOptionFileSelectButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.selectFile"));
 			
 			setPluginOptionFileSelectListener(pluginOption, pluginOptionValueText, pluginOptionFileSelectButton);			
 		}
@@ -339,7 +343,7 @@ public class PluginSettingsPanel extends Panel {
 	        	break;
 	        	
 	        case INVALID_TYPE:
-	        	logger.log(Level.SEVERE, " Invalid type in field '" + pluginOption.getName() + "'. This should be caught by verify listener!");
+	        	logger.log(Level.WARNING, " Invalid type in field '" + pluginOption.getName() + "'. This should be caught by verify listener!");
 	    		
 	        	invalidPluginOptions.add(pluginOption);
 	    		WidgetDecorator.markAsInvalid(pluginOptionValueText);
@@ -408,7 +412,7 @@ public class PluginSettingsPanel extends Panel {
 	public boolean validatePanel() {
 		hideWarning();
 				
-		logger.log(Level.WARNING, "Validating settings panel ...");			
+		logger.log(Level.INFO, "Validating settings panel ...");			
 
 		// Validation order is important, because the validate*() methods
 		// also mark fields 'red'. Also: OAuth needs to be before 
@@ -421,7 +425,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 	private boolean validateIndividualFields() {
-		logger.log(Level.WARNING, " - Validating individual fields ...");			
+		logger.log(Level.INFO, " - Validating individual fields ...");			
 		
 		for (Map.Entry<TransferPluginOption, Text> optionControlEntry : pluginOptionControlMap.entrySet()) {
 			TransferPluginOption pluginOption = optionControlEntry.getKey();
@@ -436,18 +440,18 @@ public class PluginSettingsPanel extends Panel {
 			return true;
 		}
 		else {
-			showWarning("Please fill check that you've filled all fields correctly.");
+			showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorFieldValidation"));
 			return false;
 		}
 	}
 	
 	private boolean validateFieldDependencies() {
-		logger.log(Level.WARNING, " - Validating field dependencies ...");			
+		logger.log(Level.INFO, " - Validating field dependencies ...");			
 		
 		try {
 			pluginSettings.validateRequiredFields();		
 
-			logger.log(Level.WARNING, "Validation succeeded on panel.");			
+			logger.log(Level.INFO, "Validation succeeded on panel.");			
 			return true;
 		}
 		catch (StorageException e) {
@@ -461,7 +465,7 @@ public class PluginSettingsPanel extends Panel {
 	private boolean validateOAuthToken() {
 		if (oAuthGenerator != null) {
 			if (oAuthTokenText.getText().isEmpty()) {
-				showWarning("Please fill the token field. It's there for a reason.");
+				showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorNoOAuthToken"));
 				WidgetDecorator.markAsInvalid(oAuthTokenText);
 				
 				logger.log(Level.INFO, "OAuth token is empty.");
@@ -478,7 +482,7 @@ public class PluginSettingsPanel extends Panel {
 					return true;
 				}
 				catch (Exception e) {
-					showWarning("Invalid auth token. Please retry authenticating.");
+					showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
 					WidgetDecorator.markAsInvalid(oAuthTokenText);
 					
 					logger.log(Level.INFO, "OAuth token check failed. ", e);

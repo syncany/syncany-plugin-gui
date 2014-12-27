@@ -17,6 +17,8 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
@@ -44,8 +46,11 @@ public abstract class ReloadDaemonPanelController extends PanelController {
 	}
 
 	protected void sendReloadDaemonAndMenusCommand() {
+		String logMessage = _("org.syncany.gui.wizard.ReloadDaemonPanelController.done")
+				+ "\n" + _("org.syncany.gui.wizard.ReloadDaemonPanelController.reloadingDaemon");
+		
 		progressPanel.increase();
-		progressPanel.appendLog("DONE.\nReloading daemon ... ");
+		progressPanel.appendLog(logMessage);
 
 		eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
 	}
@@ -53,16 +58,22 @@ public abstract class ReloadDaemonPanelController extends PanelController {
 	@Subscribe
 	public void onControlManagementResponseReceived(ControlManagementResponse response) {
 		if (response.getCode() == 200) {
+			String logMessage = _("org.syncany.gui.wizard.ReloadDaemonPanelController.done")
+					+ "\n" + _("org.syncany.gui.wizard.ReloadDaemonPanelController.refreshingMenus");
+			
 			progressPanel.increase();
-			progressPanel.appendLog("DONE.\nRefreshing menus ... ");
-
+			progressPanel.appendLog(logMessage);
+			
 			listWatchesRequest = new ListWatchesManagementRequest();			
 			eventBus.post(listWatchesRequest);
 		}
 		else {
+			String logMessage = _("org.syncany.gui.wizard.ReloadDaemonPanelController.error")
+					+ "\n\n" + _("org.syncany.gui.wizard.ReloadDaemonPanelController.unableToReloadDaemon", response.getCode(), response.getMessage());
+
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to reload daemon (code: " + response.getCode() + ")\n" + response.getMessage());
+			progressPanel.appendLog(logMessage);
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}
@@ -74,15 +85,21 @@ public abstract class ReloadDaemonPanelController extends PanelController {
 		
 		if (isMatchingResponse) {
 			if (response.getCode() == 200) {
+				String logMessage = _("org.syncany.gui.wizard.ReloadDaemonPanelController.done")
+						+ "\n" + _("org.syncany.gui.wizard.ReloadDaemonPanelController.addingFolderSuccessful");
+
 				progressPanel.increase();
-				progressPanel.appendLog("DONE.\nAdding folder successful.");
+				progressPanel.appendLog(logMessage);
 				
 				wizardDialog.setAllowedActions(Action.FINISH);			
 			}
 			else {
+				String logMessage = _("org.syncany.gui.wizard.ReloadDaemonPanelController.error")
+						+ "\n\n" + _("org.syncany.gui.wizard.ReloadDaemonPanelController.unableToListFolders", response.getCode(), response.getMessage());
+
 				progressPanel.finish();
 				progressPanel.setShowDetails(true);
-				progressPanel.appendLog("ERROR.\n\nUnable to list folders (code: " + response.getCode() + ")\n" + response.getMessage());
+				progressPanel.appendLog(logMessage);
 	
 				wizardDialog.setAllowedActions(Action.PREVIOUS);			
 			}

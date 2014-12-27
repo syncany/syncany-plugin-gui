@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.util.DesktopHelper;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
@@ -114,19 +114,19 @@ public abstract class TrayIcon {
 	}
 
 	protected void showFolder(File folder) {
-		DesktopHelper.launch(folder.getAbsolutePath());
+		DesktopUtil.launch(folder.getAbsolutePath());
 	}
 
 	protected void showReportIssue() {
-		DesktopHelper.launch(URL_REPORT_ISSUE);
+		DesktopUtil.launch(URL_REPORT_ISSUE);
 	}
 
 	protected void showDonate() {
-		DesktopHelper.launch(URL_DONATE);
+		DesktopUtil.launch(URL_DONATE);
 	}
 
 	protected void showWebsite() {
-		DesktopHelper.launch(URL_HOMEPAGE);
+		DesktopUtil.launch(URL_HOMEPAGE);
 	}
 
 	protected void exitApplication() {
@@ -185,12 +185,22 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), "Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");
+		if (syncEvent.getFileCount() > 0) {
+			setStatusText(syncEvent.getRoot(), "Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");			
+		}
+		else {
+			setStatusText(syncEvent.getRoot(), "Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");
+		}
 	}
 
 	@Subscribe
 	public void onUploadFileEventReceived(UpUploadFileSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), "Uploading " + syncEvent.getFilename() + " ...");
+		if (syncEvent.getFilename() != null) {
+			setStatusText(syncEvent.getRoot(), "Uploading " + syncEvent.getFilename() + " ...");
+		}
+		else {
+			setStatusText(syncEvent.getRoot(), "Uploading " + syncEvent.getFilename() + " ...");
+		}
 	}
 
 	@Subscribe
@@ -295,12 +305,12 @@ public abstract class TrayIcon {
 	}
 
 	private void initInternationalization() {
-		messages.put("tray.menuitem.new", I18n.getString("tray.menuitem.new"));
-		messages.put("tray.menuitem.status.insync", I18n.getString("tray.menuitem.status.insync"));
-		messages.put("tray.menuitem.issue", I18n.getString("tray.menuitem.issue"));
-		messages.put("tray.menuitem.donate", I18n.getString("tray.menuitem.donate"));
-		messages.put("tray.menuitem.exit", I18n.getString("tray.menuitem.exit"));
-		messages.put("tray.menuitem.website", I18n.getString("tray.menuitem.website"));
+		messages.put("tray.menuitem.new", I18n._("tray.menuitem.new"));
+		messages.put("tray.menuitem.status.insync", I18n._("tray.menuitem.status.insync"));
+		messages.put("tray.menuitem.issue", I18n._("tray.menuitem.issue"));
+		messages.put("tray.menuitem.donate", I18n._("tray.menuitem.donate"));
+		messages.put("tray.menuitem.exit", I18n._("tray.menuitem.exit"));
+		messages.put("tray.menuitem.website", I18n._("tray.menuitem.website"));
 	}
 
 	private void initAnimationThread() {

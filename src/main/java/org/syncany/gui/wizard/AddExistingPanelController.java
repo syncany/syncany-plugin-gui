@@ -17,9 +17,10 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 
-import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.messages.AddWatchManagementRequest;
@@ -48,7 +49,7 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
 			if (clickAction == Action.NEXT) {
 				selectFolderPanel.reset(SelectFolderValidationMethod.APP_FOLDER);
-				selectFolderPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
+				selectFolderPanel.setDescriptionText(_("org.syncany.gui.wizard.FolderSelectPanel.add.description"));
 
 				wizardDialog.validateAndSetCurrentPanel(selectFolderPanel, Action.PREVIOUS, Action.NEXT);
 			}
@@ -58,8 +59,8 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 				wizardDialog.setCurrentPanel(startPanel, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText("Adding Syncany folder");
-				progressPanel.setDescriptionText("Syncany is adding your folder to the configuration and restarting the daemon. This shouldn't take long.");
+				progressPanel.setTitleText(_("org.syncany.gui.wizard.ProgressPanel.add.title"));
+				progressPanel.setDescriptionText(_("org.syncany.gui.wizard.ProgressPanel.add.description"));
 
 				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
 
@@ -83,7 +84,7 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 		AddWatchManagementRequest addWatchManagementRequest = new AddWatchManagementRequest(newWatchFolder);
 		
 		progressPanel.resetPanel(3);
-		progressPanel.appendLog("Adding folder "+ newWatchFolder + " ... ");
+		progressPanel.appendLog(_("org.syncany.gui.wizard.ProgressPanel.add.addingFolder", newWatchFolder.getAbsolutePath()));
 
 		eventBus.post(addWatchManagementRequest);		
 	}
@@ -94,9 +95,12 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 			sendReloadDaemonAndMenusCommand();
 		}
 		else {
+			String errorMessage = _("org.syncany.gui.wizard.ProgressPanel.error") 
+					+ "\n\n" + _("org.syncany.gui.wizard.ProgressPanel.add.unableToAdd", response.getCode(), response.getMessage());
+			
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
-			progressPanel.appendLog("ERROR.\n\nUnable to add folder (code: " + response.getCode() + ")\n" + response.getMessage());
+			progressPanel.appendLog(errorMessage);
 			
 			wizardDialog.setAllowedActions(Action.PREVIOUS);			
 		}

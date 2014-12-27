@@ -17,6 +17,8 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 import java.util.List;
 import java.util.logging.Level;
@@ -28,7 +30,6 @@ import org.syncany.config.to.RepoTOFactory;
 import org.syncany.crypto.CipherSpec;
 import org.syncany.crypto.CipherSpecs;
 import org.syncany.crypto.CipherUtil;
-import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.messages.InitManagementRequest;
@@ -83,7 +84,7 @@ public class InitPanelController extends AbstractInitPanelController {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
 			if (clickAction == Action.NEXT) {
 				folderSelectPanel.reset(SelectFolderValidationMethod.NO_APP_FOLDER);
-				folderSelectPanel.setDescriptionText(I18n.getString("dialog.selectLocalFolder.watchIntroduction"));
+				folderSelectPanel.setDescriptionText(_("org.syncany.gui.wizard.FolderSelectPanel.init.description"));
 
 				wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
 			}
@@ -126,8 +127,8 @@ public class InitPanelController extends AbstractInitPanelController {
 				wizardDialog.setCurrentPanel(pluginSettingsPanel, Action.PREVIOUS, Action.NEXT);
 			}
 			else if (clickAction == Action.NEXT) {
-				progressPanel.setTitleText("Initializing remote repository");
-				progressPanel.setDescriptionText("Syncany is creating a repository for you. This might take a while.");
+				progressPanel.setTitleText(_("org.syncany.gui.wizard.ProgressPanel.init.title"));
+				progressPanel.setDescriptionText(_("org.syncany.gui.wizard.ProgressPanel.init.description"));
 
 				boolean panelValid = wizardDialog.validateAndSetCurrentPanel(progressPanel);
 
@@ -177,7 +178,7 @@ public class InitPanelController extends AbstractInitPanelController {
 			InitManagementRequest initManagementRequest = new InitManagementRequest(initOptions);
 
 			progressPanel.resetPanel(3);
-			progressPanel.appendLog("Initializing repo for folder " + folderSelectPanel.getFolder() + " ... ");
+			progressPanel.appendLog(_("org.syncany.gui.wizard.ProgressPanel.init.initializingRepo", folderSelectPanel.getFolder()));
 
 			eventBus.post(initManagementRequest);
 		}
@@ -220,8 +221,9 @@ public class InitPanelController extends AbstractInitPanelController {
 		}
 	}
 
-	private String formatErrorMessage(InitManagementResponse response) {
-		String errorMessage = "ERROR.\n\nUnable to initialize folder (code: " + response.getCode() + ")\n";
+	private String formatErrorMessage(InitManagementResponse response) {		
+		String errorMessage = _("org.syncany.gui.wizard.ProgressPanel.error") + "\n\n"
+				+ _("org.syncany.gui.wizard.ProgressPanel.init.unableToInit", response.getCode()) + "\n";
 		
 		switch (response.getCode()) {
 		case InitManagementResponse.NOK_FAILED_TEST:
@@ -229,11 +231,11 @@ public class InitPanelController extends AbstractInitPanelController {
 			break;
 		
 		case InitManagementResponse.NOK_FAILED_UNKNOWN:
-			errorMessage += "The initialization failed due to an unknown error.";				
+			errorMessage += _("org.syncany.gui.wizard.ProgressPanel.init.failedWithUnknownError");				
 			break;
 			
 		case InitManagementResponse.NOK_OPERATION_FAILED:
-			errorMessage += "The operation failed entirely. An exception was thrown.";				
+			errorMessage += _("org.syncany.gui.wizard.ProgressPanel.init.failedWithException");
 			break;
 
 		default: 

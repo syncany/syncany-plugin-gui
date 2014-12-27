@@ -17,6 +17,8 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,13 +77,13 @@ public class ConnectTypeSelectPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText("Connect to storage");
+		titleLabel.setText(_("org.syncany.gui.wizard.ConnectTypeSelectPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
-		descriptionLabel.setText("Choose whether to connect via a syncany:// link or by manually entering the connection details.");
+		descriptionLabel.setText(_("org.syncany.gui.wizard.ConnectTypeSelectPanel.description"));
 		
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -93,7 +95,7 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectLinkRadio = new Button(this, SWT.RADIO);
 		connectLinkRadio.setLayoutData(connectLinkRadioGridData);
 		connectLinkRadio.setBounds(0, 0, 90, 16);
-		connectLinkRadio.setText("Connect via syncany:// link");
+		connectLinkRadio.setText(_("org.syncany.gui.wizard.ConnectTypeSelectPanel.link.title"));
 		connectLinkRadio.setSelection(true);
 		
 		connectLinkRadio.addSelectionListener(new SelectionAdapter() {			
@@ -112,7 +114,7 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectLinkTextGridData.horizontalIndent = 25;
 		connectLinkTextGridData.minimumHeight = 80;
 
-		final String connectLinkTextDefaultValue = "(Paste syncany:// link)";
+		final String connectLinkTextDefaultValue = _("org.syncany.gui.wizard.ConnectTypeSelectPanel.link.pasteLinkHere");
 		
 		connectLinkText = new StyledText(this, SWT.MULTI | SWT.BORDER | SWT.WRAP | SWT.V_SCROLL);
 		connectLinkText.setLayoutData(connectLinkTextGridData);
@@ -154,7 +156,7 @@ public class ConnectTypeSelectPanel extends Panel {
 		connectManuallyRadio = new Button(this, SWT.RADIO);
 		connectManuallyRadio.setLayoutData(connectManuallyRadioGridData);
 		connectManuallyRadio.setBounds(0, 0, 90, 16);
-		connectManuallyRadio.setText("Connect by manually entering details");
+		connectManuallyRadio.setText(_("org.syncany.gui.wizard.ConnectTypeSelectPanel.manually.title"));
 		connectManuallyRadio.addSelectionListener(new SelectionAdapter() {			
 			@Override
 			public void widgetSelected(SelectionEvent e) {

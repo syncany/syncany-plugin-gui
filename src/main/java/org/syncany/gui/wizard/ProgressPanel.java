@@ -17,6 +17,8 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -67,13 +69,11 @@ public class ProgressPanel extends Panel {
 		// Title and welcome text
 		titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
-		titleLabel.setText("..");
 
 		WidgetDecorator.title(titleLabel);
 
 		descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText("..");
 
 		WidgetDecorator.normal(descriptionLabel);		
 		
@@ -89,7 +89,7 @@ public class ProgressPanel extends Panel {
 		logCheckGridData.horizontalSpan = 2;
 		
 		progressLogCheckButton = new Button(this, SWT.CHECK);
-		progressLogCheckButton.setText("Show Details");
+		progressLogCheckButton.setText(_("org.syncany.gui.wizard.ProgressPanel.showDetails"));
 		progressLogCheckButton.setLayoutData(logCheckGridData);
 		
 		progressLogCheckButton.addSelectionListener(new SelectionAdapter() {			

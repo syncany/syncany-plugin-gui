@@ -1,5 +1,7 @@
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -42,13 +44,13 @@ public class EnterPasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText("Enter the password");
+		titleLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText("The repository you're trying to connect to is encrypted with a password. To connect, please enter the magic phrase.");
+		descriptionLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -59,7 +61,7 @@ public class EnterPasswordPanel extends Panel {
 
 		Label passwordLabel = new Label(this, SWT.WRAP);
 		passwordLabel.setLayoutData(passwordLabelGridData);
-		passwordLabel.setText("Password:");
+		passwordLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.passwordLabel"));
 		
 		// Textfield "Password"
 		GridData passwordTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -105,7 +107,7 @@ public class EnterPasswordPanel extends Panel {
 		
 		if (!validPassword) {
 			WidgetDecorator.markAsInvalid(passwordText);
-			showWarning("Password cannot be shorter than 10 characters.");
+			showWarning(_("org.syncany.gui.wizard.EnterPasswordPanel.errorTooShort"));
 			
 			return false;			
 		}

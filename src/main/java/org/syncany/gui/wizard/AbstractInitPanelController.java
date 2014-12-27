@@ -17,6 +17,7 @@
  */
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
 import org.syncany.plugins.transfer.StorageTestResult;
 
 /**
@@ -28,18 +29,24 @@ public abstract class AbstractInitPanelController extends ReloadDaemonPanelContr
 	}
 
 	protected String toYesNo(boolean value) {
-		return value ? "YES" : "NO";
+		if (value) {
+			return _("org.syncany.gui.wizard.AbstractInitPanelController.yes");
+		}
+		else {
+			return _("org.syncany.gui.wizard.AbstractInitPanelController.no");
+		}
 	}
 	
 	protected String formatTestResultMessage(StorageTestResult testResult) {
-		String errorMessage = "Testing the remote storage failed.\n\n"
-				+ "- Was the connection successful: " + toYesNo(testResult.isTargetCanConnect()) + "\n"
-				+ "- Files can be created: " + toYesNo(testResult.isTargetCanCreate()) + "\n"
-				+ "- Files can be written to: " + toYesNo(testResult.isTargetCanWrite()) + "\n"
-				+ "- The target folder/repo exists: " + toYesNo(testResult.isTargetExists()) + "\n";
-		
+		String errorMessage = _("org.syncany.gui.wizard.AbstractInitPanelController.testResult", 
+			toYesNo(testResult.isTargetCanConnect()),
+			toYesNo(testResult.isTargetCanCreate()),
+			toYesNo(testResult.isTargetCanWrite()),
+			toYesNo(testResult.isTargetExists())
+		) + "\n";
+				
 		if (testResult.getErrorMessage() != null) {
-			errorMessage += "\nDetailed test error:\n\n" + testResult.getErrorMessage();
+			errorMessage += "\n" + _("org.syncany.gui.wizard.AbstractInitPanelController.testResultErrorMessage", testResult.getErrorMessage());
 		}
 		
 		return errorMessage;

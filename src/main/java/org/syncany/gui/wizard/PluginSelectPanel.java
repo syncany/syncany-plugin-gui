@@ -1,5 +1,7 @@
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -11,7 +13,6 @@ import org.syncany.plugins.transfer.TransferPlugin;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class PluginSelectPanel extends Panel {
-	private Label descriptionLabel;
 	private PluginSelectComposite pluginSelectComposite;
 	
 	public PluginSelectPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
@@ -34,13 +35,13 @@ public class PluginSelectPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText("Select storage backend");
+		titleLabel.setText(_("org.syncany.gui.wizard.PluginSelectPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
-		descriptionLabel = new Label(this, SWT.WRAP);
+		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
-		descriptionLabel.setText("Please choose where to store your files online. Syncany can use any of the following storage backends:");
+		descriptionLabel.setText(_("org.syncany.gui.wizard.PluginSelectPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 

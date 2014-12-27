@@ -1,5 +1,7 @@
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -43,13 +45,13 @@ public class ChoosePasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText("Choose a password");
+		titleLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText("Syncany will encrypt your data with a password. Please choose it wisely. Min. 10 characters, 12 or more are better.");
+		descriptionLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -60,7 +62,7 @@ public class ChoosePasswordPanel extends Panel {
 
 		Label passwordLabel = new Label(this, SWT.WRAP);
 		passwordLabel.setLayoutData(passwordLabelGridData);
-		passwordLabel.setText("Password:");
+		passwordLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.passwordLabel"));
 		
 		// Textfield "Password"
 		GridData passwordTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -89,7 +91,7 @@ public class ChoosePasswordPanel extends Panel {
 
 		Label confirmLabel = new Label(this, SWT.WRAP);
 		confirmLabel.setLayoutData(confirmLabelGridData);
-		confirmLabel.setText("Confirm:");
+		confirmLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.confirmLabel"));
 		
 		// Textfield "Confirm"
 		GridData confirmTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -138,7 +140,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsInvalid(passwordText);
 			WidgetDecorator.markAsInvalid(confirmText);
 
-			showWarning("Password too short and confirmation does not match.");
+			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShortAndNoMatch"));
 			
 			return false;			
 		}
@@ -146,7 +148,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsInvalid(passwordText);
 			WidgetDecorator.markAsValid(confirmText);
 
-			showWarning("Password too short.");
+			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShort"));
 			
 			return false;
 		}
@@ -154,7 +156,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsValid(passwordText);
 			WidgetDecorator.markAsInvalid(confirmText);
 
-			showWarning("Password confirmation does not match.");
+			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorNoMatch"));
 
 			return false;
 		}
