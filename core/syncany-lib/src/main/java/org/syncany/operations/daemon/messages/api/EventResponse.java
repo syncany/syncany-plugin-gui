@@ -15,15 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.daemon;
+package org.syncany.operations.daemon.messages.api;
 
-/** 
- * @author Vincent Wiencek <vwiencek@gmail.com>
- */
-public class ServiceAlreadyStartedException extends Exception {
-	private static final long serialVersionUID = -4655279609105005191L;
-
-	public ServiceAlreadyStartedException(String message) {
-		super(message);
-	}
+public abstract class EventResponse extends Message {
+	// Marker
 }
