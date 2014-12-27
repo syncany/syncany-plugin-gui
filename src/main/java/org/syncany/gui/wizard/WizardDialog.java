@@ -100,7 +100,7 @@ public class WizardDialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(initSuccessPanel, Action.NEXT);
+		setCurrentPanel(startPanel, Action.NEXT);
 
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
