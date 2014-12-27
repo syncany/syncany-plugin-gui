@@ -21,6 +21,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -51,34 +52,36 @@ import org.syncany.util.EnvironmentUtil;
 public class DefaultTrayIcon extends TrayIcon {
 	private TrayItem trayItem;
 	private Menu menu;
-	private MenuItem statusTextItem;
+	private List<File> watches;
+	private Map<String, MenuItem> statusTextItems = new TreeMap<String, MenuItem>();
+	private Map<String, String> statusTexts = new TreeMap<String, String>();
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
 	private Map<TrayIconImage, Image> images;
 
 	public DefaultTrayIcon(final Shell shell) {
 		super(shell);
-		
+
 		fillImageCache();
 		buildTray();
 	}
 
 	private void fillImageCache() {
 		images = new HashMap<TrayIconImage, Image>();
-		String trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/"; 
-				
+		String trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/";
+
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
 			Image trayImage = SWTResourceManager.getImage(trayImageFileName, false);
-			
+
 			images.put(trayIconImage, trayImage);
 		}
 	}
-	
+
 	private void buildTray() {
 		Tray tray = Display.getDefault().getSystemTray();
 
 		if (tray != null) {
-			trayItem = new TrayItem(tray, SWT.NONE);				
+			trayItem = new TrayItem(tray, SWT.NONE);
 			setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
 
 			buildMenuItems(null);
@@ -103,21 +106,54 @@ public class DefaultTrayIcon extends TrayIcon {
 		}
 	}
 
+	private void buildMenuItems() {
+		buildMenuItems(watches);
+	}
+
 	private void buildMenuItems(final List<File> watches) {
+		this.watches = watches;
+		
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
 		}
+
+		clearMenuItems();
 		
-		// Clear old items (if any)
-		clearMenuItems();		
+		buildStatusTextMenuItems();
+		buildNewWatchMenuItem();
+		buildWatchMenuItems();
+		buildStaticMenuItems();		
+	}
 
-		// Create new items
-		statusTextItem = new MenuItem(menu, SWT.PUSH);
-		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
-		statusTextItem.setEnabled(false);
+	private void buildStatusTextMenuItems() {
+		// Create per-folder status text item
+		for (String root : statusTexts.keySet()) {
+			boolean watchIsInSync = statusTexts.get(root).equals(messages.get("tray.menuitem.status.insync")); 
+			
+			if (!watchIsInSync) {
+				String statusTextPrefix = new File(root).getName(); 
+				
+				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
+				statusTextItem.setText(statusTextPrefix + "\n" + statusTexts.get(root));
+				statusTextItem.setEnabled(false);
+				
+				statusTextItems.put(root, statusTextItem);
+			}
+		}
 
+		// Or, if they are all in sync, create a global one
+		if (statusTextItems.isEmpty()) {
+			MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
+			statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
+			statusTextItem.setEnabled(false);
+			
+			statusTextItems.put("GLOBAL", statusTextItem);
+		}	
+	}
+	
+	private void buildNewWatchMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
-		
+
 		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
 		newItem.setText(messages.get("tray.menuitem.new"));
 		newItem.addSelectionListener(new SelectionAdapter() {
@@ -126,7 +162,9 @@ public class DefaultTrayIcon extends TrayIcon {
 				showNew();
 			}
 		});
+	}
 
+	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
@@ -138,33 +176,35 @@ public class DefaultTrayIcon extends TrayIcon {
 						folderMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
-								showFolder(folder);								
+								showFolder(folder);
 							}
 						});
-					
+
 						watchedFolderMenuItems.put(folder.getAbsolutePath(), folderMenuItem);
 					}
 				}
 			}
-			
-			for (String filePath : watchedFolderMenuItems.keySet()){
+
+			for (String filePath : watchedFolderMenuItems.keySet()) {
 				boolean removeFilePath = true;
-				
+
 				for (File file : watches) {
 					if (file.getAbsolutePath().equals(filePath)) {
 						removeFilePath = false;
 					}
 				}
-				
+
 				if (removeFilePath) {
 					watchedFolderMenuItems.get(filePath).dispose();
 					watchedFolderMenuItems.keySet().remove(filePath);
 				}
 			}
-			
+
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
+	}
 
+	private void buildStaticMenuItems() {
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
 		reportIssueItem.setText(messages.get("tray.menuitem.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {
@@ -211,9 +251,10 @@ public class DefaultTrayIcon extends TrayIcon {
 				MenuItem item = menu.getItem(0);
 				item.dispose();
 			}
-			
+
 			// Clear menu item cache
 			watchedFolderMenuItems.clear();
+			statusTextItems.clear();
 		}
 	}
 
@@ -227,10 +268,17 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	public void setStatusText(final String statusText) {
+	public void setStatusText(final String root, final String statusText) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				statusTextItem.setText(statusText);
+				if (root != null) {
+					statusTexts.put(root, statusText);
+				}
+				else {
+					statusTexts.clear();
+				}
+				
+				buildMenuItems();
 			}
 		});
 	}
@@ -249,17 +297,17 @@ public class DefaultTrayIcon extends TrayIcon {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
 				ToolTip toolTip = new ToolTip(trayShell, SWT.BALLOON | SWT.ICON_INFORMATION);
-				
+
 				toolTip.setText(subject);
 				toolTip.setMessage(message);
-				
+
 				trayItem.setImage(images.get(TrayIconImage.TRAY_NO_OVERLAY));
 				trayItem.setToolTip(toolTip);
-				
+
 				toolTip.setVisible(true);
 				toolTip.setAutoHide(true);
 			}
-		});		
+		});
 	}
 
 	@Override

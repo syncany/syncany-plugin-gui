@@ -22,10 +22,10 @@ repositories {
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.3.1-alpha"	
+	pluginVersion = "0.4.0-alpha"	
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
-	pluginAppMinVersion = "0.3.1-alpha"
+	pluginAppMinVersion = "0.4.0-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
 	
@@ -42,7 +42,6 @@ dependencies {
 	compile		"commons-net:commons-net:2.2"    
 	compile		"commons-beanutils:commons-beanutils:1.9.0"
 	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	compile		"net.sf.corn:corn-cps:1.1.2"
 	compile		"org.apache.httpcomponents:httpclient:4.3.4"
 	compile		"org.simpleframework:simple-xml:2.7.1"
 	compile		"com.google.guava:guava:15.0"
@@ -50,7 +49,6 @@ dependencies {
 
 	pluginjar			"commons-net:commons-net:2.2"    
 	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
-	pluginjar			"net.sf.corn:corn-cps:1.1.2"
 	
 	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
 	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"

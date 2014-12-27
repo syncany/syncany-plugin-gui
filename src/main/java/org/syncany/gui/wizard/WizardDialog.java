@@ -34,7 +34,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.util.DesktopHelper;
+import org.syncany.config.Logging;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.wizard.StartPanel.StartPanelSelection;
@@ -56,8 +57,14 @@ public class WizardDialog {
 	private StackLayout stackLayout;
 
 	private StartPanel startPanel;
-	private SelectFolderPanel selectFolderPanel;
+	private FolderSelectPanel folderSelectPanel;
+	private PluginSelectPanel pluginSelectPanel;
+	private ConnectTypeSelectPanel connectTypeSelectPanel;
+	private PluginSettingsPanel pluginSettingsPanel;
+	private ChoosePasswordPanel choosePasswordPanel;
+	private EnterPasswordPanel enterPasswordPanel;
 	private ProgressPanel progressPanel;
+	private InitSuccessPanel initSuccessPanel;
 	
 	private Panel currentPanel;
 	private PanelController panelController;
@@ -69,10 +76,10 @@ public class WizardDialog {
 	private GuiEventBus eventBus;
 
 	public static void main(String[] a) {
+		Logging.init();
+		
 		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");
-
 		I18n.registerBundleName(intlPackage + "/i18n/messages");
-		I18n.registerBundleFilter("plugin_messages*");
 
 		Shell shell = new Shell();
 
@@ -96,7 +103,7 @@ public class WizardDialog {
 		setCurrentPanel(startPanel, Action.NEXT);
 
 		// Open shell
-		DesktopHelper.centerOnScreen(windowShell);
+		DesktopUtil.centerOnScreen(windowShell);
 
 		windowShell.open();
 		windowShell.layout();
@@ -128,7 +135,7 @@ public class WizardDialog {
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
-		windowShell.setText(I18n.getString("dialog.wizard.title"));
+		windowShell.setText(I18n._("org.syncany.gui.wizard.WizardDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 
 		// Row 1, Column 1: Image
@@ -173,7 +180,7 @@ public class WizardDialog {
 		// Buttons
 		previousButton = new Button(buttonComposite, SWT.NONE);
 		previousButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		previousButton.setText(I18n.getString("dialog.default.previous"));
+		previousButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.previous"));
 		previousButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -183,7 +190,7 @@ public class WizardDialog {
 
 		nextButton = new Button(buttonComposite, SWT.NONE);
 		nextButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		nextButton.setText(I18n.getString("dialog.default.next"));
+		nextButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.next"));
 		nextButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -196,7 +203,7 @@ public class WizardDialog {
 
 		cancelButton = new Button(buttonComposite, SWT.NONE);
 		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		cancelButton.setText(I18n.getString("dialog.default.cancel"));
+		cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 		cancelButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -211,8 +218,14 @@ public class WizardDialog {
 	
 	private void buildPanels() {
 		startPanel = new StartPanel(this, stackComposite, SWT.NONE);
-		selectFolderPanel = new SelectFolderPanel(this, stackComposite, SWT.NONE);
+		folderSelectPanel = new FolderSelectPanel(this, stackComposite, SWT.NONE);
+		pluginSelectPanel = new PluginSelectPanel(this, stackComposite, SWT.NONE);
+		connectTypeSelectPanel = new ConnectTypeSelectPanel(this, stackComposite, SWT.NONE);
+		pluginSettingsPanel = new PluginSettingsPanel(this, stackComposite, SWT.NONE);
+		choosePasswordPanel = new ChoosePasswordPanel(this, stackComposite, SWT.NONE);
+		enterPasswordPanel = new EnterPasswordPanel(this, stackComposite, SWT.NONE);
 		progressPanel = new ProgressPanel(this, stackComposite, SWT.NONE);
+		initSuccessPanel = new InitSuccessPanel(this, stackComposite, SWT.NONE);		
 	}
 
 	private void handleFlow(Action clickAction) {
@@ -232,10 +245,14 @@ public class WizardDialog {
 	private PanelController createPanelStrategy(StartPanelSelection startPanelSelection) {
 		switch (startPanelSelection) {
 		case ADD_EXISTING:
-			return new AddExistingPanelController(this, startPanel, selectFolderPanel, progressPanel);
+			return new AddExistingPanelController(this, startPanel, folderSelectPanel, progressPanel);
 
 		case INIT:
+			return new InitPanelController(this, startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel, initSuccessPanel);
+			
 		case CONNECT:
+			return new ConnectPanelController(this, startPanel, folderSelectPanel, connectTypeSelectPanel, pluginSettingsPanel, enterPasswordPanel, progressPanel);
+
 		default:
 			return null;
 		}
@@ -244,16 +261,31 @@ public class WizardDialog {
 	public Panel getCurrentPanel() {
 		return currentPanel;
 	}
+	
+	public Shell getTrayShell() {
+		return trayShell;
+	}
 
-	public void setCurrentPanel(Panel newPanel, Action... allowedActions) {
-		// Set current panel
-		currentPanel = newPanel;
+	public Shell getWindowShell() {
+		return windowShell;
+	}
+
+	public void setCurrentPanel(final Panel newPanel, final Action... allowedActions) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				// Set current panel
+				currentPanel = newPanel;
+				
+				stackLayout.topControl = currentPanel;
+				stackComposite.layout();	
+				
+				currentPanel.setFocus();
 		
-		stackLayout.topControl = currentPanel;
-		stackComposite.layout();	
-
-		// Toggle buttons
-		setAllowedActions(allowedActions);
+				// Toggle buttons
+				setAllowedActions(allowedActions);
+			}
+		});
 	}
 	
 	public void setAllowedActions(final Action... allowedActions) {
@@ -276,19 +308,19 @@ public class WizardDialog {
 					}
 					
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n.getString("dialog.default.finish"));
+						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.finish"));
 					}
 				}
 				else {
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n.getString("dialog.default.cancel"));
+						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 					}
 				}
 			}
 		});
 	}
 	
-	protected boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
+	public boolean validateAndSetCurrentPanel(Panel panel, Action... allowedActions) {
 		boolean currentPanelValid = currentPanel == null || currentPanel.validatePanel();
 
 		if (currentPanelValid) {

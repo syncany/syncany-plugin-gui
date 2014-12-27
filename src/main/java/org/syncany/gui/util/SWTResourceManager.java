@@ -24,7 +24,6 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.RGB;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 
 /**
@@ -147,8 +146,7 @@ public class SWTResourceManager {
 				m_imageMap.put(path + "_" + image.getBounds().width, image);
 			}
 			catch (Exception e) {
-				image = getMissingImage();
-				m_imageMap.put(path, image);
+				return null;
 			}
 		}
 		return image;
@@ -179,22 +177,6 @@ public class SWTResourceManager {
 		return scaled;
 	}
 
-	private static final int MISSING_IMAGE_SIZE = 10;
-
-	/**
-	 * @return the small {@link Image} that can be used as placeholder for missing image.
-	 */
-	private static Image getMissingImage() {
-		Image image = new Image(Display.getCurrent(), MISSING_IMAGE_SIZE, MISSING_IMAGE_SIZE);
-		//
-		GC gc = new GC(image);
-		gc.setBackground(getColor(SWT.COLOR_RED));
-		gc.fillRectangle(0, 0, MISSING_IMAGE_SIZE, MISSING_IMAGE_SIZE);
-		gc.dispose();
-		//
-		return image;
-	}
-
 	/**
 	 * Style constant for placing decorator image in top left corner of base image.
 	 */
@@ -220,73 +202,6 @@ public class SWTResourceManager {
 	 */
 	@SuppressWarnings("unchecked")
 	private static Map<Image, Map<Image, Image>>[] m_decoratedImageMap = new Map[LAST_CORNER_KEY];
-
-	/**
-	 * Returns an {@link Image} composed of a base image decorated by another image.
-	 * 
-	 * @param baseImage
-	 *            the base {@link Image} that should be decorated
-	 * @param decorator
-	 *            the {@link Image} to decorate the base image
-	 * @return {@link Image} The resulting decorated image
-	 */
-	public static Image decorateImage(Image baseImage, Image decorator) {
-		return decorateImage(baseImage, decorator, BOTTOM_RIGHT);
-	}
-
-	/**
-	 * Returns an {@link Image} composed of a base image decorated by another image.
-	 * 
-	 * @param baseImage
-	 *            the base {@link Image} that should be decorated
-	 * @param decorator
-	 *            the {@link Image} to decorate the base image
-	 * @param corner
-	 *            the corner to place decorator image
-	 * @return the resulting decorated {@link Image}
-	 */
-	public static Image decorateImage(final Image baseImage, final Image decorator, final int corner) {
-		if (corner <= 0 || corner >= LAST_CORNER_KEY) {
-			throw new IllegalArgumentException("Wrong decorate corner");
-		}
-		Map<Image, Map<Image, Image>> cornerDecoratedImageMap = m_decoratedImageMap[corner];
-		if (cornerDecoratedImageMap == null) {
-			cornerDecoratedImageMap = new HashMap<Image, Map<Image, Image>>();
-			m_decoratedImageMap[corner] = cornerDecoratedImageMap;
-		}
-		Map<Image, Image> decoratedMap = cornerDecoratedImageMap.get(baseImage);
-		if (decoratedMap == null) {
-			decoratedMap = new HashMap<Image, Image>();
-			cornerDecoratedImageMap.put(baseImage, decoratedMap);
-		}
-		//
-		Image result = decoratedMap.get(decorator);
-		if (result == null) {
-			Rectangle bib = baseImage.getBounds();
-			Rectangle dib = decorator.getBounds();
-			//
-			result = new Image(Display.getCurrent(), bib.width, bib.height);
-			//
-			GC gc = new GC(result);
-			gc.drawImage(baseImage, 0, 0);
-			if (corner == TOP_LEFT) {
-				gc.drawImage(decorator, 0, 0);
-			}
-			else if (corner == TOP_RIGHT) {
-				gc.drawImage(decorator, bib.width - dib.width, 0);
-			}
-			else if (corner == BOTTOM_LEFT) {
-				gc.drawImage(decorator, 0, bib.height - dib.height);
-			}
-			else if (corner == BOTTOM_RIGHT) {
-				gc.drawImage(decorator, bib.width - dib.width, bib.height - dib.height);
-			}
-			gc.dispose();
-			//
-			decoratedMap.put(decorator, result);
-		}
-		return result;
-	}
 
 	/**
 	 * Dispose all of the cached {@link Image}'s.
