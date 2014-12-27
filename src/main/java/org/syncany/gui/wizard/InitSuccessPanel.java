@@ -72,8 +72,10 @@ public class InitSuccessPanel extends Panel {
 
 		// Button grid data
 		GridData buttonGridData = new GridData(SWT.CENTER, SWT.BOTTOM, true, false, 1, 1);
-		buttonGridData.minimumHeight = 80;
+		buttonGridData.minimumHeight = 80;		
 		buttonGridData.verticalIndent = 20;
+		buttonGridData.widthHint = 150;
+		buttonGridData.heightHint = 35;
 		
 		// Button "Copy"
 		Button copyLinkButton = new Button(this, SWT.FLAT);
@@ -109,6 +111,8 @@ public class InitSuccessPanel extends Panel {
 		linkHelpLabel.setText(_("org.syncany.gui.wizard.InitSuccessPanel.linkHelp"));
 		
 		WidgetDecorator.normal(linkHelpLabel);
+		
+		layout();
 	}
 
 	@Override
