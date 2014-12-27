@@ -25,7 +25,7 @@ import org.eclipse.swt.widgets.MessageBox;
 import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEvent;
-import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEventResponse;
 import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.ControlManagementResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
@@ -118,7 +118,7 @@ public abstract class ReloadDaemonPanelController extends PanelController {
 				int response = messageBox.open();
 				boolean userConfirms = response == SWT.YES;
 
-				eventBus.post(new ConfirmUserInteractionExternalManagementRequest(userConfirms));
+				eventBus.post(new ConfirmUserInteractionExternalEventResponse(userConfirms));
 			}
 		});		
 	}

@@ -31,7 +31,7 @@ import org.syncany.gui.wizard.WizardDialog.Action;
 import org.syncany.operations.daemon.messages.ConnectManagementRequest;
 import org.syncany.operations.daemon.messages.ConnectManagementResponse;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
-import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEventResponse;
 import org.syncany.operations.init.ApplicationLink;
 import org.syncany.operations.init.ConnectOperationOptions;
 import org.syncany.operations.init.ConnectOperationOptions.ConnectOptionsStrategy;
@@ -185,7 +185,7 @@ public class ConnectPanelController extends AbstractInitPanelController {
 		}
 		else if (clickAction == Action.NEXT) {
 			if (connectTypeSelection == ConnectPanelSelection.MANUAL) {
-				eventBus.post(new GetPasswordUserInteractionExternalManagementRequest(enterPasswordPanel.getPassword()));
+				eventBus.post(new GetPasswordUserInteractionExternalEventResponse(enterPasswordPanel.getPassword()));
 				wizardDialog.setCurrentPanel(progressPanel);				
 			}
 			else {
