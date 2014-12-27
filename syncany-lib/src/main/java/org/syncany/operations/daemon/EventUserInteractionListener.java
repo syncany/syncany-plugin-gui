@@ -22,13 +22,22 @@ import java.util.logging.Logger;
 
 import org.syncany.config.LocalEventBus;
 import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEvent;
-import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.ConfirmUserInteractionExternalEventResponse;
 import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEvent;
-import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalManagementRequest;
+import org.syncany.operations.daemon.messages.GetPasswordUserInteractionExternalEventResponse;
 import org.syncany.plugins.UserInteractionListener;
 
 import com.google.common.eventbus.Subscribe;
 
+/**
+ * This implementation of a {@link UserInteractionListener} uses the {@link LocalEventBus}
+ * to broadcast interaction requests to subscribers and waits synchronously for a corresponding
+ * event response. All methods wait until the response event arrives by sending the current
+ * thread to sleep via {@link #wait()}, and waking it up via {@link #notify()}.  
+ * 
+ * @see UserInteractionListener
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
+ */
 public class EventUserInteractionListener implements UserInteractionListener {
 	private static final Logger logger = Logger.getLogger(EventUserInteractionListener.class.getSimpleName());
 
@@ -47,7 +56,7 @@ public class EventUserInteractionListener implements UserInteractionListener {
 		logger.log(Level.INFO, "User confirmation needed for '" + header + "'. Sending message.");
 		eventBus.post(new ConfirmUserInteractionExternalEvent(header, message, question));
 		
-		ConfirmUserInteractionExternalManagementRequest userConfirmation = (ConfirmUserInteractionExternalManagementRequest) waitForUserResponse();
+		ConfirmUserInteractionExternalEventResponse userConfirmation = (ConfirmUserInteractionExternalEventResponse) waitForUserResponse();
 		return userConfirmation.getResult();
 	}
 
@@ -56,7 +65,7 @@ public class EventUserInteractionListener implements UserInteractionListener {
 		logger.log(Level.INFO, "User password needed. Sending message.");
 		eventBus.post(new GetPasswordUserInteractionExternalEvent());
 		
-		GetPasswordUserInteractionExternalManagementRequest userConfirmation = (GetPasswordUserInteractionExternalManagementRequest) waitForUserResponse();
+		GetPasswordUserInteractionExternalEventResponse userConfirmation = (GetPasswordUserInteractionExternalEventResponse) waitForUserResponse();
 		return userConfirmation.getPassword();
 	}
 
@@ -66,13 +75,13 @@ public class EventUserInteractionListener implements UserInteractionListener {
 	}		
 	
 	@Subscribe
-	public void onConfirmUserInteractionExternalManagementRequest(ConfirmUserInteractionExternalManagementRequest response) {
+	public void onConfirmUserInteractionExternalManagementRequest(ConfirmUserInteractionExternalEventResponse response) {
 		userResponse = response;		
 		fireUserResponseReady();			
 	}
 	
 	@Subscribe
-	public void onGetPasswordUserInteractionExternalManagementRequest(GetPasswordUserInteractionExternalManagementRequest response) {
+	public void onGetPasswordUserInteractionExternalManagementRequest(GetPasswordUserInteractionExternalEventResponse response) {
 		userResponse = response;		
 		fireUserResponseReady();			
 	}
