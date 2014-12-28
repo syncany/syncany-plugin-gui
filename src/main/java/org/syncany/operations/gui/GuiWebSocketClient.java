@@ -46,6 +46,7 @@ import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
+import org.syncany.operations.daemon.messages.api.ExternalEventResponse;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
@@ -197,10 +198,13 @@ public class GuiWebSocketClient {
 		webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
 			@Override
 			protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage textMessage) throws IOException {
+				String messageStr = textMessage.getData();
 				Message message;
 				
 				try {
-					message = MessageFactory.toMessage(textMessage.getData());
+					logger.log(Level.INFO, "GUI received message: " + messageStr);
+					
+					message = MessageFactory.toMessage(messageStr);
 					eventBus.post(message);
 				}
 				catch (Exception e) {
@@ -226,7 +230,7 @@ public class GuiWebSocketClient {
 			connectAndWait();
 		}		
 		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to reconnect to daemon");
+			logger.log(Level.WARNING, "Unable to reconnect to daemon", e);
 		}
 	}
 
@@ -236,7 +240,17 @@ public class GuiWebSocketClient {
 			postMessage(MessageFactory.toXml(request));
 		}
 		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to transform request to XML");
+			logger.log(Level.WARNING, "Unable to transform request to XML", e);
+		}
+	}
+	
+	@Subscribe
+	public void onEventResponse(ExternalEventResponse eventResponse) {
+		try {
+			postMessage(MessageFactory.toXml(eventResponse));
+		}
+		catch (Exception e) {
+			logger.log(Level.WARNING, "Unable to transform event response to XML", e);
 		}
 	}
 
@@ -246,7 +260,7 @@ public class GuiWebSocketClient {
 		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
 			@Override
 			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
-				throwable.printStackTrace();
+				logger.log(Level.SEVERE, "WS Error", throwable);
 			}
 
 			@Override

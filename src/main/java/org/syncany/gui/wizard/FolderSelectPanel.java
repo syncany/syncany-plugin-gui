@@ -1,5 +1,7 @@
 package org.syncany.gui.wizard;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 
 import org.eclipse.swt.SWT;
@@ -19,14 +21,13 @@ import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.Config;
-import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class SelectFolderPanel extends Panel {
+public class FolderSelectPanel extends Panel {
 	public enum SelectFolderValidationMethod {
 		NO_APP_FOLDER, APP_FOLDER
 	};
@@ -40,7 +41,7 @@ public class SelectFolderPanel extends Panel {
 	private SelectFolderValidationMethod validationMethod;
 	private boolean firstValidationDone;
 
-	public SelectFolderPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
+	public FolderSelectPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
 		super(wizardParentDialog, parent, style);
 		
 		this.createControls();
@@ -60,24 +61,23 @@ public class SelectFolderPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(I18n.getString("dialog.selectLocalFolder.introduction.title"));
+		titleLabel.setText(_("org.syncany.gui.wizard.FolderSelectPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText("..");
 
 		WidgetDecorator.normal(descriptionLabel);
 
 		// Label "Folder:"
-		GridData selectFolderLabel = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-		selectFolderLabel.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
-		selectFolderLabel.horizontalSpan = 3;
+		GridData selectFolderLabelGridDate = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+		selectFolderLabelGridDate.verticalIndent = WidgetDecorator.VERTICAL_INDENT;
+		selectFolderLabelGridDate.horizontalSpan = 3;
 
-		Label seledctFolderLabel = new Label(this, SWT.WRAP);
-		seledctFolderLabel.setLayoutData(selectFolderLabel);
-		seledctFolderLabel.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolder"));
+		Label selectFolderLabel = new Label(this, SWT.WRAP);
+		selectFolderLabel.setLayoutData(selectFolderLabelGridDate);
+		selectFolderLabel.setText(_("org.syncany.gui.wizard.FolderSelectPanel.selectFolderLabel"));
 		
 		// Textfield "Folder"
 		GridData folderTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -88,11 +88,12 @@ public class SelectFolderPanel extends Panel {
 		localDir = new Text(this, SWT.BORDER);
 		localDir.setLayoutData(folderTextGridData);
 		localDir.setBackground(WidgetDecorator.WHITE);
+
 		localDir.addModifyListener(new ModifyListener() {			
 			@Override
 			public void modifyText(ModifyEvent e) {
 				if (firstValidationDone) {
-					validatePanel();
+					validatePanel(false);
 				}
 			}
 		});
@@ -101,7 +102,7 @@ public class SelectFolderPanel extends Panel {
 
 		// Button "Select ..."
 		Button selectFolderButton = new Button(this, SWT.FLAT);
-		selectFolderButton.setText(I18n.getString("dialog.selectLocalFolder.selectLocalFolderButton"));
+		selectFolderButton.setText(_("org.syncany.gui.wizard.FolderSelectPanel.selectLocalFolderButton"));
 		selectFolderButton.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, false, false, 1, 1));
 		selectFolderButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -110,7 +111,7 @@ public class SelectFolderPanel extends Panel {
 			}
 		});
 		
-		WidgetDecorator.normal(seledctFolderLabel);
+		WidgetDecorator.normal(selectFolderLabel);
 
 		// Warning message and label
 		String warningImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/warning-icon.png";
@@ -128,8 +129,13 @@ public class SelectFolderPanel extends Panel {
 		WidgetDecorator.bold(warningMessageLabel);
 	}
 	
-	public void setValidationMethod(SelectFolderValidationMethod validationMethod) {
+	public void reset(SelectFolderValidationMethod validationMethod) {
 		this.validationMethod = validationMethod;
+		
+		firstValidationDone = false;		
+		localDir.setText("");		
+		
+		hideWarning();
 	}
 	
 	public void setDescriptionText(final String descriptionTextStr) {
@@ -147,6 +153,10 @@ public class SelectFolderPanel extends Panel {
 	
 	@Override
 	public boolean validatePanel() {
+		return validatePanel(true);		
+	}
+
+	private boolean validatePanel(boolean allowAskFolderCreate) {
 		firstValidationDone = true;
 		
 		switch (validationMethod) {
@@ -154,42 +164,58 @@ public class SelectFolderPanel extends Panel {
 			return isValidAppFolder();
 			
 		case NO_APP_FOLDER:
-			return isValidNoAppFolder();
+			return isValidNoAppFolder(allowAskFolderCreate);
 			
 		default:
 			throw new RuntimeException("Invalid validation method: " + validationMethod);				
 		}
 	}
 
-	private boolean isValidNoAppFolder() {
+	private boolean isValidNoAppFolder(boolean allowAskFolderCreate) {
 		File selectedDir = new File(localDir.getText());
 		File appDir = new File(selectedDir, Config.DIR_APPLICATION);
 
-		if (appDir.exists()) {
+		if (localDir.getText().isEmpty()) {
+			showWarning(_("org.syncany.gui.wizard.FolderSelectPanel.errorInvalidFolder"));
 			WidgetDecorator.markAsInvalid(localDir);
+			
+			return false;			
+		}
+		else if (appDir.exists()) {
+			showWarning(_("org.syncany.gui.wizard.FolderSelectPanel.errorInitializedFolder"));
+			WidgetDecorator.markAsInvalid(localDir);
+
 			return false;
 		}
 		else {
 			if (!selectedDir.isDirectory()) {
-				boolean allowCreate = askCreateFolder(getShell(), selectedDir);
+				boolean allowCreate = allowAskFolderCreate && askCreateFolder(getShell(), selectedDir);
 				
 				if (allowCreate) {
 					if (selectedDir.mkdirs()) {
+						hideWarning();
 						WidgetDecorator.markAsValid(localDir);
+						
 						return true;
 					}
 					else {
+						showWarning(_("org.syncany.gui.wizard.FolderSelectPanel.errorCannotCreateFolder"));
 						WidgetDecorator.markAsInvalid(localDir);
+						
 						return false;
 					}
 				}
 				else {
-					WidgetDecorator.markAsInvalid(localDir);
+					hideWarning();
+					WidgetDecorator.markAsValid(localDir);
+
 					return false;
 				}
 			}
 			else {
+				hideWarning();
 				WidgetDecorator.markAsValid(localDir);
+				
 				return true;
 			}
 		}		
@@ -204,7 +230,7 @@ public class SelectFolderPanel extends Panel {
 			return true;
 		}
 		else {
-			showWarning(I18n.getString("dialog.selectLocalFolder.error.noWatchFolder"));
+			showWarning(_("org.syncany.gui.wizard.FolderSelectPanel.errorNoValidFolder"));
 			return false;			
 		}
 	}
@@ -227,8 +253,8 @@ public class SelectFolderPanel extends Panel {
 	private boolean askCreateFolder(Shell shell, File selectedDir) {
 		MessageBox dialog = new MessageBox(shell, SWT.ICON_QUESTION | SWT.OK | SWT.CANCEL);
 		
-		dialog.setText("Create Folder");
-		dialog.setMessage(String.format("Would you like to create the folder [%s]?", selectedDir.getAbsolutePath()));
+		dialog.setText(_("org.syncany.gui.wizard.FolderSelectPanel.askCreate.title"));
+		dialog.setMessage(_("org.syncany.gui.wizard.FolderSelectPanel.askCreate.description", selectedDir.getAbsolutePath()));
 
 		int returnCode = dialog.open();
 

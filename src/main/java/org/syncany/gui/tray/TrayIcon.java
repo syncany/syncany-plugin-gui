@@ -17,23 +17,27 @@
  */
 package org.syncany.gui.tray;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.util.DesktopHelper;
-import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
+import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
@@ -41,13 +45,17 @@ import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
+import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -60,19 +68,22 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
+	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
+
 	private static int REFRESH_TIME = 500;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
-	
+
 	protected Shell trayShell;
 	protected WizardDialog wizard;
 	protected GuiEventBus eventBus;
 	protected Map<String, String> messages;
 
 	private Thread systemTrayAnimationThread;
-	private AtomicInteger syncingCount;
-	private long uploadedFileSize;
+	private AtomicBoolean syncing;
+	private Map<String, Boolean> clientSyncStatus;
+	private Map<String, Long> clientUploadFileSize;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -80,8 +91,10 @@ public abstract class TrayIcon {
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
-		
-		this.syncingCount = new AtomicInteger(0);		
+
+		this.syncing = new AtomicBoolean(false);
+		this.clientSyncStatus = Maps.newConcurrentMap();
+		this.clientUploadFileSize = Maps.newConcurrentMap();
 
 		initInternationalization();
 		initAnimationThread();
@@ -95,7 +108,7 @@ public abstract class TrayIcon {
 				if (wizard == null) {
 					wizard = new WizardDialog(trayShell);
 					wizard.open();
-					
+
 					wizard = null;
 				}
 			}
@@ -103,26 +116,26 @@ public abstract class TrayIcon {
 	}
 
 	protected void showFolder(File folder) {
-		DesktopHelper.launch(folder.getAbsolutePath());
+		DesktopUtil.launch(folder.getAbsolutePath());
 	}
 
 	protected void showReportIssue() {
-		DesktopHelper.launch(URL_REPORT_ISSUE);
+		DesktopUtil.launch(URL_REPORT_ISSUE);
 	}
 
 	protected void showDonate() {
-		DesktopHelper.launch(URL_DONATE);
+		DesktopUtil.launch(URL_DONATE);
 	}
 
 	protected void showWebsite() {
-		DesktopHelper.launch(URL_HOMEPAGE);
+		DesktopUtil.launch(URL_HOMEPAGE);
 	}
 
 	protected void exitApplication() {
 		dispose();
 		eventBus.post(new ExitGuiInternalEvent());
 	}
-	
+
 	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
@@ -130,80 +143,107 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onListWatchesResponseReceived(ListWatchesManagementResponse listWatchesResponse) {
+		logger.log(Level.FINE, "List watches response recevied: " + listWatchesResponse.getWatches().size() + " watch(es)");
+
+		cleanSyncStatus();
 		List<File> watchedFolders = new ArrayList<File>();
-		
+
 		for (Watch watch : listWatchesResponse.getWatches()) {
 			watchedFolders.add(watch.getFolder());
-			
-			if (watch.getStatus() == SyncStatus.SYNCING) {
-				syncingCount.incrementAndGet();
-			}
+
+			boolean watchFolderIsSyncing = watch.getStatus() == SyncStatus.SYNCING;
+			updateSyncStatus(watch.getFolder().getAbsolutePath(), watchFolderIsSyncing);
 		}
-		
+
 		// Update folders in menu
 		setWatchedFolders(watchedFolders);
-		
+
 		// Update tray icon
-		if (syncingCount.get() == 0) {
-			setTrayImage(TrayIconImage.TRAY_IN_SYNC);			
-		}		
+		if (!syncing.get()) {
+			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
+			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
+		}
+	}
+
+	@Subscribe
+	public void onDownChangesDetectedEvent(DownChangesDetectedSyncExternalEvent downChangesDetectedEvent) {
+		updateSyncStatus(downChangesDetectedEvent.getRoot(), true);
+	}
+
+	@Subscribe
+	public void onUpIndexChangesDetectedEvent(UpIndexChangesDetectedSyncExternalEvent upIndexChangesDetectedEvent) {
+		updateSyncStatus(upIndexChangesDetectedEvent.getRoot(), true);
+	}
+
+	@Subscribe
+	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchEndEvent) {
+		updateSyncStatus(watchEndEvent.getRoot(), false);
 	}
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		syncingCount.incrementAndGet();		
-		setStatusText("Starting indexing and upload ...");
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.start"));
 	}
 
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
-		setStatusText("Indexing " + syncEvent.getFileCount() + " new or altered file(s)...");
+		if (syncEvent.getFileCount() > 0) {
+			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));			
+		}
+		else {
+			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithoutFileCount"));
+		}
 	}
 
 	@Subscribe
 	public void onUploadFileEventReceived(UpUploadFileSyncExternalEvent syncEvent) {
-		setStatusText("Uploading " + syncEvent.getFilename() + " ...");
+		if (syncEvent.getFilename() != null) {
+			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.uploadWithFilename", syncEvent.getFilename()));
+		}
+		else {
+			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.uploadWithoutFilename"));
+		}
 	}
 
 	@Subscribe
 	public void onUploadFileInTransactionEventReceived(UpUploadFileInTransactionSyncExternalEvent syncEvent) {
-		if (syncEvent.getCurrentFileIndex() <= 1) {
-			uploadedFileSize = 0;
+		Long currentClientUploadFileSize = clientUploadFileSize.get(syncEvent.getRoot());
+				
+		if (currentClientUploadFileSize == null || syncEvent.getCurrentFileIndex() <= 1) {
+			currentClientUploadFileSize = 0L;
 		}
 
-		String uploadedTotalStr = FileUtil.formatFileSize(uploadedFileSize);
-		int uploadedPercent = (int) Math.round((double) uploadedFileSize / syncEvent.getTotalFileSize() * 100);
+		String uploadedTotalStr = FileUtil.formatFileSize(currentClientUploadFileSize);
+		int uploadedPercent = (int) Math.round((double) currentClientUploadFileSize / syncEvent.getTotalFileSize() * 100);
 
-		setStatusText("Uploading " + syncEvent.getCurrentFileIndex() + "/" + syncEvent.getTotalFileCount() + " (" + uploadedTotalStr + " / "
-				+ uploadedPercent + "%) ...");
-		
-		uploadedFileSize += syncEvent.getCurrentFileSize();
+		String statusText = _("org.syncany.gui.tray.TrayIcon.up.uploadFileInTransaction", syncEvent.getCurrentFileIndex(), syncEvent.getTotalFileCount(), uploadedTotalStr, uploadedPercent);
+		setStatusText(syncEvent.getRoot(), statusText);
+
+		currentClientUploadFileSize += syncEvent.getCurrentFileSize();
+		clientUploadFileSize.put(syncEvent.getRoot(), currentClientUploadFileSize);
 	}
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		syncingCount.decrementAndGet();
+		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
 	}
-	
+
 	@Subscribe
 	public void onDownDownloadFileSyncEventReceived(DownDownloadFileSyncExternalEvent syncEvent) {
 		String fileDescription = syncEvent.getFileDescription();
 		int currentFileIndex = syncEvent.getCurrentFileIndex();
 		int maxFileCount = syncEvent.getMaxFileCount();
 
-		setStatusText("Downloading " + fileDescription + " " + currentFileIndex + "/" + maxFileCount + " ...");
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.down.downloadFile", fileDescription, currentFileIndex, maxFileCount));
 	}
 
 	@Subscribe
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		syncingCount.incrementAndGet();
-		setStatusText("Checking for remote changes ...");
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.down.start"));
 	}
 
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		syncingCount.decrementAndGet();
-
 		// Display notification
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
@@ -216,18 +256,18 @@ public abstract class TrayIcon {
 
 			if (totalChangedFiles == 1) {
 				if (changeSet.getNewFiles().size() == 1) {
-					subject = changeSet.getNewFiles().first() + " added";
-					message = "File '" + changeSet.getNewFiles().first() + "' was added to your Syncany folder '" + rootName + "'";
+					subject = _("org.syncany.gui.tray.TrayIcon.notify.added.subject", changeSet.getNewFiles().first());
+					message = _("org.syncany.gui.tray.TrayIcon.notify.added.message", changeSet.getNewFiles().first(), rootName); 														
 				}
 
 				if (changeSet.getChangedFiles().size() == 1) {
-					subject = changeSet.getChangedFiles().first() + " changed";
-					message = "File '" + changeSet.getChangedFiles().first() + "' was altered or moved in your Syncany folder '" + rootName + "'";
+					subject = _("org.syncany.gui.tray.TrayIcon.notify.changed.subject", changeSet.getChangedFiles().first());
+					message = _("org.syncany.gui.tray.TrayIcon.notify.changed.message", changeSet.getChangedFiles().first(), rootName); 														
 				}
 
 				if (changeSet.getDeletedFiles().size() == 1) {
-					subject = changeSet.getDeletedFiles().first() + " deleted";
-					message = "File '" + changeSet.getDeletedFiles().first() + "' was removed from your Syncany folder '" + rootName + "'";
+					subject = _("org.syncany.gui.tray.TrayIcon.notify.deleted.subject", changeSet.getDeletedFiles().first());
+					message = _("org.syncany.gui.tray.TrayIcon.notify.deleted.message", changeSet.getDeletedFiles().first(), rootName); 														
 				}
 			}
 			else {
@@ -235,33 +275,33 @@ public abstract class TrayIcon {
 
 				if (changeSet.getNewFiles().size() > 0) {
 					if (changeSet.getNewFiles().size() == 1) {
-						messageParts.add(changeSet.getNewFiles().size() + " file added");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.added.one"));
 					}
 					else {
-						messageParts.add(changeSet.getNewFiles().size() + " files added");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.added.many", changeSet.getNewFiles().size()));
 					}
 				}
 
 				if (changeSet.getChangedFiles().size() > 0) {
 					if (changeSet.getChangedFiles().size() == 1) {
-						messageParts.add(changeSet.getChangedFiles().size() + " file changed");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.changed.one"));
 					}
 					else {
-						messageParts.add(changeSet.getChangedFiles().size() + " files changed");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.changed.many", changeSet.getChangedFiles().size()));
 					}
 				}
 
 				if (changeSet.getDeletedFiles().size() > 0) {
 					if (changeSet.getDeletedFiles().size() == 1) {
-						messageParts.add(changeSet.getDeletedFiles().size() + " file deleted");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.deleted.one"));
 					}
 					else {
-						messageParts.add(changeSet.getDeletedFiles().size() + " files deleted");
+						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.deleted.many", changeSet.getDeletedFiles().size()));
 					}
 				}
 
-				subject = "Syncany folder '" + rootName + "' synced";
-				message = StringUtil.join(messageParts, ", ") + " in your Syncany folder '" + rootName + "'";
+				subject = _("org.syncany.gui.tray.TrayIcon.notify.synced.subject", rootName);
+				message = _("org.syncany.gui.tray.TrayIcon.notify.synced.message", StringUtil.join(messageParts, ", "), rootName);
 			}
 
 			displayNotification(subject, message);
@@ -269,12 +309,12 @@ public abstract class TrayIcon {
 	}
 
 	private void initInternationalization() {
-		messages.put("tray.menuitem.new", I18n.getString("tray.menuitem.new"));
-		messages.put("tray.menuitem.status.insync", I18n.getString("tray.menuitem.status.insync"));
-		messages.put("tray.menuitem.issue", I18n.getString("tray.menuitem.issue"));
-		messages.put("tray.menuitem.donate", I18n.getString("tray.menuitem.donate"));
-		messages.put("tray.menuitem.exit", I18n.getString("tray.menuitem.exit"));
-		messages.put("tray.menuitem.website", I18n.getString("tray.menuitem.website"));
+		messages.put("tray.menuitem.new", _("tray.menuitem.new"));
+		messages.put("tray.menuitem.status.insync", _("tray.menuitem.status.insync"));
+		messages.put("tray.menuitem.issue", _("tray.menuitem.issue"));
+		messages.put("tray.menuitem.donate", _("tray.menuitem.donate"));
+		messages.put("tray.menuitem.exit", _("tray.menuitem.exit"));
+		messages.put("tray.menuitem.website", _("tray.menuitem.website"));
 	}
 
 	private void initAnimationThread() {
@@ -282,7 +322,7 @@ public abstract class TrayIcon {
 			@Override
 			public void run() {
 				while (true) {
-					while (syncingCount.get() <= 0) {
+					while (!syncing.get()) {
 						try {
 							Thread.sleep(200);
 						}
@@ -293,11 +333,14 @@ public abstract class TrayIcon {
 
 					int trayImageIndex = 0;
 
-					while (syncingCount.get() > 0) {
+					while (syncing.get()) {
 						try {
-							setTrayImage(TrayIconImage.getSyncImage(trayImageIndex));
-							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
+							TrayIconImage syncImage = TrayIconImage.getSyncImage(trayImageIndex);
+							setTrayImage(syncImage);
 
+							logger.log(Level.FINE, "Syncing image: Setting image to " + syncImage);
+
+							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
 							Thread.sleep(REFRESH_TIME);
 						}
 						catch (InterruptedException e) {
@@ -306,16 +349,39 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-					setStatusText("All files in sync");					
+					setStatusText(null, _("tray.menuitem.status.insync"));
+
+					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);
 				}
 			}
 		});
 
 		systemTrayAnimationThread.start();
 	}
-	
+
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
+		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
+	}
+
+	private void cleanSyncStatus() {
+		logger.log(Level.FINE, "Resetting sync status for clients.");
+		clientSyncStatus.clear();
+	}
+
+	private void updateSyncStatus(String root, boolean syncStatus) {
+		clientSyncStatus.put(root, syncStatus);
+		logger.log(Level.FINE, "Sync status for " + root + ": " + syncStatus);
+
+		// Update 'syncing' variable: Set true if any of the folders is syncing
+		Map<String, Boolean> syncingFolders = Maps.filterValues(clientSyncStatus, new Predicate<Boolean>() {
+			@Override
+			public boolean apply(Boolean syncStatus) {
+				return syncStatus;
+			}
+		});
+
+		syncing.set(syncingFolders.size() > 0);
 	}
 
 	// Abstract methods
@@ -324,7 +390,7 @@ public abstract class TrayIcon {
 
 	protected abstract void setWatchedFolders(List<File> folders);
 
-	protected abstract void setStatusText(String statusText);
+	protected abstract void setStatusText(String root, String statusText);
 
 	protected abstract void displayNotification(String subject, String message);
 
