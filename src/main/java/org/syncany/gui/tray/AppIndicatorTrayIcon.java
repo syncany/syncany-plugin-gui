@@ -190,7 +190,17 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 			if (message instanceof ClickTrayMenuFolderGuiInternalEvent) {
 				ClickTrayMenuFolderGuiInternalEvent folderClickEvent = (ClickTrayMenuFolderGuiInternalEvent) message;
-				showFolder(new File(folderClickEvent.getFolder()));
+				File folder = new File(folderClickEvent.getFolder());
+				
+				switch (folderClickEvent.getAction()) {
+				case OPEN:
+					showFolder(folder);
+					break;
+					
+				case REMOVE:
+					removeFolder(folder);
+					break;
+				}				
 			}
 			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
