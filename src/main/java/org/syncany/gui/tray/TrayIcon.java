@@ -21,7 +21,6 @@ import static org.syncany.gui.util.I18n._;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,7 +79,6 @@ public abstract class TrayIcon {
 	protected Shell trayShell;
 	protected WizardDialog wizard;
 	protected GuiEventBus eventBus;
-	protected Map<String, String> messages;
 
 	private Thread systemTrayAnimationThread;
 	private AtomicBoolean syncing;
@@ -89,7 +87,6 @@ public abstract class TrayIcon {
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
-		this.messages = new HashMap<String, String>();
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
@@ -98,7 +95,6 @@ public abstract class TrayIcon {
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
 
-		initInternationalization();
 		initAnimationThread();
 		initTrayImage();
 	}
@@ -319,15 +315,6 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
-	}
-
-	private void initInternationalization() {
-		messages.put("tray.menuitem.new", _("tray.menuitem.new"));
-		messages.put("tray.menuitem.status.insync", _("tray.menuitem.status.insync"));
-		messages.put("tray.menuitem.issue", _("tray.menuitem.issue"));
-		messages.put("tray.menuitem.donate", _("tray.menuitem.donate"));
-		messages.put("tray.menuitem.exit", _("tray.menuitem.exit"));
-		messages.put("tray.menuitem.website", _("tray.menuitem.website"));
 	}
 
 	private void initAnimationThread() {

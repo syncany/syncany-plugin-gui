@@ -73,7 +73,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
-	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; i18n = '%s'; exec urllib2.urlopen('%s').read()";
+	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; exec urllib2.urlopen('%s').read()";
 
 	private Undertow webServer;
 	private Process pythonProcess;
@@ -105,7 +105,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private void startTray() {
 		try {
 			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
-					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, messages.toString(), WEBSERVER_URL_SCRIPT });
+					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
 
 			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
