@@ -38,7 +38,6 @@ import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.CleanupEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.CleanupStartCleaningSyncExternalEvent;
-import org.syncany.operations.daemon.messages.CleanupStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
@@ -310,11 +309,6 @@ public abstract class TrayIcon {
 
 			displayNotification(subject, message);
 		}
-	}
-
-	@Subscribe
-	public void onCleanUpStartEventReceived(CleanupStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.cleanup.start"));
 	}
 
 	@Subscribe
