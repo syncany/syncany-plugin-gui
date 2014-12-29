@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@ import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.Watch.SyncStatus;
+import org.syncany.operations.daemon.messages.CleanupEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.CleanupStartCleaningSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
@@ -63,7 +65,7 @@ import com.google.common.eventbus.Subscribe;
  * a menu to control the application and the ability to display
  * notifications. The tray icon is the central entry point for
  * the application.
- * 
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -188,7 +190,7 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
 		if (syncEvent.getFileCount() > 0) {
-			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));			
+			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));
 		}
 		else {
 			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithoutFileCount"));
@@ -208,7 +210,7 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onUploadFileInTransactionEventReceived(UpUploadFileInTransactionSyncExternalEvent syncEvent) {
 		Long currentClientUploadFileSize = clientUploadFileSize.get(syncEvent.getRoot());
-				
+
 		if (currentClientUploadFileSize == null || syncEvent.getCurrentFileIndex() <= 1) {
 			currentClientUploadFileSize = 0L;
 		}
@@ -216,7 +218,8 @@ public abstract class TrayIcon {
 		String uploadedTotalStr = FileUtil.formatFileSize(currentClientUploadFileSize);
 		int uploadedPercent = (int) Math.round((double) currentClientUploadFileSize / syncEvent.getTotalFileSize() * 100);
 
-		String statusText = _("org.syncany.gui.tray.TrayIcon.up.uploadFileInTransaction", syncEvent.getCurrentFileIndex(), syncEvent.getTotalFileCount(), uploadedTotalStr, uploadedPercent);
+		String statusText = _("org.syncany.gui.tray.TrayIcon.up.uploadFileInTransaction", syncEvent.getCurrentFileIndex(),
+				syncEvent.getTotalFileCount(), uploadedTotalStr, uploadedPercent);
 		setStatusText(syncEvent.getRoot(), statusText);
 
 		currentClientUploadFileSize += syncEvent.getCurrentFileSize();
@@ -257,17 +260,17 @@ public abstract class TrayIcon {
 			if (totalChangedFiles == 1) {
 				if (changeSet.getNewFiles().size() == 1) {
 					subject = _("org.syncany.gui.tray.TrayIcon.notify.added.subject", changeSet.getNewFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.added.message", changeSet.getNewFiles().first(), rootName); 														
+					message = _("org.syncany.gui.tray.TrayIcon.notify.added.message", changeSet.getNewFiles().first(), rootName);
 				}
 
 				if (changeSet.getChangedFiles().size() == 1) {
 					subject = _("org.syncany.gui.tray.TrayIcon.notify.changed.subject", changeSet.getChangedFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.changed.message", changeSet.getChangedFiles().first(), rootName); 														
+					message = _("org.syncany.gui.tray.TrayIcon.notify.changed.message", changeSet.getChangedFiles().first(), rootName);
 				}
 
 				if (changeSet.getDeletedFiles().size() == 1) {
 					subject = _("org.syncany.gui.tray.TrayIcon.notify.deleted.subject", changeSet.getDeletedFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.deleted.message", changeSet.getDeletedFiles().first(), rootName); 														
+					message = _("org.syncany.gui.tray.TrayIcon.notify.deleted.message", changeSet.getDeletedFiles().first(), rootName);
 				}
 			}
 			else {
@@ -306,6 +309,16 @@ public abstract class TrayIcon {
 
 			displayNotification(subject, message);
 		}
+	}
+
+	@Subscribe
+	public void onCleanupStartCleaningEventReceived(CleanupStartCleaningSyncExternalEvent syncEvent) {
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.cleanup.startcleaning"));
+	}
+
+	@Subscribe
+	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
+		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
 	}
 
 	private void initInternationalization() {
