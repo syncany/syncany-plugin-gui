@@ -45,8 +45,8 @@ import org.syncany.database.SqlDatabase;
 import org.syncany.database.dao.DatabaseXmlSerializer;
 import org.syncany.operations.AbstractTransferOperation;
 import org.syncany.operations.cleanup.CleanupOperationResult.CleanupResultCode;
-import org.syncany.operations.daemon.messages.CleanUpEndSyncExternalEvent;
-import org.syncany.operations.daemon.messages.CleanUpStartSyncExternalEvent;
+import org.syncany.operations.daemon.messages.CleanupEndSyncExternalEvent;
+import org.syncany.operations.daemon.messages.CleanupStartSyncExternalEvent;
 import org.syncany.operations.down.DownOperation;
 import org.syncany.operations.ls_remote.LsRemoteOperation;
 import org.syncany.operations.ls_remote.LsRemoteOperationResult;
@@ -187,7 +187,7 @@ public class CleanupOperation extends AbstractTransferOperation {
 	 * @return result The original result, with the relevant {@link CleanupResultCode}
 	 */
 	private CleanupOperationResult updateResultCode(CleanupOperationResult result) {
-		if (result.getMergedDatabaseFilesCount() > 0 || result.getRemovedMultiChunks().size() > 0 || result.getRemovedOldVersionsCount() > 0) {
+		if (result.getMergedDatabaseFilesCount() > 0 || result.getRemovedMultiChunksCount() > 0 || result.getRemovedOldVersionsCount() > 0) {
 			result.setResultCode(CleanupResultCode.OK);
 		}
 		else {
@@ -198,11 +198,11 @@ public class CleanupOperation extends AbstractTransferOperation {
 	}
 
 	private void fireStartEvent() {
-		eventBus.post(new CleanUpStartSyncExternalEvent(config.getLocalDir().getAbsolutePath()));
+		eventBus.post(new CleanupStartSyncExternalEvent(config.getLocalDir().getAbsolutePath()));
 	}
 
 	private void fireEndEvent() {
-		eventBus.post(new CleanUpEndSyncExternalEvent(config.getLocalDir().getAbsolutePath(), result.getResultCode()));
+		eventBus.post(new CleanupEndSyncExternalEvent(config.getLocalDir().getAbsolutePath(), result));
 	}
 
 	/**
@@ -271,8 +271,15 @@ public class CleanupOperation extends AbstractTransferOperation {
 		deleteUnusedRemoteMultiChunks(unusedMultiChunks);
 
 		// Update stats
+		long unusedMultiChunkSize = 0;
+
+		for (MultiChunkEntry removedMultiChunk : unusedMultiChunks.values()) {
+			unusedMultiChunkSize += removedMultiChunk.getSize();
+		}
+
 		result.setRemovedOldVersionsCount(purgeFileVersions.size());
-		result.setRemovedMultiChunks(unusedMultiChunks);
+		result.setRemovedMultiChunksCount(unusedMultiChunks.size());
+		result.setRemovedMultiChunksSize(unusedMultiChunkSize);
 	}
 
 	/**

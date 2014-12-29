@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,23 @@
  */
 package org.syncany.operations.daemon.messages;
 
-public class CleanUpStartSyncExternalEvent extends SyncExternalEvent {
-	public CleanUpStartSyncExternalEvent() {
+import org.simpleframework.xml.Element;
+import org.syncany.operations.cleanup.CleanupOperationResult;
+
+public class CleanupEndSyncExternalEvent extends SyncExternalEvent {
+	@Element(name = "result", required = true)
+	private CleanupOperationResult result;
+
+	public CleanupEndSyncExternalEvent() {
 		// Nothing
 	}
 	
-	public CleanUpStartSyncExternalEvent(String root) {
-		super(root);
+	public CleanupEndSyncExternalEvent(String root, CleanupOperationResult result) {
+		super(root);		
+		this.result = result;
+	}
+	
+	public CleanupOperationResult getResult() {
+		return result;
 	}
 }
