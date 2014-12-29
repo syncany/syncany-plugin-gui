@@ -17,6 +17,8 @@
  */
 package org.syncany.operations;
 
+import org.simpleframework.xml.Root;
+
 /**
  * Marker interface to indicate a result for a given {@link Operation}.
  * 
@@ -27,6 +29,7 @@ package org.syncany.operations;
  * @see OperationOptions
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
+@Root(strict = false)
 public interface OperationResult {
 	// Marker interface for type safety
 }
