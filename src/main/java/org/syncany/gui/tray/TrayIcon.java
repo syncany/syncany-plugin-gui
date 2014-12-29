@@ -312,12 +312,12 @@ public abstract class TrayIcon {
 	}
 
 	@Subscribe
-	public void onCleanUpStartCleaningEventReceived(CleanupStartCleaningSyncExternalEvent syncEvent) {
+	public void onCleanupStartCleaningEventReceived(CleanupStartCleaningSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.cleanup.startcleaning"));
 	}
 
 	@Subscribe
-	public void onCleanUpEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
+	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
 	}
 
