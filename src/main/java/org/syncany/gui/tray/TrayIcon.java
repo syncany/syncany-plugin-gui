@@ -116,6 +116,10 @@ public abstract class TrayIcon {
 	protected void showFolder(File folder) {
 		DesktopUtil.launch(folder.getAbsolutePath());
 	}
+	
+	protected void removeFolder(File folder) {
+		// To be implemented
+	}
 
 	protected void showReportIssue() {
 		DesktopUtil.launch(URL_REPORT_ISSUE);
@@ -224,7 +228,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 
 	@Subscribe
@@ -314,7 +318,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("tray.menuitem.status.insync"));
+		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 
 	private void initAnimationThread() {
@@ -349,7 +353,7 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-					setStatusText(null, _("tray.menuitem.status.insync"));
+					setStatusText(null, _("org.syncany.gui.tray.TrayIcon.insync"));
 
 					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);
 				}

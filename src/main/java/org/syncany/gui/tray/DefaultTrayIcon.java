@@ -174,13 +174,31 @@ public class DefaultTrayIcon extends TrayIcon {
 		if (watches != null && watches.size() > 0) {
 			for (final File folder : watches) {
 				if (!watchedFolderMenuItems.containsKey(folder.getAbsolutePath())) {
-					if (folder.exists()) {
+					if (folder.exists()) {		
+						// Menu item for folder  (with submenu)
 						MenuItem folderMenuItem = new MenuItem(menu, SWT.CASCADE);
 						folderMenuItem.setText(folder.getName());
-						folderMenuItem.addSelectionListener(new SelectionAdapter() {
+						
+						Menu folderSubMenu = new Menu(menu);
+						folderMenuItem.setMenu(folderSubMenu);
+						
+						// Menu item for 'Remove' 
+						MenuItem folderOpenMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
+						folderOpenMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.open"));
+						folderOpenMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
 								showFolder(folder);
+							}
+						});
+						
+						// Menu item for 'Remove' 
+						MenuItem folderRemoveMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
+						folderRemoveMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.remove"));
+						folderRemoveMenuItem.addSelectionListener(new SelectionAdapter() {
+							@Override
+							public void widgetSelected(SelectionEvent e) {
+								removeFolder(folder);
 							}
 						});
 
