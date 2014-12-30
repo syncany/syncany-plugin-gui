@@ -34,9 +34,11 @@ import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.Watch;
+import org.syncany.operations.daemon.ControlServer.ControlCommand;
 import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.CleanupEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.CleanupStartCleaningSyncExternalEvent;
+import org.syncany.operations.daemon.messages.ControlManagementRequest;
 import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
@@ -45,6 +47,8 @@ import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
+import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
@@ -117,10 +121,6 @@ public abstract class TrayIcon {
 		DesktopUtil.launch(folder.getAbsolutePath());
 	}
 	
-	protected void removeFolder(File folder) {
-		// To be implemented
-	}
-
 	protected void showReportIssue() {
 		DesktopUtil.launch(URL_REPORT_ISSUE);
 	}
@@ -138,6 +138,21 @@ public abstract class TrayIcon {
 		eventBus.post(new ExitGuiInternalEvent());
 	}
 
+	protected void removeFolder(File folder) {
+		eventBus.post(new RemoveWatchManagementRequest(folder));
+	}
+
+	@Subscribe
+	public void onRemoveWatchResponseReceived(RemoveWatchManagementResponse removeWatchResponse) {		
+		if (removeWatchResponse.getCode() == RemoveWatchManagementResponse.OKAY) {
+			logger.log(Level.INFO, "Watch removed successfully from daemon config. Now reloading daemon.");
+			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
+		}
+		else {
+			logger.log(Level.WARNING, "Watch NOT removed from daemon config. Doing nothing.");
+		}
+	}
+	
 	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
