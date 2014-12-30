@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,36 +17,18 @@
  */
 package org.syncany.operations.daemon.messages;
 
-import org.simpleframework.xml.Element;
+import org.syncany.operations.daemon.messages.api.ManagementResponse;
 
-public class ClickTrayMenuFolderGuiInternalEvent extends GuiInternalEvent {
-	public enum ClickAction {
-		OPEN, REMOVE
-	}
+public class RemoveWatchManagementResponse extends ManagementResponse {
+	public static final int OKAY = 200;
+	public static final int ERR_DOES_NOT_EXIST = 501;
+	public static final int ERR_OTHER = 502;
 	
-	@Element(name = "folder")
-	private String folder;
-	
-	@Element(name = "action")
-	private ClickAction action;
-
-	public ClickTrayMenuFolderGuiInternalEvent() {
+	public RemoveWatchManagementResponse() {
 		// Nothing
 	}
-
-	public ClickTrayMenuFolderGuiInternalEvent(String folder) {
-		this.folder = folder;
-	}
-
-	public String getFolder() {
-		return folder;
-	}
-
-	public ClickAction getAction() {
-		return action;
-	}
-
-	public void setAction(ClickAction action) {
-		this.action = action;
+	
+	public RemoveWatchManagementResponse(int code, Integer requestId, String message) {
+		super(code, requestId, message);
 	}
 }

@@ -149,10 +149,23 @@ def do_update_menu(request):
 		folders = request.xpath("//folder")
 	
 		for folder in folders:
-			menu_item_folder = gtk.MenuItem(os.path.basename(folder.text))
-			menu_item_folder.connect("activate", menu_item_folder_clicked, folder.text)
+			# Create submenu
+			sub_menu_folder = gtk.Menu()
+			
+			menu_item_folder_open = gtk.MenuItem("Open folder")
+			menu_item_folder_open.connect("activate", menu_item_folder_open_clicked, folder.text)
+					
+			menu_item_folder_remove = gtk.MenuItem("Remove folder")
+			menu_item_folder_remove.connect("activate", menu_item_folder_remove_clicked, folder.text)
 		
-			menu.append(menu_item_folder)
+			sub_menu_folder.append(menu_item_folder_open)
+			sub_menu_folder.append(menu_item_folder_remove)
+			
+			# Create folder menu item
+			menu_item_folder = gtk.MenuItem(os.path.basename(folder.text))
+			menu_item_folder.set_submenu(sub_menu_folder)
+		
+			menu.append(menu_item_folder)			
 		
 		if len(folders) > 0:
 			# ---
@@ -218,9 +231,13 @@ def menu_item_clicked(widget, message):
 		time.sleep(2)
 		sys.exit(0)
 
-def menu_item_folder_clicked(widget, folder):
-	do_print("Folder item '" + folder + "' clicked.")
-	ws.send("<clickTrayMenuFolderGuiInternalEvent><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+def menu_item_folder_open_clicked(widget, folder):
+	do_print("Opening folder '" + folder + "' ...")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>OPEN</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+
+def menu_item_folder_remove_clicked(widget, folder):
+	do_print("Removing folder '" + folder + "' ...")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>REMOVE</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def do_kill():
 	# Note: this method cannot contain any do_print() calls since it is called

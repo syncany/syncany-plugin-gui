@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,36 +17,28 @@
  */
 package org.syncany.operations.daemon.messages;
 
+import java.io.File;
+
 import org.simpleframework.xml.Element;
+import org.syncany.operations.daemon.messages.api.ManagementRequest;
 
-public class ClickTrayMenuFolderGuiInternalEvent extends GuiInternalEvent {
-	public enum ClickAction {
-		OPEN, REMOVE
-	}
-	
-	@Element(name = "folder")
-	private String folder;
-	
-	@Element(name = "action")
-	private ClickAction action;
+public class RemoveWatchManagementRequest extends ManagementRequest {
+	@Element(name = "watch", required = true)
+	private File watch;
 
-	public ClickTrayMenuFolderGuiInternalEvent() {
+	public RemoveWatchManagementRequest() {
 		// Nothing
 	}
 
-	public ClickTrayMenuFolderGuiInternalEvent(String folder) {
-		this.folder = folder;
+	public RemoveWatchManagementRequest(File watch) {
+		this.watch = watch;
 	}
 
-	public String getFolder() {
-		return folder;
+	public File getWatch() {
+		return watch;
 	}
 
-	public ClickAction getAction() {
-		return action;
-	}
-
-	public void setAction(ClickAction action) {
-		this.action = action;
-	}
+	public void setWatch(File watch) {
+		this.watch = watch;
+	}		
 }
