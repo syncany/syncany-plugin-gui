@@ -153,9 +153,7 @@ public class GuiOperation extends Operation {
 
 	private void initInternationalization() {
 		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");
-
 		I18n.registerBundleName(intlPackage + "/i18n/messages");
-		I18n.registerBundleFilter("plugin_messages*");
 	}
 
 	private void initTray() {

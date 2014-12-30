@@ -17,10 +17,13 @@
  */
 package org.syncany.gui.tray;
 
+import static org.syncany.gui.util.I18n._;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -54,7 +57,9 @@ public class DefaultTrayIcon extends TrayIcon {
 	protected Map<TrayIconImage, Image> images;
 
 	private Menu menu;
-	private MenuItem statusTextItem;
+	private List<File> watches;
+	private Map<String, MenuItem> statusTextItems = new TreeMap<String, MenuItem>();
+	private Map<String, String> statusTexts = new TreeMap<String, String>();
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
 
 	public DefaultTrayIcon(final Shell shell, final TrayIconTheme theme) {
@@ -109,30 +114,67 @@ public class DefaultTrayIcon extends TrayIcon {
 		}
 	}
 
+	private void buildMenuItems() {
+		buildMenuItems(watches);
+	}
+
 	private void buildMenuItems(final List<File> watches) {
+		this.watches = watches;
+
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
 		}
 
-		// Clear old items (if any)
 		clearMenuItems();
 
-		// Create new items
-		statusTextItem = new MenuItem(menu, SWT.PUSH);
-		statusTextItem.setText(messages.get("tray.menuitem.status.insync"));
-		statusTextItem.setEnabled(false);
+		buildStatusTextMenuItems();
+		buildNewWatchMenuItem();
+		buildWatchMenuItems();
+		buildStaticMenuItems();
+	}
 
+	private void buildStatusTextMenuItems() {
+		String inSyncStatusText = _("org.syncany.gui.tray.TrayIcon.insync");
+
+		// Create per-folder status text item
+		for (String root : statusTexts.keySet()) {
+			boolean watchIsInSync = statusTexts.get(root).equals(inSyncStatusText);
+
+			if (!watchIsInSync) {
+				String statusTextPrefix = new File(root).getName();
+
+				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
+				statusTextItem.setText(statusTextPrefix + "\n" + statusTexts.get(root));
+				statusTextItem.setEnabled(false);
+
+				statusTextItems.put(root, statusTextItem);
+			}
+		}
+
+		// Or, if they are all in sync, create a global one
+		if (statusTextItems.isEmpty()) {
+			MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
+			statusTextItem.setText(inSyncStatusText);
+			statusTextItem.setEnabled(false);
+
+			statusTextItems.put("GLOBAL", statusTextItem);
+		}
+	}
+
+	private void buildNewWatchMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
-		newItem.setText(messages.get("tray.menuitem.new"));
+		newItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.new"));
 		newItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				showNew();
 			}
 		});
+	}
 
+	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches != null && watches.size() > 0) {
@@ -170,9 +212,11 @@ public class DefaultTrayIcon extends TrayIcon {
 
 			new MenuItem(menu, SWT.SEPARATOR);
 		}
+	}
 
+	private void buildStaticMenuItems() {
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
-		reportIssueItem.setText(messages.get("tray.menuitem.issue"));
+		reportIssueItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -181,7 +225,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 
 		MenuItem donateItem = new MenuItem(menu, SWT.PUSH);
-		donateItem.setText(messages.get("tray.menuitem.donate"));
+		donateItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.donate"));
 		donateItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -190,7 +234,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 
 		MenuItem websiteItem = new MenuItem(menu, SWT.PUSH);
-		websiteItem.setText(messages.get("tray.menuitem.website"));
+		websiteItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.website"));
 		websiteItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -201,7 +245,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem exitMenu = new MenuItem(menu, SWT.PUSH);
-		exitMenu.setText(messages.get("tray.menuitem.exit"));
+		exitMenu.setText(_("org.syncany.gui.tray.TrayIcon.menu.exit"));
 		exitMenu.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -220,6 +264,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 			// Clear menu item cache
 			watchedFolderMenuItems.clear();
+			statusTextItems.clear();
 		}
 	}
 
@@ -233,10 +278,17 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	public void setStatusText(final String statusText) {
+	public void setStatusText(final String root, final String statusText) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				statusTextItem.setText(statusText);
+				if (root != null) {
+					statusTexts.put(root, statusText);
+				}
+				else {
+					statusTexts.clear();
+				}
+
+				buildMenuItems();
 			}
 		});
 	}

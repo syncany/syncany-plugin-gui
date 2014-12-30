@@ -33,8 +33,8 @@ import org.eclipse.swt.widgets.Shell;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class DesktopHelper {
-	private static final Logger logger = Logger.getLogger(DesktopHelper.class.getSimpleName());
+public class DesktopUtil {
+	private static final Logger logger = Logger.getLogger(DesktopUtil.class.getSimpleName());
 
 	/**
 	 * Launches a program or a URL using SWT's {@link Program}
