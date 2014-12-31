@@ -154,25 +154,25 @@ public class PluginsPanel extends Panel {
 	    TableColumn pluginTableColumnImage = new TableColumn(pluginTable, SWT.CENTER);
 	    pluginTableColumnImage.setWidth(30);
 
-	    TableColumn pluginTableColumnText = new TableColumn(pluginTable,  SWT.LEFT);
+	    TableColumn pluginTableColumnText = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnText.setText(_("org.syncany.gui.preferences.PluginsPanel.table.plugin"));
 	    pluginTableColumnText.setWidth(100);	    
 
-	    TableColumn pluginTableColumnLocalVersion = new TableColumn(pluginTable,  SWT.LEFT);
+	    TableColumn pluginTableColumnLocalVersion = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnLocalVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.localVersion"));
-	    pluginTableColumnLocalVersion.setWidth(75);	    
+	    pluginTableColumnLocalVersion.setWidth(80);	    
 
-	    TableColumn pluginTableColumnType = new TableColumn(pluginTable,  SWT.LEFT);
+	    TableColumn pluginTableColumnType = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnType.setText(_("org.syncany.gui.preferences.PluginsPanel.table.type"));
-	    pluginTableColumnType.setWidth(30);	    
+	    pluginTableColumnType.setWidth(50);	    
 
-	    TableColumn pluginTableColumnRemoteVersion = new TableColumn(pluginTable,  SWT.LEFT);
+	    TableColumn pluginTableColumnRemoteVersion = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnRemoteVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.remoteVersion"));
-	    pluginTableColumnRemoteVersion.setWidth(75);
+	    pluginTableColumnRemoteVersion.setWidth(80);
 	    
-	    TableColumn pluginTableColumnStatus = new TableColumn(pluginTable,  SWT.LEFT);
+	    TableColumn pluginTableColumnStatus = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnStatus.setText(_("org.syncany.gui.preferences.PluginsPanel.table.status"));
-	    pluginTableColumnStatus.setWidth(30);	    
+	    pluginTableColumnStatus.setWidth(10);	    
 	}
 
 	private void createStatusLabel() {
@@ -407,12 +407,14 @@ public class PluginsPanel extends Panel {
 	private void onPluginRemoveResponseReceived(final PluginManagementResponse pluginResponse) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
-			public void run() {		
+			public void run() {
+				String pluginName = pluginResponse.getResult().getAffectedPluginInfo().getPluginName();					
+
 				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
-					setStatusText("Plugin removed.");
+					setStatusText(_("org.syncany.gui.preferences.PluginsPanel.status.pluginRemoved", pluginName));
 				}
 				else {
-					setStatusText("Plugin not removed.");					
+					setStatusText(_("org.syncany.gui.preferences.PluginsPanel.status.pluginNotRemoved", pluginName));					
 				}
 				
 				requestRunning.set(false);
