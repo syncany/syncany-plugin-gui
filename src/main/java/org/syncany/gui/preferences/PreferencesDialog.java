@@ -38,6 +38,8 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
+import org.syncany.gui.Dialog;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
@@ -47,7 +49,7 @@ import org.syncany.gui.util.WidgetDecorator;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class PreferencesDialog {
+public class PreferencesDialog extends Dialog {
 	private static final String NAV_ICON_RESOURCE_FORMAT = "/" + PreferencesDialog.class.getPackage().getName().replace('.', '/') + "/nav-%s.png";
 
 	private enum NavSelection {
@@ -288,7 +290,11 @@ public class PreferencesDialog {
 	public void safeDispose() {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
-			public void run() {				
+			public void run() {	
+				if (!pluginsPanel.isDisposed()) {
+					pluginsPanel.dispose();
+				}
+				
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
 				}

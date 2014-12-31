@@ -44,6 +44,7 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.PluginManagementRequest;
@@ -484,5 +485,16 @@ public class PluginsPanel extends Panel {
 
 		statusLabel.getParent().layout();
 		statusLabel.redraw();
+	}
+	
+	@Override
+	public void dispose() {
+		eventBus.unregister(this);
+		super.dispose();
+	}
+
+	@Override
+	public boolean validatePanel() {
+		return true;
 	}
 }

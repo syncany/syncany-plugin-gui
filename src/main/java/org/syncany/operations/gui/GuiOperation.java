@@ -26,6 +26,7 @@ import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.LocalEventBus;
 import org.syncany.config.Logging;
@@ -33,7 +34,6 @@ import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.tray.TrayIcon;
 import org.syncany.gui.tray.TrayIconFactory;
-import org.syncany.gui.tray.TrayIconType;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.Operation;
@@ -51,8 +51,6 @@ import com.google.common.eventbus.Subscribe;
  */
 public class GuiOperation extends Operation {	
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());	
-	private static final String GUI_CONFIG_FILE = "gui.xml";
-	private static final String GUI_CONFIG_EXAMPLE_FILE = "gui-example.xml";
 	
 	private GuiConfigTO guiConfig;
 	
@@ -97,32 +95,11 @@ public class GuiOperation extends Operation {
 		startEventDispatchLoop();
 		
 		return null;
+	}	
+
+	private void loadOrCreateGuiConfig() {
+		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
 	}
-	
-	private void loadOrCreateGuiConfig() {	
-		try {
-			File configFile = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_FILE);
-			File configFileExample = new File(UserConfig.getUserConfigDir(), GUI_CONFIG_EXAMPLE_FILE);
-			
-			if (configFile.exists()) {
-				guiConfig = GuiConfigTO.load(configFile);
-			}
-			else {
-				// Write example config to daemon-example.xml, and default config to daemon.xml
-				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
-				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
-				
-				GuiConfigTO.save(exampleGuiConfig, configFileExample);
-				
-				// Use default settings
-				guiConfig = new GuiConfigTO();
-			}			
-		}
-		catch (Exception e) {
-			logger.log(Level.WARNING, "Cannot (re-)load config. Using default config.", e);
-			guiConfig = new GuiConfigTO();
-		}
-	}		
 
 	private void initEventBus() {
 		eventBus = GuiEventBus.getInstance();

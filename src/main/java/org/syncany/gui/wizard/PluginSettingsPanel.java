@@ -32,6 +32,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;

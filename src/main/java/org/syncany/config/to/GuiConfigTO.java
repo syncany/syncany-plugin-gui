@@ -26,12 +26,16 @@ import org.syncany.config.ConfigException;
 import org.syncany.gui.tray.TrayIconType;
 
 @Root(name = "gui", strict = false)
-public class GuiConfigTO {
+public class GuiConfigTO {	
 	@Element(name = "tray", required = false)
 	private TrayIconType tray;
 	
+	@Element(name = "notifications", required = false)
+	private boolean notifications;
+	
 	public GuiConfigTO() {
-		// Nothing
+		this.tray = null;
+		this.notifications = true;
 	}
 	
 	public static GuiConfigTO load(File file) throws ConfigException {
@@ -58,5 +62,13 @@ public class GuiConfigTO {
 	
 	public void setTray(TrayIconType tray) {
 		this.tray = tray;
+	}
+
+	public boolean isNotifications() {
+		return notifications;
+	}
+
+	public void setNotifications(boolean notifications) {
+		this.notifications = notifications;
 	}
 }

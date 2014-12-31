@@ -29,7 +29,9 @@ import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
+import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.wizard.WizardDialog;
@@ -46,6 +48,7 @@ import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
+import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
@@ -84,6 +87,8 @@ public abstract class TrayIcon {
 	protected Shell trayShell;
 	protected WizardDialog wizard;
 	protected PreferencesDialog preferences;
+	
+	protected GuiConfigTO guiConfig;
 	protected GuiEventBus eventBus;
 
 	private Thread systemTrayAnimationThread;
@@ -94,6 +99,8 @@ public abstract class TrayIcon {
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
 
+		this.guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
+		
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 
@@ -279,9 +286,10 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
 		// Display notification
+		boolean notificationsEnabled = guiConfig.isNotifications();
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
-		if (changeSet.hasChanges()) {
+		if (notificationsEnabled && changeSet.hasChanges()) {
 			String rootName = new File(downEndSyncEvent.getRoot()).getName();
 			int totalChangedFiles = changeSet.getNewFiles().size() + changeSet.getChangedFiles().size() + changeSet.getDeletedFiles().size();
 
@@ -350,6 +358,11 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.insync"));
+	}
+	
+	@Subscribe
+	public void onGuiConfigChanged(GuiConfigChangedGuiInternalEvent guiConfigChangedEvent) {
+		this.guiConfig = guiConfigChangedEvent.getNewGuiConfig();
 	}
 
 	private void initAnimationThread() {

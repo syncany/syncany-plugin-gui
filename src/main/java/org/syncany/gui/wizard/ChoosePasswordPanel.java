@@ -11,6 +11,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 

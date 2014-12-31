@@ -35,6 +35,8 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
+import org.syncany.gui.Dialog;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
@@ -47,7 +49,7 @@ import com.google.common.collect.Lists;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class WizardDialog {
+public class WizardDialog extends Dialog {
 	public enum Action {
 		PREVIOUS, NEXT, FINISH
 	};

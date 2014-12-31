@@ -31,6 +31,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.WidgetDecorator;
 
 /**
@@ -205,6 +206,12 @@ public class ProgressPanel extends Panel {
 		});
 	}
 
+	@Override
+	public void dispose() {
+		eventBus.unregister(this);
+		super.dispose();
+	}
+	
 	@Override
 	public boolean validatePanel() {
 		return true;
