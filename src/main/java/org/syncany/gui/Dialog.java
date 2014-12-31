@@ -17,6 +17,6 @@
  */
 package org.syncany.gui;
 
-public class Dialog {
-
+public abstract class Dialog {
+	// Nothing.
 }
