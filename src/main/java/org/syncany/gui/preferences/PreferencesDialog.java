@@ -42,7 +42,6 @@ import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.plugins.Plugin;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -76,8 +75,8 @@ public class PreferencesDialog {
 
 		Shell shell = new Shell();
 
-		PreferencesDialog wizardDialog = new PreferencesDialog(shell);
-		wizardDialog.open();
+		PreferencesDialog dialog = new PreferencesDialog(shell);
+		dialog.open();
 
 		shell.dispose();
 	}
@@ -128,7 +127,7 @@ public class PreferencesDialog {
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
-		windowShell.setText("Syncany Preferences");
+		windowShell.setText(I18n._("org.syncany.gui.preferences.PreferencesDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 		
 		// Navigation table (row 1, column 1) and stack composite (row 1, column 2)
@@ -197,7 +196,10 @@ public class PreferencesDialog {
 	    TableItem navPluginsTableItem = new TableItem(navTable, SWT.NONE);		    
 	    navPluginsTableItem.setImage(0, navPluginsImage);
 	    navPluginsTableItem.setText(1, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.plugins"));		    
-	    navPluginsTableItem.setData(NavSelection.PLUGINS);		
+	    navPluginsTableItem.setData(NavSelection.PLUGINS);	
+	    
+	    // Select 'General'
+	    navTable.select(0);
 	}
 	
 	private void createStackComposite() {

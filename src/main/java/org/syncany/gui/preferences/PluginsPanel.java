@@ -20,7 +20,11 @@ package org.syncany.gui.preferences;
 import static org.syncany.gui.util.I18n._;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -52,19 +56,21 @@ import org.syncany.operations.plugin.PluginOperationOptions.PluginListMode;
 import org.syncany.operations.plugin.PluginOperationResult;
 import org.syncany.operations.plugin.PluginOperationResult.PluginResultCode;
 import org.syncany.plugins.Plugin;
+import org.syncany.plugins.gui.GuiPlugin;
 
 import com.google.common.eventbus.Subscribe;
 
 public class PluginsPanel extends Panel {
+	private static final Logger logger = Logger.getLogger(PluginsPanel.class.getSimpleName());		
 	private static final String PLUGIN_ICON_RESOURCE_FORMAT = "/" + Plugin.class.getPackage().getName().replace('.', '/') + "/%s/icon24.png";
 
-	private Table pluginTable;
-	private Label statusLabel;
+	private enum ActionButton {
+		INSTALL, UPDATE, REMOVE
+	}
 	
+	private Table pluginTable;
+	private Label statusLabel;	
 	private Composite actionButtonComposite;
-	private Button installPluginButton;
-	private Button updatePluginButton;
-	private Button removePluginButton;
 	
 	private ExtendedPluginInfo selectedPlugin;
 	private AtomicBoolean requestRunning;	
@@ -88,6 +94,8 @@ public class PluginsPanel extends Panel {
 
 		createPluginTable();
 		createStatusLabel();
+		
+	    createActionButtonComposite();
 	    createActionButtons();
 	    
 	    refreshPluginList();	      	  
@@ -114,7 +122,7 @@ public class PluginsPanel extends Panel {
 	private void createPluginTable() {
 		// Plugin list
 		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-		pluginTableGridData.verticalIndent = 0;
+		pluginTableGridData.verticalIndent = 5;
 		pluginTableGridData.horizontalIndent = 0;
 		pluginTableGridData.horizontalSpan = 2;
 		
@@ -147,37 +155,51 @@ public class PluginsPanel extends Panel {
 	    pluginTableColumnImage.setWidth(30);
 
 	    TableColumn pluginTableColumnText = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnText.setText("Plugin");
+	    pluginTableColumnText.setText(_("org.syncany.gui.preferences.PluginsPanel.table.plugin"));
 	    pluginTableColumnText.setWidth(100);	    
 
 	    TableColumn pluginTableColumnLocalVersion = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnLocalVersion.setText("Local Version");
-	    pluginTableColumnLocalVersion.setWidth(70);	    
+	    pluginTableColumnLocalVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.localVersion"));
+	    pluginTableColumnLocalVersion.setWidth(75);	    
 
 	    TableColumn pluginTableColumnType = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnType.setText("Type");
-	    pluginTableColumnType.setWidth(45);	    
+	    pluginTableColumnType.setText(_("org.syncany.gui.preferences.PluginsPanel.table.type"));
+	    pluginTableColumnType.setWidth(30);	    
 
 	    TableColumn pluginTableColumnRemoteVersion = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnRemoteVersion.setText("Remote Version");
-	    pluginTableColumnRemoteVersion.setWidth(30);
+	    pluginTableColumnRemoteVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.remoteVersion"));
+	    pluginTableColumnRemoteVersion.setWidth(75);
+	    
+	    TableColumn pluginTableColumnStatus = new TableColumn(pluginTable,  SWT.LEFT);
+	    pluginTableColumnStatus.setText(_("org.syncany.gui.preferences.PluginsPanel.table.status"));
+	    pluginTableColumnStatus.setWidth(30);	    
 	}
 
 	private void createStatusLabel() {
-		GridData statusLabelGridData = new GridData(SWT.LEFT, SWT.FILL, true, false);
+		RowLayout statusLabelRowLayout = new RowLayout(SWT.HORIZONTAL);
+		statusLabelRowLayout.marginTop = 20;
+		statusLabelRowLayout.marginBottom = 15;
+
+		GridData statusLabelGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
 		statusLabelGridData.horizontalSpan = 1;
 		statusLabelGridData.verticalSpan = 1;
+		statusLabelGridData.minimumWidth = 90;
+		statusLabelGridData.minimumHeight = 20;
 
-		statusLabel = new Label(this, SWT.NONE);
-		statusLabel.setText("");
-		statusLabel.setLayoutData(statusLabelGridData);
+		Composite statusLabelComposite = new Composite(this, SWT.NONE);
+		statusLabelComposite.setLayout(statusLabelRowLayout);
+		statusLabelComposite.setLayoutData(statusLabelGridData);		
+		
+		statusLabel = new Label(statusLabelComposite, SWT.NONE);
+		setStatusText("");	
+		
+		statusLabelComposite.layout();
 	}
 	
-	private void createActionButtons() {		
+	private void createActionButtonComposite() {		
 		RowLayout buttonCompositeRowLayout = new RowLayout(SWT.HORIZONTAL);
 		buttonCompositeRowLayout.marginTop = 15;
 		buttonCompositeRowLayout.marginBottom = 15;
-		buttonCompositeRowLayout.marginRight = 10;
 		
 		GridData buttonCompositeGridData = new GridData(SWT.RIGHT, SWT.FILL, false, false);
 		buttonCompositeGridData.horizontalSpan = 1;
@@ -185,21 +207,54 @@ public class PluginsPanel extends Panel {
 
 		actionButtonComposite = new Composite(this, SWT.NONE);
 		actionButtonComposite.setLayout(buttonCompositeRowLayout);
-		actionButtonComposite.setLayoutData(buttonCompositeGridData);
-				
-		installPluginButton = new Button(actionButtonComposite, SWT.NONE);
-		installPluginButton.setText("Install");
-	    installPluginButton.setVisible(false);
-	    
-	    installPluginButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				handleInstallPlugin();
-			}
-		});
-	    
+		actionButtonComposite.setLayoutData(buttonCompositeGridData);					  		
+	}	
+
+	private void createActionButtons(ActionButton... buttons) {
+		while (actionButtonComposite.getChildren().length > 0) {
+			actionButtonComposite.getChildren()[0].dispose();
+		}		
+		
+		List<ActionButton> buttonList = Arrays.asList(buttons);
+		
+		if (buttonList.contains(ActionButton.UPDATE)) {			
+			Button updatePluginButton = new Button(actionButtonComposite, SWT.NONE);
+			updatePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.update"));
+
+			updatePluginButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					handleUpdatePlugin();
+				}
+			});
+		}	   
+		
+		if (buttonList.contains(ActionButton.REMOVE)) {
+		    Button removePluginButton = new Button(actionButtonComposite, SWT.NONE);
+		    removePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.remove"));
+		    
+		    removePluginButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					handleRemovePlugin();
+				}
+			});	
+		}
+		
+		if (buttonList.contains(ActionButton.INSTALL)) {
+			Button installPluginButton = new Button(actionButtonComposite, SWT.NONE);
+			installPluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.install"));
+		    
+		    installPluginButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					handleInstallPlugin();
+				}
+			});
+		}
+		   
 	    Button installFromFilePluginButton = new Button(actionButtonComposite, SWT.NONE);
-	    installFromFilePluginButton.setText("Install from file ...");
+	    installFromFilePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.installFromFile"));
 	    
 	    installFromFilePluginButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -208,68 +263,50 @@ public class PluginsPanel extends Panel {
 			}
 		});
 	    
-	    updatePluginButton = new Button(actionButtonComposite, SWT.NONE);
-	    updatePluginButton.setText("Update");
-	    updatePluginButton.setVisible(false);
-	    
-	    updatePluginButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				handleUpdatePlugin();
-			}
-		});
-	    
-	    removePluginButton = new Button(actionButtonComposite, SWT.NONE);
-	    removePluginButton.setText("Remove");
-	    removePluginButton.setVisible(false);
-	    
-	    removePluginButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				handleRemovePlugin();
-			}
-		});				
-	}	
+	    actionButtonComposite.getParent().layout();
+	    actionButtonComposite.layout();
+	    actionButtonComposite.redraw();
+	}
 
 	protected void selectPlugin(ExtendedPluginInfo extPluginInfo) {
 		selectedPlugin = extPluginInfo;
 		
 		if (selectedPlugin != null) {
+			PluginInfo pluginInfo = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo() : extPluginInfo.getRemotePluginInfo();
+			
 			if (selectedPlugin.isInstalled()) {
 				if (selectedPlugin.canUninstall()) {
-					if (false) { // 
-						updatePluginButton.setVisible(true);
+					if (false /* Can update */) { 
+						logger.log(Level.FINE, "Plugin '" + pluginInfo.getPluginId() + "' can be updated and removed.");
+						createActionButtons(ActionButton.UPDATE, ActionButton.REMOVE);
 					}
-					
-					installPluginButton.setVisible(false);
-					removePluginButton.setVisible(true);
+					else {
+						logger.log(Level.FINE, "Plugin '" + pluginInfo.getPluginId() + "' can be removed (not updated).");
+						createActionButtons(ActionButton.REMOVE);
+					}
 				}
 				else {
-					installPluginButton.setVisible(false);
-					updatePluginButton.setVisible(false);
-					removePluginButton.setVisible(false);
+					logger.log(Level.FINE, "Plugin '" + pluginInfo.getPluginId() + "' cannot be uninstalled (or updated).");
+					createActionButtons();
 				}
 			}
 			else {
-				installPluginButton.setVisible(true);
-				updatePluginButton.setVisible(false);
-				removePluginButton.setVisible(false);
+				logger.log(Level.FINE, "Plugin '" + pluginInfo.getPluginId() + "' is not installed, it can be installed..");
+				createActionButtons(ActionButton.INSTALL);
 			}			
 		}
 		else {
-			installPluginButton.setVisible(false);
-			updatePluginButton.setVisible(false);
-			removePluginButton.setVisible(false);
-		}
-		
-		actionButtonComposite.layout();
+			logger.log(Level.FINE, "No plugin selected.");
+			createActionButtons();
+		}		
 	}
 	
 	protected void handleInstallPlugin() {
 		if (!requestRunning.get()) {
 			requestRunning.set(true);
-			statusLabel.setText("Installing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
-
+			
+			setStatusText("Installing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
+			
 			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
 			pluginOperationOptions.setAction(PluginOperationAction.INSTALL);
 			pluginOperationOptions.setPluginId(selectedPlugin.getRemotePluginInfo().getPluginId());
@@ -278,7 +315,7 @@ public class PluginsPanel extends Panel {
 		}
 	}
 
-	protected void handleInstallFromFilePlugin() {		
+	protected void handleInstallFromFilePlugin() {				
 		if (!requestRunning.get()) {
 			FileDialog fileDialog = new FileDialog(getShell(), SWT.OPEN);
 			fileDialog.setFilterExtensions(new String[] { "*.jar" });
@@ -289,7 +326,7 @@ public class PluginsPanel extends Panel {
 				File selectedFile = new File(selectedFilePath);
 				
 				requestRunning.set(true);
-				statusLabel.setText("Installing plugin from file '" + selectedFile.getName() + "' ...");
+				setStatusText("Installing plugin from file '" + selectedFile.getName() + "' ...");
 
 				PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
 				pluginOperationOptions.setAction(PluginOperationAction.INSTALL);
@@ -307,7 +344,7 @@ public class PluginsPanel extends Panel {
 	protected void handleRemovePlugin() {
 		if (!requestRunning.get()) {
 			requestRunning.set(true);
-			statusLabel.setText("Removing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
+			setStatusText("Removing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
 
 			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
 			pluginOperationOptions.setAction(PluginOperationAction.REMOVE);
@@ -319,19 +356,11 @@ public class PluginsPanel extends Panel {
 
 	private void refreshPluginList() {
 		requestRunning.set(true);
+		setStatusText("Retrieving plugin list ...");
 
-		pluginTable.clearAll();
-		statusLabel.setText("Retrieving plugin list ...");
-		
-		TableItem tableItem = new TableItem(pluginTable, SWT.DOUBLE_BUFFERED);
-	   
-	    tableItem.setText(0, "");
-	    tableItem.setText(1, "Updating ...");		    
-	    tableItem.setText(2, "");		    
-	    tableItem.setText(3, "");		    
-	    tableItem.setText(4, "");		
-
-	    pluginTable.layout();
+		while (pluginTable.getItemCount() > 0) {
+			pluginTable.getItem(0).dispose();
+		}				
 	    
 	    PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
 		pluginOperationOptions.setAction(PluginOperationAction.LIST);
@@ -356,22 +385,37 @@ public class PluginsPanel extends Panel {
 			break;				
 		}
 	}
-
-	private void onPluginRemoveResponseReceived(PluginManagementResponse pluginResponse) {
-		// TODO Auto-generated method stub
-		
-	}
-
+	
 	private void onPluginInstallResponseReceived(final PluginManagementResponse pluginResponse) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {		
+				String pluginName = pluginResponse.getResult().getAffectedPluginInfo().getPluginName();					
+
 				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
-					statusLabel.setText("Plugin installed.");
+					setStatusText(_("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalled", pluginName));
 				}
 				else {
-					statusLabel.setText("Plugin not installed.");					
+					setStatusText(_("org.syncany.gui.preferences.PluginsPanel.status.pluginNotInstalled", pluginName));					
 				}
+				
+				requestRunning.set(false);
+			}			
+		});		
+	}
+
+	private void onPluginRemoveResponseReceived(final PluginManagementResponse pluginResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {		
+				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
+					setStatusText("Plugin removed.");
+				}
+				else {
+					setStatusText("Plugin not removed.");					
+				}
+				
+				requestRunning.set(false);
 			}
 		});		
 	}
@@ -381,17 +425,27 @@ public class PluginsPanel extends Panel {
 			@Override
 			public void run() {
 				// Clear any items in there
-				pluginTable.clearAll();
+				while (pluginTable.getItemCount() > 0) {
+					pluginTable.getItem(0).dispose();
+				}
 				
 				// Create new items
 				PluginOperationResult pluginResult = pluginResponse.getResult();
+				String guiPluginId = new GuiPlugin().getId();
 				
-				for (ExtendedPluginInfo extPluginInfo : pluginResult.getPluginList()) {	   	    	
+				for (ExtendedPluginInfo extPluginInfo : pluginResult.getPluginList()) {						
 					PluginInfo pluginInfo = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo() : extPluginInfo.getRemotePluginInfo();
 
+					// Exclude GUI plugin
+					if (guiPluginId.equals(pluginInfo.getPluginId())) {
+						continue;
+					}
+					
+					// Get cell labels
 					String localVersionStr = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo().getPluginVersion() : "";
-					String installedStr = extPluginInfo.isInstalled() ? (extPluginInfo.canUninstall() ? "User" : "Global") : "";
+					String typeStr = extPluginInfo.isInstalled() ? (extPluginInfo.canUninstall() ? "User" : "Global") : "";
 					String remoteVersionStr = (extPluginInfo.isRemoteAvailable()) ? extPluginInfo.getRemotePluginInfo().getPluginVersion() : "";
+					String installedStr = extPluginInfo.isInstalled() ? "Installed" : "";
 					
 					// Find plugin image (if installed)
 					Image pluginImage = null;
@@ -411,14 +465,22 @@ public class PluginsPanel extends Panel {
 				    
 				    tableItem.setText(1, pluginInfo.getPluginName());		    
 				    tableItem.setText(2, localVersionStr);		    
-				    tableItem.setText(3, installedStr);		    
-				    tableItem.setText(4, remoteVersionStr);		    
+				    tableItem.setText(3, typeStr);		    
+				    tableItem.setText(4, remoteVersionStr);		
+				    tableItem.setText(5, installedStr);						    
 			    }	
 				
 				// Reset status text
-				statusLabel.setText("");
+				setStatusText("");
 				requestRunning.set(false);
 			}
 		});		
+	}	
+	
+	private void setStatusText(String status) {
+		statusLabel.setText(status);
+
+		statusLabel.getParent().layout();
+		statusLabel.redraw();
 	}
 }
