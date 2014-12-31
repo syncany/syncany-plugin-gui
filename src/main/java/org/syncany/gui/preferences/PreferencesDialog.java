@@ -123,7 +123,7 @@ public class PreferencesDialog {
 		shellGridLayout.verticalSpacing = 0;
 		shellGridLayout.numColumns = 2;
 
-		windowShell = new Shell(trayShell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+		windowShell = new Shell(trayShell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL | SWT.DOUBLE_BUFFERED);
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
@@ -210,7 +210,7 @@ public class PreferencesDialog {
 		GridData stackCompositeGridData = new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1);
 		stackCompositeGridData.minimumWidth = 500;
 
-		stackComposite = new Composite(windowShell, SWT.NONE);
+		stackComposite = new Composite(windowShell, SWT.DOUBLE_BUFFERED);
 		stackComposite.setLayout(stackLayout);
 		stackComposite.setLayoutData(stackCompositeGridData);
 
@@ -256,7 +256,7 @@ public class PreferencesDialog {
 
 	private void buildPanels() {
 		generalPanel = new GeneralPanel(this, stackComposite, SWT.NONE);
-		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.NONE);
+		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.DOUBLE_BUFFERED);
 	}
 
 	public Panel getCurrentPanel() {
