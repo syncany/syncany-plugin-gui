@@ -227,6 +227,17 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildStaticMenuItems() {
+		MenuItem preferencesItem = new MenuItem(menu, SWT.PUSH);
+		preferencesItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.preferences"));
+		preferencesItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showPreferences();
+			}
+		});
+
+		new MenuItem(menu, SWT.SEPARATOR);
+		
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
 		reportIssueItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {

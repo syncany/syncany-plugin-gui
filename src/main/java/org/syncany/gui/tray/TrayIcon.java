@@ -30,6 +30,7 @@ import java.util.logging.Logger;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
@@ -82,6 +83,7 @@ public abstract class TrayIcon {
 
 	protected Shell trayShell;
 	protected WizardDialog wizard;
+	protected PreferencesDialog preferences;
 	protected GuiEventBus eventBus;
 
 	private Thread systemTrayAnimationThread;
@@ -112,6 +114,20 @@ public abstract class TrayIcon {
 					wizard.open();
 
 					wizard = null;
+				}
+			}
+		});
+	}
+	
+	protected void showPreferences() {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (preferences == null) {
+					preferences = new PreferencesDialog(trayShell);
+					preferences.open();
+
+					preferences = null;
 				}
 			}
 		});

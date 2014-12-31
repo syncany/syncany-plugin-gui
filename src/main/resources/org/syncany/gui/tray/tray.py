@@ -171,6 +171,15 @@ def do_update_menu(request):
 			# ---
 			menu.append(gtk.SeparatorMenuItem())	
 	
+	# Preferences
+	menu_item_issue = gtk.MenuItem("Preferences ...")
+	menu_item_issue.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>PREFERENCES</action></clickTrayMenuGuiInternalEvent>")
+	
+	menu.append(menu_item_issue)	
+	
+	# ---
+	menu.append(gtk.SeparatorMenuItem())
+	
 	# Report a bug
 	menu_item_issue = gtk.MenuItem("Report a bug")
 	menu_item_issue.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>REPORT_ISSUE</action></clickTrayMenuGuiInternalEvent>")

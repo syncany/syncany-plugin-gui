@@ -31,6 +31,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>

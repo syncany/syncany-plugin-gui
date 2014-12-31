@@ -34,6 +34,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.transfer.FileType;
 import org.syncany.plugins.transfer.OAuthGenerator;
 import org.syncany.plugins.transfer.StorageException;

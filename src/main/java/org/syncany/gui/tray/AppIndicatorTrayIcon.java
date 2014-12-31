@@ -209,6 +209,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				case NEW:
 					showNew();
 					break;
+					
+				case PREFERENCES:
+					showPreferences();
+					break;
 
 				case REPORT_ISSUE:
 					showReportIssue();

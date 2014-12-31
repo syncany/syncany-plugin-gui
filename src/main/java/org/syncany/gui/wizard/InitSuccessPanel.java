@@ -33,6 +33,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>

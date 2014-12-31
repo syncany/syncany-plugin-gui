@@ -38,6 +38,7 @@ import org.syncany.config.Logging;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.gui.wizard.StartPanel.StartPanelSelection;
 
 import com.google.common.collect.Lists;
@@ -50,7 +51,7 @@ public class WizardDialog {
 	public enum Action {
 		PREVIOUS, NEXT, FINISH
 	};
-
+	
 	private Shell trayShell;
 	private Shell windowShell;
 	private Composite stackComposite;
