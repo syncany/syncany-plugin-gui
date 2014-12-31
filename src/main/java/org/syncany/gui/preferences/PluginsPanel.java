@@ -46,8 +46,8 @@ import org.syncany.operations.daemon.messages.PluginManagementRequest;
 import org.syncany.operations.daemon.messages.PluginManagementResponse;
 import org.syncany.operations.plugin.ExtendedPluginInfo;
 import org.syncany.operations.plugin.PluginInfo;
+import org.syncany.operations.plugin.PluginOperationAction;
 import org.syncany.operations.plugin.PluginOperationOptions;
-import org.syncany.operations.plugin.PluginOperationOptions.PluginAction;
 import org.syncany.operations.plugin.PluginOperationOptions.PluginListMode;
 import org.syncany.operations.plugin.PluginOperationResult;
 import org.syncany.operations.plugin.PluginOperationResult.PluginResultCode;
@@ -67,20 +67,16 @@ public class PluginsPanel extends Panel {
 	private Button removePluginButton;
 	
 	private ExtendedPluginInfo selectedPlugin;
-	
-	private AtomicBoolean requestRunning;
-	private PluginOperationOptions pluginOperationOptions;
+	private AtomicBoolean requestRunning;	
 	
 	private GuiEventBus eventBus;
 	
 	public PluginsPanel(PreferencesDialog parentDialog, Composite composite, int style) {
 		super(parentDialog, composite, style | SWT.DOUBLE_BUFFERED);
 		
-		this.selectedPlugin = null;
-		
+		this.selectedPlugin = null;		
 		this.requestRunning = new AtomicBoolean(false);
-		this.pluginOperationOptions = null;
-		
+
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 		
@@ -274,8 +270,8 @@ public class PluginsPanel extends Panel {
 			requestRunning.set(true);
 			statusLabel.setText("Installing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
 
-			pluginOperationOptions = new PluginOperationOptions();
-			pluginOperationOptions.setAction(PluginAction.INSTALL);
+			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+			pluginOperationOptions.setAction(PluginOperationAction.INSTALL);
 			pluginOperationOptions.setPluginId(selectedPlugin.getRemotePluginInfo().getPluginId());
 			
 		    eventBus.post(new PluginManagementRequest(pluginOperationOptions));			
@@ -295,8 +291,8 @@ public class PluginsPanel extends Panel {
 				requestRunning.set(true);
 				statusLabel.setText("Installing plugin from file '" + selectedFile.getName() + "' ...");
 
-				pluginOperationOptions = new PluginOperationOptions();
-				pluginOperationOptions.setAction(PluginAction.INSTALL);
+				PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+				pluginOperationOptions.setAction(PluginOperationAction.INSTALL);
 				pluginOperationOptions.setPluginId(selectedFilePath);
 				
 			    eventBus.post(new PluginManagementRequest(pluginOperationOptions));					
@@ -313,8 +309,8 @@ public class PluginsPanel extends Panel {
 			requestRunning.set(true);
 			statusLabel.setText("Removing plugin " + selectedPlugin.getRemotePluginInfo().getPluginName() + " ...");
 
-			pluginOperationOptions = new PluginOperationOptions();
-			pluginOperationOptions.setAction(PluginAction.REMOVE);
+			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+			pluginOperationOptions.setAction(PluginOperationAction.REMOVE);
 			pluginOperationOptions.setPluginId(selectedPlugin.getRemotePluginInfo().getPluginId());
 			
 		    eventBus.post(new PluginManagementRequest(pluginOperationOptions));
@@ -337,8 +333,8 @@ public class PluginsPanel extends Panel {
 
 	    pluginTable.layout();
 	    
-		pluginOperationOptions = new PluginOperationOptions();
-		pluginOperationOptions.setAction(PluginAction.LIST);
+	    PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+		pluginOperationOptions.setAction(PluginOperationAction.LIST);
 		pluginOperationOptions.setListMode(PluginListMode.ALL);
 		
 	    eventBus.post(new PluginManagementRequest(pluginOperationOptions));	    	
@@ -346,21 +342,19 @@ public class PluginsPanel extends Panel {
 	
 	@Subscribe
 	public void onPluginResultReceived(PluginManagementResponse pluginResponse) {
-		if (pluginOperationOptions != null) {
-			switch (pluginOperationOptions.getAction()) {
-			case LIST:
-				onPluginListResponseReceived(pluginResponse);
-				break;
-				
-			case INSTALL:
-				onPluginInstallResponseReceived(pluginResponse);
-				break;
-				
-			case REMOVE:
-				onPluginRemoveResponseReceived(pluginResponse);
-				break;				
-			}
-		}				
+		switch (pluginResponse.getResult().getAction()) {
+		case LIST:
+			onPluginListResponseReceived(pluginResponse);
+			break;
+			
+		case INSTALL:
+			onPluginInstallResponseReceived(pluginResponse);
+			break;
+			
+		case REMOVE:
+			onPluginRemoveResponseReceived(pluginResponse);
+			break;				
+		}
 	}
 
 	private void onPluginRemoveResponseReceived(PluginManagementResponse pluginResponse) {
