@@ -155,10 +155,14 @@ def do_update_menu(request):
 			menu_item_folder_open = gtk.MenuItem("Open folder")
 			menu_item_folder_open.connect("activate", menu_item_folder_open_clicked, folder.text)
 					
+			menu_item_folder_copy_link = gtk.MenuItem("Copy link")
+			menu_item_folder_copy_link.connect("activate", menu_item_folder_copy_link_clicked, folder.text)
+		
 			menu_item_folder_remove = gtk.MenuItem("Remove folder")
 			menu_item_folder_remove.connect("activate", menu_item_folder_remove_clicked, folder.text)
 		
-			sub_menu_folder.append(menu_item_folder_open)
+			sub_menu_folder.append(menu_item_folder_open)		
+			sub_menu_folder.append(menu_item_folder_copy_link)			
 			sub_menu_folder.append(menu_item_folder_remove)
 			
 			# Create folder menu item
@@ -243,6 +247,10 @@ def menu_item_clicked(widget, message):
 def menu_item_folder_open_clicked(widget, folder):
 	do_print("Opening folder '" + folder + "' ...")
 	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>OPEN</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+
+def menu_item_folder_copy_link_clicked(widget, folder):
+	do_print("Copying link for folder '" + folder + "' ...")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>COPY_LINK</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def menu_item_folder_remove_clicked(widget, folder):
 	do_print("Removing folder '" + folder + "' ...")

@@ -197,6 +197,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 					showFolder(folder);
 					break;
 					
+				case COPY_LINK:
+					copyLink(folder);
+					break;
+					
 				case REMOVE:
 					removeFolder(folder);
 					break;

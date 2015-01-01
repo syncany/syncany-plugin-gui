@@ -17,6 +17,9 @@
  */
 package org.syncany.gui.util;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -70,5 +73,16 @@ public class DesktopUtil {
 		int y = bounds.y + (bounds.height - rect.height) / 2;
 
 		shell.setLocation(x, y);
+	}
+
+	/**
+	 * Copies the given text to the user clipboard.
+	 */
+	public static void copyToClipboard(String copyText) {
+		StringSelection applicationLinkStringSelection = new StringSelection(copyText);
+		
+	    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+	    clipboard.setContents(applicationLinkStringSelection, applicationLinkStringSelection);
+		
 	}
 }

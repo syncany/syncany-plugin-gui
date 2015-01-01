@@ -192,6 +192,16 @@ public class DefaultTrayIcon extends TrayIcon {
 							}
 						});
 						
+						// Menu item for 'Copy link' 
+						MenuItem folderCopyLinkMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
+						folderCopyLinkMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.copyLink"));
+						folderCopyLinkMenuItem.addSelectionListener(new SelectionAdapter() {
+							@Override
+							public void widgetSelected(SelectionEvent e) {
+								copyLink(folder);
+							}
+						});
+
 						// Menu item for 'Remove' 
 						MenuItem folderRemoveMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
 						folderRemoveMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.remove"));

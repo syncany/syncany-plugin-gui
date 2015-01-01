@@ -48,6 +48,8 @@ import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
+import org.syncany.operations.daemon.messages.GenlinkFolderRequest;
+import org.syncany.operations.daemon.messages.GenlinkFolderResponse;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
@@ -60,6 +62,7 @@ import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
+import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -163,6 +166,29 @@ public abstract class TrayIcon {
 
 	protected void removeFolder(File folder) {
 		eventBus.post(new RemoveWatchManagementRequest(folder));
+	}
+	
+	protected void copyLink(File folder) {
+		GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
+		genlinkOptions.setShortUrl(true);
+		
+		GenlinkFolderRequest genlinkRequest = new GenlinkFolderRequest();
+		genlinkRequest.setRoot(folder.getAbsolutePath());
+		genlinkRequest.setOptions(genlinkOptions);
+		
+		eventBus.post(genlinkRequest);
+	}
+	
+	@Subscribe
+	public void onGenlinkResponseReceived(GenlinkFolderResponse genlinkResponse) {		
+		DesktopUtil.copyToClipboard(genlinkResponse.getResult().getShareLink());
+		
+		if (guiConfig.isNotifications()) {
+			String subject = _("org.syncany.gui.tray.TrayIcon.notify.copied.subject");
+			String message = _("org.syncany.gui.tray.TrayIcon.notify.copied.message");
+			
+			displayNotification(subject, message);
+		}
 	}
 
 	@Subscribe
