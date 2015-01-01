@@ -73,7 +73,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
-			Image trayImage = SWTResourceManager.getImage(trayImageFileName, false);
+			Image trayImage = SWTResourceManager.getImage(trayImageFileName);
 
 			images.put(trayIconImage, trayImage);
 		}

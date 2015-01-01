@@ -92,7 +92,7 @@ public class PluginsPanel extends Panel {
 	private GuiEventBus eventBus;
 	
 	public PluginsPanel(PreferencesDialog parentDialog, Composite composite, int style) {
-		super(parentDialog, composite, style | SWT.DOUBLE_BUFFERED);
+		super(parentDialog, composite, style);
 		
 		this.selectedPlugin = null;		
 		this.requestRunning = new AtomicBoolean(false);
@@ -140,31 +140,41 @@ public class PluginsPanel extends Panel {
 		pluginTableGridData.horizontalIndent = 0;
 		pluginTableGridData.horizontalSpan = 2;
 		
-	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.DOUBLE_BUFFERED);
+	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL);
 		pluginTable.setHeaderVisible(true);
 		pluginTable.setBackground(WidgetDecorator.WHITE);
 		pluginTable.setLayoutData(pluginTableGridData);
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
+				// Update buttons and status text
 				if (pluginTable.getSelectionIndex() >= 0) {
 					TableItem tableItem = pluginTable.getItem(pluginTable.getSelectionIndex());
 					ExtendedPluginInfo extPluginInfo = (ExtendedPluginInfo) tableItem.getData();
 					
 					updatePluginActionButtons(extPluginInfo);
 					updateStatusText(extPluginInfo);
-				}
-				else {
-					updatePluginActionButtons(null);
-				}
+				}	
+				
+				// Fix flickering images
+				pluginTable.redraw();
 			}
 		});			
 		
+		// Make table rows always '30 pixels' high
 		pluginTable.addListener(SWT.MeasureItem, new Listener() {
 			public void handleEvent(Event event) {				
-				event.height = 30; // Row height workaround
+				event.height = 30; 
 			}
 		});		
+		
+		// Fix flickering images (when scrolling)
+		pluginTable.getVerticalBar().addSelectionListener(new SelectionAdapter() {			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				pluginTable.redraw();
+			}			
+		});
 		
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
@@ -534,7 +544,7 @@ public class PluginsPanel extends Panel {
 		pluginOperationOptions.setAction(PluginOperationAction.LIST);
 		pluginOperationOptions.setListMode(PluginListMode.ALL);
 		
-	    eventBus.post(new PluginManagementRequest(pluginOperationOptions));	    	
+	    eventBus.post(new PluginManagementRequest(pluginOperationOptions));	    		  
 	}
 	
 	@Subscribe
@@ -624,7 +634,7 @@ public class PluginsPanel extends Panel {
 					}
 										
 					// Create table item
-				    TableItem tableItem = new TableItem(pluginTable, SWT.DOUBLE_BUFFERED);
+				    TableItem tableItem = new TableItem(pluginTable, SWT.NONE);
 				    tableItem.setData(extPluginInfo);
 				    
 				    updateTableItem(tableItem, extPluginInfo);

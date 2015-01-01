@@ -74,6 +74,7 @@ public class PluginSelectComposite extends Composite {
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
+				// Set selected plugin
 				if (pluginTable.getSelectionIndex() >= 0) {
 					TableItem tableItem = pluginTable.getItem(pluginTable.getSelectionIndex());
 					selectedPlugin = (TransferPlugin) tableItem.getData();
@@ -81,6 +82,9 @@ public class PluginSelectComposite extends Composite {
 				else {
 					selectedPlugin = null;
 				}
+				
+				// Fix flickering images
+				pluginTable.redraw();
 			}
 		});	
 		
@@ -95,6 +99,13 @@ public class PluginSelectComposite extends Composite {
 			public void handleEvent(Event event) {				
 				event.height = 30; // Row height workaround
 			}
+		});		
+		
+		pluginTable.getVerticalBar().addSelectionListener(new SelectionAdapter() {			
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				pluginTable.redraw(); // Fix flickering images (when scrolling)
+			}			
 		});
 		
 	    TableColumn pluginTableColumnImage = new TableColumn(pluginTable, SWT.CENTER);
