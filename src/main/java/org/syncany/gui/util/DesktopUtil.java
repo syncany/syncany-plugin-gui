@@ -17,9 +17,14 @@
  */
 package org.syncany.gui.util;
 
+import io.undertow.util.FileUtils;
+
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,6 +33,10 @@ import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.gui.preferences.GeneralPanel;
+import org.syncany.util.EnvironmentUtil;
+
+import com.google.common.base.StandardSystemProperty;
 
 /**
  * Helper class to open web sites and local folders, and to center
@@ -38,6 +47,8 @@ import org.eclipse.swt.widgets.Shell;
  */
 public class DesktopUtil {
 	private static final Logger logger = Logger.getLogger(DesktopUtil.class.getSimpleName());
+	private static final String STARTUP_SCRIPT_LINUX_RESOURCE = "/" + GeneralPanel.class.getPackage().getName().replace('.', '/') + "/syncany.desktop";
+	private static final String STARTUP_SCRIPT_LINUX_TARGET_FILENAME = "syncany.desktop";
 
 	/**
 	 * Launches a program or a URL using SWT's {@link Program}
@@ -82,7 +93,57 @@ public class DesktopUtil {
 		StringSelection applicationLinkStringSelection = new StringSelection(copyText);
 		
 	    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-	    clipboard.setContents(applicationLinkStringSelection, applicationLinkStringSelection);
+	    clipboard.setContents(applicationLinkStringSelection, applicationLinkStringSelection);		
+	}
+	
+	/**
+	 * Set or unset the automatic system startup for Syncany.
+	 */
+	// TODO [low] This method should be more generic. It is very Syncany-specific.
+	public static void writeAutostart(boolean launchAtStartupEnabled) {
+		if (EnvironmentUtil.isUnixLikeOperatingSystem()) {
+			File autostartDir = new File(StandardSystemProperty.USER_HOME.value(), ".config/autostart");
+			File startupScriptFile = new File(autostartDir, STARTUP_SCRIPT_LINUX_TARGET_FILENAME);
+			
+			if (launchAtStartupEnabled) {
+				writeLinuxStartupFile(autostartDir, startupScriptFile);
+			}
+			else {
+				deleteStartupScriptFile(startupScriptFile);
+			}			
+		}
+		else {
+			logger.log(Level.INFO, "Autostart: Launch at startup feature is NOT SUPPORTED (yet) on this operating system. Ignoring option.");
+		}
+	}	
+
+	private static void writeLinuxStartupFile(File autostartDir, File startupScriptFile) {
+		// This method always re-writes the startup/autostart script. This
+		// makes sure that any altered settings (X-GNOME-Autostart, etc.) are
+		// wiped out.
 		
+		logger.log(Level.INFO, "Autostart (enabled): Writing Linux startup script to " + startupScriptFile + " ...");
+		
+		if (!autostartDir.isDirectory()) {
+			autostartDir.mkdirs();
+		}
+		
+		try {
+			InputStream startupScriptInputStream = GeneralPanel.class.getResourceAsStream(STARTUP_SCRIPT_LINUX_RESOURCE);
+			FileUtils.copyFile(startupScriptInputStream, startupScriptFile);
+		}
+		catch (IOException e) {
+			logger.log(Level.WARNING, "Autostart: Cannot write Linux startup script to " + startupScriptFile + ". Ignoring.", e);
+		}								
+	}
+	
+	private static void deleteStartupScriptFile(File startupScriptFile) {
+		if (startupScriptFile.exists()) {
+			logger.log(Level.INFO, "Autostart (disabled): Deleting startup script file from " + startupScriptFile + " ...");
+			startupScriptFile.delete();
+		}
+		else {
+			logger.log(Level.INFO, "Autostart (disabled): Linux startup script does not exist at " + startupScriptFile + ". Nothing to do.");
+		}
 	}
 }
