@@ -67,7 +67,7 @@ public class PluginSelectComposite extends Composite {
 		pluginTableGridData.verticalIndent = 0;
 		pluginTableGridData.horizontalIndent = 0;
 		
-	    pluginTable = new Table(this, SWT.BORDER |  SWT.V_SCROLL);
+	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(false);
 		pluginTable.setBackground(WidgetDecorator.WHITE);
 		pluginTable.setLayoutData(pluginTableGridData);

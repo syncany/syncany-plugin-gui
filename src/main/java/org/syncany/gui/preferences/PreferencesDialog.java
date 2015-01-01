@@ -147,10 +147,10 @@ public class PreferencesDialog extends Dialog {
 		navTableGridData.horizontalIndent = 0;
 		navTableGridData.minimumWidth = 100;
 		
-	    navTable = new Table(windowShell, SWT.V_SCROLL);
+	    navTable = new Table(windowShell, SWT.SINGLE | SWT.FULL_SELECTION);
 		navTable.setHeaderVisible(false);
 		navTable.setBackground(WidgetDecorator.WHITE);
-		navTable.setLayoutData(navTableGridData);
+		navTable.setLayoutData(navTableGridData);				
 		
 		navTable.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
@@ -188,7 +188,7 @@ public class PreferencesDialog extends Dialog {
 	    navTableColumnImage.setWidth(30);
 
 	    TableColumn navTableColumnText = new TableColumn(navTable,  SWT.LEFT);
-	    navTableColumnText.setWidth(85);	    
+	    navTableColumnText.setWidth(85);
 
 	    // Entry 'General'
     	String navGeneralImageResource = String.format(NAV_ICON_RESOURCE_FORMAT, "general");
@@ -218,7 +218,7 @@ public class PreferencesDialog extends Dialog {
 	    navNetworkTableItem.setData(NavSelection.NETWORK);	
 
 	    // Select 'General'
-	    navTable.select(0);
+	    navTable.select(0);	    
 	}
 	
 	private void createStackComposite() {
