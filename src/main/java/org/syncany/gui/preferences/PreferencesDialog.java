@@ -53,7 +53,7 @@ public class PreferencesDialog extends Dialog {
 	private static final String NAV_ICON_RESOURCE_FORMAT = "/" + PreferencesDialog.class.getPackage().getName().replace('.', '/') + "/nav-%s.png";
 
 	private enum NavSelection {
-		GENERAL, PLUGINS
+		GENERAL, PLUGINS, NETWORK
 	}
 	
 	private Shell trayShell;
@@ -64,6 +64,7 @@ public class PreferencesDialog extends Dialog {
 	private Table navTable;
 	private GeneralPanel generalPanel;
 	private PluginsPanel pluginsPanel;
+	private NetworkPanel networkPanel;
 	
 	private Panel currentPanel;
 
@@ -165,6 +166,10 @@ public class PreferencesDialog extends Dialog {
 					case PLUGINS:
 						setCurrentPanel(pluginsPanel);
 						break;
+						
+					case NETWORK:
+						setCurrentPanel(networkPanel);
+						break;
 					}
 				}
 			}
@@ -172,10 +177,13 @@ public class PreferencesDialog extends Dialog {
 		
 		navTable.addListener(SWT.MeasureItem, new Listener() {
 			public void handleEvent(Event event) {				
-				event.height = 30; // Row height workaround
+				event.height = 30; // Row height workaround	
 			}
-		});		
+		});				
 		
+	    TableColumn navTableColumnEmpty = new TableColumn(navTable, SWT.CENTER);
+	    navTableColumnEmpty.setWidth(5);
+
 	    TableColumn navTableColumnImage = new TableColumn(navTable, SWT.CENTER);
 	    navTableColumnImage.setWidth(30);
 
@@ -187,8 +195,8 @@ public class PreferencesDialog extends Dialog {
 	    Image navGeneralImage = SWTResourceManager.getImage(navGeneralImageResource);
 
 	    TableItem navGeneralTableItem = new TableItem(navTable, SWT.NONE);		    
-	    navGeneralTableItem.setImage(0, navGeneralImage);
-	    navGeneralTableItem.setText(1, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.general"));		    
+	    navGeneralTableItem.setImage(1, navGeneralImage);
+	    navGeneralTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.general"));		    
 	    navGeneralTableItem.setData(NavSelection.GENERAL);		
 	    
 	    // Entry 'Plugins'
@@ -196,10 +204,19 @@ public class PreferencesDialog extends Dialog {
 	    Image navPluginsImage = SWTResourceManager.getImage(navPluginsImageResource);
 
 	    TableItem navPluginsTableItem = new TableItem(navTable, SWT.NONE);		    
-	    navPluginsTableItem.setImage(0, navPluginsImage);
-	    navPluginsTableItem.setText(1, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.plugins"));		    
+	    navPluginsTableItem.setImage(1, navPluginsImage);
+	    navPluginsTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.plugins"));		    
 	    navPluginsTableItem.setData(NavSelection.PLUGINS);	
 	    
+	    // Entry 'Network'
+    	String navNetworkImageResource = String.format(NAV_ICON_RESOURCE_FORMAT, "network");
+	    Image navNetworkImage = SWTResourceManager.getImage(navNetworkImageResource);
+
+	    TableItem navNetworkTableItem = new TableItem(navTable, SWT.NONE);		    
+	    navNetworkTableItem.setImage(1, navNetworkImage);
+	    navNetworkTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.network"));		    
+	    navNetworkTableItem.setData(NavSelection.NETWORK);	
+
 	    // Select 'General'
 	    navTable.select(0);
 	}
@@ -258,7 +275,8 @@ public class PreferencesDialog extends Dialog {
 
 	private void buildPanels() {
 		generalPanel = new GeneralPanel(this, stackComposite, SWT.NONE);
-		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.DOUBLE_BUFFERED);
+		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.NONE);
+		networkPanel = new NetworkPanel(this, stackComposite, SWT.NONE);
 	}
 
 	public Panel getCurrentPanel() {
