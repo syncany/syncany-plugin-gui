@@ -23,16 +23,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.events.VerifyEvent;
+import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.ConfigException;
 import org.syncany.config.UserConfig;
@@ -55,7 +58,7 @@ public class NetworkPanel extends Panel {
 	 
 	private Combo proxyTypeCombo;
 	private Text proxyServerHostText;
-	private Spinner proxyServerPortSpinner;
+	private Text proxyServerPortText;
 	
 	private Button proxyNeedsAuthCheckButton;
 	private Label proxyAuthUserLabel;
@@ -91,6 +94,14 @@ public class NetworkPanel extends Panel {
 		SelectionListener commonSelectionListener = new SelectionAdapter() {			
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				updateControls();
+				saveConfig();
+			}			
+		};
+		
+		ModifyListener commonModifyListener = new ModifyListener() {			
+			@Override
+			public void modifyText(ModifyEvent e) {
 				updateControls();
 				saveConfig();
 			}			
@@ -138,19 +149,41 @@ public class NetworkPanel extends Panel {
 		
 		proxyServerHostText = new Text(this, SWT.BORDER);
 		proxyServerHostText.setLayoutData(proxyServerHostTextGridData);
-		proxyServerHostText.addSelectionListener(commonSelectionListener);
+		proxyServerHostText.addModifyListener(commonModifyListener);
 		
 		Label proxyPortColonLabel = new Label(this, SWT.NONE);
 		proxyPortColonLabel.setText(":");
 		
-		proxyServerPortSpinner = new Spinner(this, SWT.BORDER);
-		proxyServerPortSpinner.setBackgroundMode(SWT.INHERIT_FORCE);
-	    proxyServerPortSpinner.setMinimum(1);
-	    proxyServerPortSpinner.setMaximum(65535);
-	    proxyServerPortSpinner.setSelection(8080);
-	    proxyServerPortSpinner.setIncrement(1);
-	    proxyServerPortSpinner.setPageIncrement(100);
-	    proxyServerPortSpinner.addSelectionListener(commonSelectionListener);
+		GridData proxyServerPortTextGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
+		proxyServerPortTextGridData.widthHint = 50;
+		
+		proxyServerPortText = new Text(this, SWT.BORDER);
+		proxyServerPortText.setLayoutData(proxyServerPortTextGridData);
+		proxyServerPortText.addModifyListener(commonModifyListener);		
+		proxyServerPortText.addVerifyListener(new VerifyListener() {
+	        @Override
+	        public void verifyText(VerifyEvent e) {
+	            Text text = (Text) e.getSource();
+
+	            // Get old text and create new text by using the VerifyEvent.text
+	            final String oldValue = text.getText();
+	            String newValue = oldValue.substring(0, e.start) + e.text + oldValue.substring(e.end);
+	            
+	            // Validate correct type
+	            if (newValue.isEmpty()) {
+	            	e.doit = true;
+	            }
+	            else {
+		            try {
+		            	int newPort = Integer.parseInt(newValue);	            	
+		            	e.doit = newPort > 0 && newPort <= 65535; 
+		            }
+		            catch (NumberFormatException ex) {
+		            	e.doit = false;
+		            }
+	            }
+	        }
+	    });		
 	    
 		Label fillerBelowServerLabel = new Label(this, SWT.NONE);
 		fillerBelowServerLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 3));
@@ -169,14 +202,14 @@ public class NetworkPanel extends Panel {
 		
 		proxyAuthUserText = new Text(this, SWT.BORDER);		
 		proxyAuthUserText.setLayoutData(proxyAuthFieldGridData);
-		proxyAuthUserText.addSelectionListener(commonSelectionListener);
+		proxyAuthUserText.addModifyListener(commonModifyListener);
 
-		proxyAuthPassLabel = new Label(this, SWT.PASSWORD);
+		proxyAuthPassLabel = new Label(this, SWT.NONE);
 		proxyAuthPassLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyAuthPass"));
 
-		proxyAuthPassText = new Text(this, SWT.BORDER);		
+		proxyAuthPassText = new Text(this, SWT.BORDER | SWT.PASSWORD);		
 		proxyAuthPassText.setLayoutData(proxyAuthFieldGridData);
-		proxyAuthPassText.addSelectionListener(commonSelectionListener);		
+		proxyAuthPassText.addModifyListener(commonModifyListener);		
 	}
 
 	private void updateControls() {
@@ -236,20 +269,7 @@ public class NetworkPanel extends Panel {
 		manualProxyButton.setSelection(true);
 		proxyTypeCombo.select(1);
 		
-		proxyServerHostText.setText(socksProxyHostProperty);
-		
-		try {
-			proxyServerPortSpinner.setSelection(Integer.parseInt(socksProxyPortProperty));
-		}
-		catch (Exception e) {
-			proxyServerPortSpinner.setSelection(8080);
-		}
-		
-		if (socksProxyUserProperty != null && socksProxyPassProperty != null) {
-			proxyAuthUserText.setText(socksProxyUserProperty);
-			proxyAuthPassText.setText(socksProxyPassProperty);
-		}
-		
+		loadProxySettings(socksProxyHostProperty, socksProxyPortProperty, socksProxyUserProperty, socksProxyPassProperty);		
 		toggleManualControls(true);
 	}
 
@@ -262,21 +282,27 @@ public class NetworkPanel extends Panel {
 		manualProxyButton.setSelection(true);
 		proxyTypeCombo.select(0);
 		
-		proxyServerHostText.setText(httpProxyHostProperty);
-		
-		try {
-			proxyServerPortSpinner.setSelection(Integer.parseInt(httpProxyPortProperty));
-		}
-		catch (Exception e) {
-			proxyServerPortSpinner.setSelection(8080);
-		}
-		
-		if (httpProxyUserProperty != null && httpProxyPassProperty != null) {
-			proxyAuthUserText.setText(httpProxyUserProperty);
-			proxyAuthPassText.setText(httpProxyPassProperty);
-		}
-		
+		loadProxySettings(httpProxyHostProperty, httpProxyPortProperty, httpProxyUserProperty, httpProxyPassProperty);		
 		toggleManualControls(true);
+	}
+
+	private void loadProxySettings(String proxyHost, String proxyPort, String proxyUser, String proxyPass) {		
+		if (proxyHost != null) {
+			proxyServerHostText.setText(proxyHost);
+		}
+		
+		if (proxyPort != null) {
+			proxyServerPortText.setText(proxyPort);
+		}
+		
+		if (proxyUser != null) {
+			proxyNeedsAuthCheckButton.setSelection(true);
+			proxyAuthUserText.setText(proxyUser);
+		}
+		
+		if (proxyPass != null) {
+			proxyAuthPassText.setText(proxyPass);
+		}
 	}
 
 	private void disableAllControls() {
@@ -290,7 +316,7 @@ public class NetworkPanel extends Panel {
 	private void toggleManualControls(boolean enable) {
 		proxyTypeCombo.setEnabled(enable);
 		proxyServerHostText.setEnabled(enable);
-		proxyServerPortSpinner.setEnabled(enable);
+		proxyServerPortText.setEnabled(enable);
 		proxyNeedsAuthCheckButton.setEnabled(enable);
 		
 		if (enable) {
@@ -319,9 +345,9 @@ public class NetworkPanel extends Panel {
 		
 			if (isHttpProxy) {
 				userConfig.getSystemProperties().put("http.proxyHost", proxyServerHostText.getText());
-				userConfig.getSystemProperties().put("http.proxyPort", Integer.toString(proxyServerPortSpinner.getSelection()));
+				userConfig.getSystemProperties().put("http.proxyPort", proxyServerPortText.getText());
 				userConfig.getSystemProperties().put("https.proxyHost", proxyServerHostText.getText());
-				userConfig.getSystemProperties().put("https.proxyPort", Integer.toString(proxyServerPortSpinner.getSelection()));
+				userConfig.getSystemProperties().put("https.proxyPort", proxyServerPortText.getText());
 
 				if (proxyNeedsAuthCheckButton.getSelection()) {
 					userConfig.getSystemProperties().put("http.proxyUser", proxyAuthUserText.getText());
@@ -332,7 +358,7 @@ public class NetworkPanel extends Panel {
 			}
 			else {
 				userConfig.getSystemProperties().put("socksProxyHost", proxyServerHostText.getText());
-				userConfig.getSystemProperties().put("socksProxyPort", Integer.toString(proxyServerPortSpinner.getSelection()));
+				userConfig.getSystemProperties().put("socksProxyPort", proxyServerPortText.getText());
 
 				if (proxyNeedsAuthCheckButton.getSelection()) {
 					userConfig.getSystemProperties().put("java.net.socks.username", proxyAuthUserText.getText());
