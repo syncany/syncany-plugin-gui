@@ -148,8 +148,11 @@ public class NetworkPanel extends Panel {
 		proxyServerHostTextGridData.widthHint = 180;
 		
 		proxyServerHostText = new Text(this, SWT.BORDER);
+		proxyServerHostText.setBackground(WidgetDecorator.WHITE);
 		proxyServerHostText.setLayoutData(proxyServerHostTextGridData);
 		proxyServerHostText.addModifyListener(commonModifyListener);
+		
+		WidgetDecorator.normal(proxyServerHostText);
 		
 		Label proxyPortColonLabel = new Label(this, SWT.NONE);
 		proxyPortColonLabel.setText(":");
@@ -158,6 +161,7 @@ public class NetworkPanel extends Panel {
 		proxyServerPortTextGridData.widthHint = 50;
 		
 		proxyServerPortText = new Text(this, SWT.BORDER);
+		proxyServerPortText.setBackground(WidgetDecorator.WHITE);
 		proxyServerPortText.setLayoutData(proxyServerPortTextGridData);
 		proxyServerPortText.addModifyListener(commonModifyListener);		
 		proxyServerPortText.addVerifyListener(new VerifyListener() {
@@ -185,6 +189,8 @@ public class NetworkPanel extends Panel {
 	        }
 	    });		
 	    
+		WidgetDecorator.normal(proxyServerPortText);
+		
 		Label fillerBelowServerLabel = new Label(this, SWT.NONE);
 		fillerBelowServerLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 3));
 
@@ -201,15 +207,21 @@ public class NetworkPanel extends Panel {
 		proxyAuthFieldGridData.grabExcessHorizontalSpace = true;
 		
 		proxyAuthUserText = new Text(this, SWT.BORDER);		
+		proxyAuthUserText.setBackground(WidgetDecorator.WHITE);
 		proxyAuthUserText.setLayoutData(proxyAuthFieldGridData);
 		proxyAuthUserText.addModifyListener(commonModifyListener);
 
+		WidgetDecorator.normal(proxyAuthUserText);
+		
 		proxyAuthPassLabel = new Label(this, SWT.NONE);
 		proxyAuthPassLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyAuthPass"));
 
 		proxyAuthPassText = new Text(this, SWT.BORDER | SWT.PASSWORD);		
+		proxyAuthPassText.setBackground(WidgetDecorator.WHITE);
 		proxyAuthPassText.setLayoutData(proxyAuthFieldGridData);
-		proxyAuthPassText.addModifyListener(commonModifyListener);		
+		proxyAuthPassText.addModifyListener(commonModifyListener);	
+		
+		WidgetDecorator.normal(proxyAuthPassText);
 	}
 
 	private void updateControls() {
@@ -322,11 +334,15 @@ public class NetworkPanel extends Panel {
 		if (enable) {
 			boolean needsAuth = proxyNeedsAuthCheckButton.getSelection();
 			
+			proxyAuthUserLabel.setEnabled(needsAuth);
 			proxyAuthUserText.setEnabled(needsAuth);
+			proxyAuthPassLabel.setEnabled(needsAuth);
 			proxyAuthPassText.setEnabled(needsAuth);
 		}
 		else {
+			proxyAuthUserLabel.setEnabled(false);
 			proxyAuthUserText.setEnabled(false);
+			proxyAuthPassLabel.setEnabled(false);
 			proxyAuthPassText.setEnabled(false);			
 		}
 	}

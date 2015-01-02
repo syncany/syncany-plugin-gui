@@ -140,7 +140,7 @@ public class PluginsPanel extends Panel {
 		pluginTableGridData.horizontalIndent = 0;
 		pluginTableGridData.horizontalSpan = 2;
 		
-	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL);
+	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(true);
 		pluginTable.setBackground(WidgetDecorator.WHITE);
 		pluginTable.setLayoutData(pluginTableGridData);
@@ -201,19 +201,19 @@ public class PluginsPanel extends Panel {
 	    
 	    TableColumn pluginTableColumnStatus = new TableColumn(pluginTable, SWT.LEFT);
 	    pluginTableColumnStatus.setText(_("org.syncany.gui.preferences.PluginsPanel.table.status"));
-	    pluginTableColumnStatus.setWidth(20);	    
+	    pluginTableColumnStatus.setWidth(60);	    
 	}
 
 	private void createStatusLabel() {
 		GridLayout statusLabelRowLayout = new GridLayout();
 		statusLabelRowLayout.marginTop = 9;
-		statusLabelRowLayout.marginBottom = 9;
+		statusLabelRowLayout.marginBottom = 6;
 
 		GridData statusLabelGridData = new GridData(SWT.FILL, SWT.FILL, true, false);
 		statusLabelGridData.horizontalSpan = 1;
 		statusLabelGridData.verticalSpan = 1;
 		statusLabelGridData.minimumWidth = 90;
-		statusLabelGridData.minimumHeight = 30;
+		statusLabelGridData.minimumHeight = 38;
 
 		Composite statusLabelComposite = new Composite(this, SWT.NONE);
 		statusLabelComposite.setLayout(statusLabelRowLayout);

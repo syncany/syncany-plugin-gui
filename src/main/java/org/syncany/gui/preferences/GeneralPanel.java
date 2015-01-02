@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -35,13 +36,17 @@ import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
+import org.syncany.util.EnvironmentUtil;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
-
-	private Button displayNotificationsButton;	
+	
+	private Button launchAtStartupButton;
+	private Button displayNotificationsButton;
+	
 	private GuiConfigTO guiConfig;
 	
 	private GuiEventBus eventBus;
@@ -52,7 +57,13 @@ public class GeneralPanel extends Panel {
 		initEventBus();
 		loadConfig();
 		
-		createContents();			    
+		createContents();			
+
+		// Persist changes loaded from gui.xml to the operating 
+		// system. The gui.xml is the master config file. This
+		// makes sure that the OS settings are consistent with it.
+		
+		writeOrDeleteStartupScriptFile();
 	}
 
 	private void initEventBus() {
@@ -76,30 +87,52 @@ public class GeneralPanel extends Panel {
 
 		WidgetDecorator.title(titleLabel);
 
-		// Startup
-	    /*Button launchOnStartupButton = new Button(this, SWT.CHECK);
-	    launchOnStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchOnStartup"));*/
-	    
-	    // Notifications
-	    displayNotificationsButton = new Button(this, SWT.CHECK);
-	    displayNotificationsButton.setText(_("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
-	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  
-	    
-	    displayNotificationsButton.addSelectionListener(new SelectionAdapter() {
+		// Common selection listener
+		SelectionListener commonSelectionListener = new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				saveConfig();
 			}
-		});	
+		};
+		
+		// Startup
+	    launchAtStartupButton = new Button(this, SWT.CHECK);
+	    
+	    if (EnvironmentUtil.isUnixLikeOperatingSystem() || EnvironmentUtil.isWindows()) {
+		    launchAtStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
+		    launchAtStartupButton.setSelection(guiConfig.isStartup());
+		    launchAtStartupButton.addSelectionListener(commonSelectionListener);
+	    }
+	    else {
+		    launchAtStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchAtStartupNotSupported"));
+		    launchAtStartupButton.setSelection(false);
+		    launchAtStartupButton.setEnabled(false);
+	    }
+	    
+	    // Notifications
+	    displayNotificationsButton = new Button(this, SWT.CHECK);
+	    displayNotificationsButton.setText(_("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
+	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  	    
+	    displayNotificationsButton.addSelectionListener(commonSelectionListener);	
 	}
 
 	private void loadConfig() {
-		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
+		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();		
 	}
 
 	private void saveConfig() {
+		guiConfig.setStartup(launchAtStartupButton.getSelection());
 		guiConfig.setNotifications(displayNotificationsButton.getSelection());
 		
+		writeOrDeleteStartupScriptFile();
+		saveGuiConfigFile();		
+	}
+
+	private void writeOrDeleteStartupScriptFile() {
+		DesktopUtil.writeAutostart(launchAtStartupButton.getSelection());
+	}
+
+	private void saveGuiConfigFile() {
 		try {
 			GuiConfigHelper.saveGuiConfig(guiConfig);
 			eventBus.post(new GuiConfigChangedGuiInternalEvent(guiConfig));
