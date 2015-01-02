@@ -173,7 +173,7 @@ public class PluginsPanel extends Panel {
 			public void widgetSelected(SelectionEvent e) {
 				pluginTable.redraw();
 			}			
-		});
+		});		
 		
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
@@ -455,7 +455,7 @@ public class PluginsPanel extends Panel {
 		String remoteVersionStr = (extPluginInfo.isRemoteAvailable()) ? extPluginInfo.getRemotePluginInfo().getPluginVersion() : "";
 
 		// Update cells
-		tableItem.setImage(TABLE_COLUMN_IMAGE, getPluginImage(pluginInfo, extPluginInfo));
+		tableItem.setImage(TABLE_COLUMN_IMAGE, getPluginImage(pluginInfo.getPluginId()));
 		tableItem.setText(TABLE_COLUMN_NAME, pluginInfo.getPluginName());		    
     	
     	switch (pluginUpdateAction) {
@@ -494,7 +494,7 @@ public class PluginsPanel extends Panel {
 		}
 		
 		// Update cells
-		tableItem.setImage(TABLE_COLUMN_IMAGE, getPluginImage(pluginInfo, extPluginInfo));
+		tableItem.setImage(TABLE_COLUMN_IMAGE, getPluginImage(pluginInfo.getPluginId()));
 		tableItem.setText(TABLE_COLUMN_NAME, pluginInfo.getPluginName());		    
 	    tableItem.setText(TABLE_COLUMN_LOCAL_VERSION, localVersionStr);		    
 	    tableItem.setText(TABLE_COLUMN_TYPE, typeStr);		    
@@ -508,19 +508,14 @@ public class PluginsPanel extends Panel {
     			tableItem.setImage(TABLE_COLUMN_STATUS, SWTResourceManager.getImage(String.format(PLUGIN_ACTION_RESOURCE_FORMAT, "installed")));
     		}
     	}
-    	else {
-    		tableItem.setImage(TABLE_COLUMN_STATUS, SWTResourceManager.getImage(String.format(PLUGIN_ACTION_RESOURCE_FORMAT, "removed")));   		
-    	}    			   
+		else {
+			tableItem.setImage(TABLE_COLUMN_STATUS, SWTResourceManager.getImage(String.format(PLUGIN_ACTION_RESOURCE_FORMAT, "removed")));
+		}    	
 	}
 
-	private Image getPluginImage(PluginInfo pluginInfo, ExtendedPluginInfo extPluginInfo) {
-		if (extPluginInfo.isInstalled()) {
-			String pluginImageResource = String.format(PLUGIN_ICON_RESOURCE_FORMAT, pluginInfo.getPluginId());
-			return SWTResourceManager.getImage(pluginImageResource);
-		}
-		else {
-			return null;
-		}
+	private Image getPluginImage(String pluginId) {
+		String pluginImageResource = String.format(PLUGIN_ICON_RESOURCE_FORMAT, pluginId);
+		return SWTResourceManager.getImage(pluginImageResource);
 	}
 
 	private void setStatusText(String status) {
@@ -530,7 +525,6 @@ public class PluginsPanel extends Panel {
 		statusLabel.redraw();
 	}
 	
-
 	private void refreshPluginList() {
 		requestRunning.set(true);
 		setStatusText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginRetrievingList"));
@@ -655,5 +649,5 @@ public class PluginsPanel extends Panel {
 	@Override
 	public boolean validatePanel() {
 		return true;
-	}
+	}	
 }
