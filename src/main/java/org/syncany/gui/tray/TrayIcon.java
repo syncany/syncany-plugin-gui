@@ -30,6 +30,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
+import org.syncany.database.DatabaseVersion;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
@@ -52,6 +53,8 @@ import org.syncany.operations.daemon.messages.GenlinkFolderResponse;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.LogFolderRequest;
+import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
@@ -62,10 +65,14 @@ import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExter
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
 import org.syncany.operations.init.GenlinkOperationOptions;
+import org.syncany.operations.log.LogOperationOptions;
+import org.syncany.operations.log.LogOperationResult;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
@@ -97,6 +104,9 @@ public abstract class TrayIcon {
 	private AtomicBoolean syncing;
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
+	
+	private Map<String, LogFolderRequest> clientPendingRecentChangesRequests;
+	private Map<String, List<DatabaseVersion>> clientRecentChangesLists;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -109,6 +119,9 @@ public abstract class TrayIcon {
 		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
+		
+		this.clientPendingRecentChangesRequests = Maps.newConcurrentMap();
+		this.clientRecentChangesLists = Maps.newConcurrentMap();
 
 		initAnimationThread();
 		initTrayImage();
@@ -227,6 +240,28 @@ public abstract class TrayIcon {
 		if (!syncing.get()) {
 			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
+		}	
+		
+		// Get recent changes
+		sendLogRequests(listWatchesResponse.getWatches());		
+	}
+
+	private void sendLogRequests(ArrayList<Watch> watchedFolders) {
+		if (watchedFolders.size() > 0) {
+			int perFolderMaxCount = (int) Math.ceil((double) 15 / watchedFolders.size()); 
+					
+			for (Watch watch : watchedFolders) {
+				LogOperationOptions logOptions = new LogOperationOptions();
+				logOptions.setExcludeChunkData(true);
+				logOptions.setMaxCount(perFolderMaxCount);
+								
+				LogFolderRequest logRequest = new LogFolderRequest();
+				logRequest.setRoot(watch.getFolder().getAbsolutePath());
+				logRequest.setOptions(logOptions);
+								
+				clientPendingRecentChangesRequests.put(watch.getFolder().getAbsolutePath(), logRequest);				
+				eventBus.post(logRequest);
+			}
 		}
 	}
 
@@ -387,8 +422,19 @@ public abstract class TrayIcon {
 	
 	@Subscribe
 	public void onGuiConfigChanged(GuiConfigChangedGuiInternalEvent guiConfigChangedEvent) {
-		this.guiConfig = guiConfigChangedEvent.getNewGuiConfig();
+		guiConfig = guiConfigChangedEvent.getNewGuiConfig();
 	}
+	
+	@Subscribe
+	public void onLogResponse(LogFolderResponse logResponse) {
+		
+		Iterables.removeIf(clientPendingRecentChangesRequests, new Predicate<>)
+		clientRecentChangesLists.put(folderRoot, logResponse.getResult().getDatabaseVersions());
+		
+		
+		
+		setRecentChanges(clientRecentChangesLists);
+	}		
 
 	private void initAnimationThread() {
 		systemTrayAnimationThread = new Thread(new Runnable() {
@@ -464,6 +510,8 @@ public abstract class TrayIcon {
 	protected abstract void setWatchedFolders(List<File> folders);
 
 	protected abstract void setStatusText(String root, String statusText);
+	
+	protected abstract void setRecentChanges(List<File> recentFiles);
 
 	protected abstract void displayNotification(String subject, String message);
 
