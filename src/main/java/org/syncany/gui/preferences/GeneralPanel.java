@@ -98,7 +98,7 @@ public class GeneralPanel extends Panel {
 		// Startup
 	    launchAtStartupButton = new Button(this, SWT.CHECK);
 	    
-	    if (EnvironmentUtil.isUnixLikeOperatingSystem()) {
+	    if (EnvironmentUtil.isUnixLikeOperatingSystem() || EnvironmentUtil.isWindows()) {
 		    launchAtStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
 		    launchAtStartupButton.setSelection(guiConfig.isStartup());
 		    launchAtStartupButton.addSelectionListener(commonSelectionListener);

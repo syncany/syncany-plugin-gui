@@ -35,6 +35,7 @@ import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.gui.preferences.GeneralPanel;
 import org.syncany.util.EnvironmentUtil;
+import org.syncany.util.FileUtil;
 
 import com.google.common.base.StandardSystemProperty;
 
@@ -47,8 +48,14 @@ import com.google.common.base.StandardSystemProperty;
  */
 public class DesktopUtil {
 	private static final Logger logger = Logger.getLogger(DesktopUtil.class.getSimpleName());
-	private static final String STARTUP_SCRIPT_LINUX_RESOURCE = "/" + GeneralPanel.class.getPackage().getName().replace('.', '/') + "/syncany.desktop";
-	private static final String STARTUP_SCRIPT_LINUX_TARGET_FILENAME = "syncany.desktop";
+	
+	private static final String STARTUP_LINUX_SCRIPT_RESOURCE = "/" + GeneralPanel.class.getPackage().getName().replace('.', '/') + "/syncany.desktop";
+	private static final String STARTUP_LINUX_SCRIPT_TARGET_FILENAME = "syncany.desktop";
+	
+	private static final String STARTUP_WINDOWS_APP_HOME_ENV_VARIABLE = "APP_HOME";
+	private static final String STARTUP_WINDOWS_APP_LAUNCHER_PATH_FORMAT = "%s\\bin\\launcher.vbs";
+	private static final String STARTUP_WINDOWS_REG_ROOT = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+	private static final String STARTUP_WINDOWS_REG_KEY = "Syncany";
 
 	/**
 	 * Launches a program or a URL using SWT's {@link Program}
@@ -102,20 +109,27 @@ public class DesktopUtil {
 	// TODO [low] This method should be more generic. It is very Syncany-specific.
 	public static void writeAutostart(boolean launchAtStartupEnabled) {
 		if (EnvironmentUtil.isUnixLikeOperatingSystem()) {
-			File autostartDir = new File(StandardSystemProperty.USER_HOME.value(), ".config/autostart");
-			File startupScriptFile = new File(autostartDir, STARTUP_SCRIPT_LINUX_TARGET_FILENAME);
-			
-			if (launchAtStartupEnabled) {
-				writeLinuxStartupFile(autostartDir, startupScriptFile);
-			}
-			else {
-				deleteStartupScriptFile(startupScriptFile);
-			}			
+			writeAutostartLinux(launchAtStartupEnabled);
+		}
+		else if (EnvironmentUtil.isWindows()) {
+			writeAutostartWindows(launchAtStartupEnabled);
 		}
 		else {
 			logger.log(Level.INFO, "Autostart: Launch at startup feature is NOT SUPPORTED (yet) on this operating system. Ignoring option.");
 		}
 	}	
+
+	private static void writeAutostartLinux(boolean launchAtStartupEnabled) {
+		File autostartDir = new File(StandardSystemProperty.USER_HOME.value(), ".config/autostart");
+		File startupScriptFile = new File(autostartDir, STARTUP_LINUX_SCRIPT_TARGET_FILENAME);
+		
+		if (launchAtStartupEnabled) {
+			writeLinuxStartupFile(autostartDir, startupScriptFile);
+		}
+		else {
+			deleteLinuxStartupScriptFile(startupScriptFile);
+		}			
+	}
 
 	private static void writeLinuxStartupFile(File autostartDir, File startupScriptFile) {
 		// This method always re-writes the startup/autostart script. This
@@ -129,7 +143,7 @@ public class DesktopUtil {
 		}
 		
 		try {
-			InputStream startupScriptInputStream = GeneralPanel.class.getResourceAsStream(STARTUP_SCRIPT_LINUX_RESOURCE);
+			InputStream startupScriptInputStream = GeneralPanel.class.getResourceAsStream(STARTUP_LINUX_SCRIPT_RESOURCE);
 			FileUtils.copyFile(startupScriptInputStream, startupScriptFile);
 		}
 		catch (IOException e) {
@@ -137,7 +151,7 @@ public class DesktopUtil {
 		}								
 	}
 	
-	private static void deleteStartupScriptFile(File startupScriptFile) {
+	private static void deleteLinuxStartupScriptFile(File startupScriptFile) {
 		if (startupScriptFile.exists()) {
 			logger.log(Level.INFO, "Autostart (disabled): Deleting startup script file from " + startupScriptFile + " ...");
 			startupScriptFile.delete();
@@ -145,5 +159,41 @@ public class DesktopUtil {
 		else {
 			logger.log(Level.INFO, "Autostart (disabled): Linux startup script does not exist at " + startupScriptFile + ". Nothing to do.");
 		}
+	}
+	
+	private static void writeAutostartWindows(boolean launchAtStartupEnabled) {
+		try {
+			if (launchAtStartupEnabled) {
+				addAutostartRegistryKeyWindows();
+			}
+			else {
+				deleteAutostartRegistryKeyWindows();
+			}			
+		}
+		catch (IOException e) {
+			logger.log(Level.WARNING, "Autostart: Cannot write Windows registry key for startup.", e);
+		}
+	}
+
+	private static void addAutostartRegistryKeyWindows() throws IOException {		
+		String appHome = System.getenv(STARTUP_WINDOWS_APP_HOME_ENV_VARIABLE);
+		
+		if (appHome != null) {
+			String appLauncherFilePath = String.format(STARTUP_WINDOWS_APP_LAUNCHER_PATH_FORMAT, appHome);
+			String canonicalAppLauncherFilePath = FileUtil.getCanonicalFile(new File(appLauncherFilePath)).getAbsolutePath();
+			
+			logger.log(Level.INFO, "Autostart (enabled): Windows writing registry key " + STARTUP_WINDOWS_REG_ROOT + " -> " + STARTUP_WINDOWS_REG_KEY
+					+ " to value '" + canonicalAppLauncherFilePath + "' ...");
+
+			WindowsRegistryUtil.writeString(STARTUP_WINDOWS_REG_ROOT, STARTUP_WINDOWS_REG_KEY, canonicalAppLauncherFilePath);
+		}
+		else {
+			logger.log(Level.WARNING, "Autostart (enabled): CANNOT write Windows registry key. No " + STARTUP_WINDOWS_APP_HOME_ENV_VARIABLE + " env variable present. Ignoring.");
+		}
+	}
+
+	private static void deleteAutostartRegistryKeyWindows() throws IOException {
+		logger.log(Level.INFO, "Autostart (disabled): Windows deleting registry key " + STARTUP_WINDOWS_REG_ROOT + " -> " + STARTUP_WINDOWS_REG_KEY + " ...");
+		WindowsRegistryUtil.deleteKey(STARTUP_WINDOWS_REG_ROOT, STARTUP_WINDOWS_REG_KEY);  
 	}
 }
