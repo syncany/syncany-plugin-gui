@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.tray;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +36,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolTip;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
@@ -128,7 +127,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildStatusTextMenuItems() {
-		String inSyncStatusText = _("org.syncany.gui.tray.TrayIcon.insync");
+		String inSyncStatusText = I18n.getText("org.syncany.gui.tray.TrayIcon.insync");
 
 		// Create per-folder status text item
 		for (String root : statusTexts.keySet()) {
@@ -159,7 +158,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem newItem = new MenuItem(menu, SWT.PUSH);
-		newItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.new"));
+		newItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.new"));
 		newItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -184,7 +183,7 @@ public class DefaultTrayIcon extends TrayIcon {
 						
 						// Menu item for 'Remove' 
 						MenuItem folderOpenMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
-						folderOpenMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.open"));
+						folderOpenMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.open"));
 						folderOpenMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
@@ -194,7 +193,7 @@ public class DefaultTrayIcon extends TrayIcon {
 						
 						// Menu item for 'Copy link' 
 						MenuItem folderCopyLinkMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
-						folderCopyLinkMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.copyLink"));
+						folderCopyLinkMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.copyLink"));
 						folderCopyLinkMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
@@ -204,7 +203,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 						// Menu item for 'Remove' 
 						MenuItem folderRemoveMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
-						folderRemoveMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.remove"));
+						folderRemoveMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.remove"));
 						folderRemoveMenuItem.addSelectionListener(new SelectionAdapter() {
 							@Override
 							public void widgetSelected(SelectionEvent e) {
@@ -238,7 +237,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	private void buildStaticMenuItems() {
 		MenuItem preferencesItem = new MenuItem(menu, SWT.PUSH);
-		preferencesItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.preferences"));
+		preferencesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.preferences"));
 		preferencesItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -249,7 +248,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		new MenuItem(menu, SWT.SEPARATOR);
 		
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
-		reportIssueItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.issue"));
+		reportIssueItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -258,7 +257,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 
 		MenuItem donateItem = new MenuItem(menu, SWT.PUSH);
-		donateItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.donate"));
+		donateItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.donate"));
 		donateItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -267,7 +266,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 
 		MenuItem websiteItem = new MenuItem(menu, SWT.PUSH);
-		websiteItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.website"));
+		websiteItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.website"));
 		websiteItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -278,7 +277,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		MenuItem exitMenu = new MenuItem(menu, SWT.PUSH);
-		exitMenu.setText(_("org.syncany.gui.tray.TrayIcon.menu.exit"));
+		exitMenu.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.exit"));
 		exitMenu.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {

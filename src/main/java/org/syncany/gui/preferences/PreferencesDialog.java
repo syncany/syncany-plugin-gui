@@ -130,7 +130,7 @@ public class PreferencesDialog extends Dialog {
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
-		windowShell.setText(I18n._("org.syncany.gui.preferences.PreferencesDialog.title"));
+		windowShell.setText(I18n.getText("org.syncany.gui.preferences.PreferencesDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 		
 		// Navigation table (row 1, column 1) and stack composite (row 1, column 2)
@@ -196,7 +196,7 @@ public class PreferencesDialog extends Dialog {
 
 	    TableItem navGeneralTableItem = new TableItem(navTable, SWT.NONE);		    
 	    navGeneralTableItem.setImage(1, navGeneralImage);
-	    navGeneralTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.general"));		    
+	    navGeneralTableItem.setText(2, I18n.getText("org.syncany.gui.preferences.PreferencesDialog.nav.general"));		    
 	    navGeneralTableItem.setData(NavSelection.GENERAL);		
 	    
 	    // Entry 'Plugins'
@@ -205,7 +205,7 @@ public class PreferencesDialog extends Dialog {
 
 	    TableItem navPluginsTableItem = new TableItem(navTable, SWT.NONE);		    
 	    navPluginsTableItem.setImage(1, navPluginsImage);
-	    navPluginsTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.plugins"));		    
+	    navPluginsTableItem.setText(2, I18n.getText("org.syncany.gui.preferences.PreferencesDialog.nav.plugins"));		    
 	    navPluginsTableItem.setData(NavSelection.PLUGINS);	
 	    
 	    // Entry 'Network'
@@ -214,7 +214,7 @@ public class PreferencesDialog extends Dialog {
 
 	    TableItem navNetworkTableItem = new TableItem(navTable, SWT.NONE);		    
 	    navNetworkTableItem.setImage(1, navNetworkImage);
-	    navNetworkTableItem.setText(2, I18n._("org.syncany.gui.preferences.PreferencesDialog.nav.network"));		    
+	    navNetworkTableItem.setText(2, I18n.getText("org.syncany.gui.preferences.PreferencesDialog.nav.network"));		    
 	    navNetworkTableItem.setData(NavSelection.NETWORK);	
 
 	    // Select 'General'
@@ -259,7 +259,7 @@ public class PreferencesDialog extends Dialog {
 		// Buttons		
 		Button closeButton = new Button(buttonComposite, SWT.NONE);
 		closeButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		closeButton.setText(I18n._("org.syncany.gui.preferences.PreferencesDialog.button.close"));
+		closeButton.setText(I18n.getText("org.syncany.gui.preferences.PreferencesDialog.button.close"));
 		closeButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {

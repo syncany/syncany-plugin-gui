@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.preferences;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +44,7 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.config.GuiEventBus;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.PluginManagementRequest;
@@ -128,7 +127,7 @@ public class PluginsPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
-		titleLabel.setText(_("org.syncany.gui.preferences.PluginsPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 	}
@@ -184,23 +183,23 @@ public class PluginsPanel extends Panel {
 	    pluginTableColumnImage.setResizable(false);
 
 	    TableColumn pluginTableColumnText = new TableColumn(pluginTable, SWT.LEFT | SWT.FILL);
-	    pluginTableColumnText.setText(_("org.syncany.gui.preferences.PluginsPanel.table.plugin"));
+	    pluginTableColumnText.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.plugin"));
 	    pluginTableColumnText.setWidth(110);	    
 
 	    TableColumn pluginTableColumnLocalVersion = new TableColumn(pluginTable, SWT.LEFT);
-	    pluginTableColumnLocalVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.localVersion"));
+	    pluginTableColumnLocalVersion.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.localVersion"));
 	    pluginTableColumnLocalVersion.setWidth(90);	    
 
 	    TableColumn pluginTableColumnType = new TableColumn(pluginTable, SWT.LEFT);
-	    pluginTableColumnType.setText(_("org.syncany.gui.preferences.PluginsPanel.table.type"));
+	    pluginTableColumnType.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.type"));
 	    pluginTableColumnType.setWidth(50);	    
 
 	    TableColumn pluginTableColumnRemoteVersion = new TableColumn(pluginTable, SWT.LEFT);
-	    pluginTableColumnRemoteVersion.setText(_("org.syncany.gui.preferences.PluginsPanel.table.remoteVersion"));
+	    pluginTableColumnRemoteVersion.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.remoteVersion"));
 	    pluginTableColumnRemoteVersion.setWidth(90);
 	    
 	    TableColumn pluginTableColumnStatus = new TableColumn(pluginTable, SWT.LEFT);
-	    pluginTableColumnStatus.setText(_("org.syncany.gui.preferences.PluginsPanel.table.status"));
+	    pluginTableColumnStatus.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.status"));
 	    pluginTableColumnStatus.setWidth(60);	    
 	}
 
@@ -250,7 +249,7 @@ public class PluginsPanel extends Panel {
 		
 		if (actionList.contains(Action.UPDATE)) {			
 			Button updatePluginButton = new Button(actionButtonComposite, SWT.NONE);
-			updatePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.update"));
+			updatePluginButton.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.button.update"));
 
 			updatePluginButton.addSelectionListener(new SelectionAdapter() {
 				@Override
@@ -262,7 +261,7 @@ public class PluginsPanel extends Panel {
 		
 		if (actionList.contains(Action.REMOVE)) {
 		    Button removePluginButton = new Button(actionButtonComposite, SWT.NONE);
-		    removePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.remove"));
+		    removePluginButton.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.button.remove"));
 		    
 		    removePluginButton.addSelectionListener(new SelectionAdapter() {
 				@Override
@@ -274,7 +273,7 @@ public class PluginsPanel extends Panel {
 		
 		if (actionList.contains(Action.INSTALL)) {
 			Button installPluginButton = new Button(actionButtonComposite, SWT.NONE);
-			installPluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.install"));
+			installPluginButton.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.button.install"));
 		    
 		    installPluginButton.addSelectionListener(new SelectionAdapter() {
 				@Override
@@ -285,7 +284,7 @@ public class PluginsPanel extends Panel {
 		}
 		   
 	    Button installFromFilePluginButton = new Button(actionButtonComposite, SWT.NONE);
-	    installFromFilePluginButton.setText(_("org.syncany.gui.preferences.PluginsPanel.button.installFromFile"));
+	    installFromFilePluginButton.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.button.installFromFile"));
 	    
 	    installFromFilePluginButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -304,7 +303,7 @@ public class PluginsPanel extends Panel {
 			requestRunning.set(true);
 						
 			PluginInfo pluginInfo = (selectedPlugin.isInstalled()) ? selectedPlugin.getLocalPluginInfo() : selectedPlugin.getRemotePluginInfo();			
-			pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalling", pluginInfo.getPluginName()));
+			pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalling", pluginInfo.getPluginName()));
 			
 			updatePluginActionButtons(selectedPlugin);
 			updateStatusText(selectedPlugin);
@@ -329,7 +328,7 @@ public class PluginsPanel extends Panel {
 
 				File selectedFile = new File(selectedFilePath);		
 				PluginInfo pluginInfo = (selectedPlugin.isInstalled()) ? selectedPlugin.getLocalPluginInfo() : selectedPlugin.getRemotePluginInfo();							
-				pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalling", selectedFile.getName()));
+				pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalling", selectedFile.getName()));
 
 				updatePluginActionButtons(selectedPlugin);
 				updateStatusText(selectedPlugin);
@@ -352,7 +351,7 @@ public class PluginsPanel extends Panel {
 			requestRunning.set(true);
 			
 			PluginInfo pluginInfo = (selectedPlugin.isInstalled()) ? selectedPlugin.getLocalPluginInfo() : selectedPlugin.getRemotePluginInfo();			
-			pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginRemoving", pluginInfo.getPluginName()));
+			pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginRemoving", pluginInfo.getPluginName()));
 			
 			updatePluginActionButtons(selectedPlugin);
 			updateStatusText(selectedPlugin);
@@ -463,7 +462,7 @@ public class PluginsPanel extends Panel {
 		case INSTALL:
 		case UPDATE:			
 			tableItem.setText(TABLE_COLUMN_LOCAL_VERSION, extPluginInfo.getRemotePluginInfo().getPluginVersion());
-			tableItem.setText(TABLE_COLUMN_TYPE, _("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeUser"));
+			tableItem.setText(TABLE_COLUMN_TYPE, I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeUser"));
 			tableItem.setText(TABLE_COLUMN_REMOTE_VERSION, remoteVersionStr);
 			tableItem.setImage(TABLE_COLUMN_STATUS, SWTResourceManager.getImage(String.format(PLUGIN_ACTION_RESOURCE_FORMAT, "installed-restart-required")));
 			
@@ -487,10 +486,10 @@ public class PluginsPanel extends Panel {
 		
 		if (extPluginInfo.isInstalled()) {
 			if (extPluginInfo.canUninstall()) {
-				typeStr = _("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeUser");
+				typeStr = I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeUser");
 			}
 			else {
-				typeStr = _("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeGlobal");
+				typeStr = I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.pluginTypeGlobal");
 			}
 		}
 		
@@ -534,7 +533,7 @@ public class PluginsPanel extends Panel {
 
 	private void refreshPluginList() {
 		requestRunning.set(true);
-		setStatusText(_("org.syncany.gui.preferences.PluginsPanel.status.pluginRetrievingList"));
+		setStatusText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginRetrievingList"));
 
 		while (pluginTable.getItemCount() > 0) {
 			pluginTable.getItem(0).dispose();
@@ -572,10 +571,10 @@ public class PluginsPanel extends Panel {
 
 				// Set status text
 				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
-					pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalled", pluginInfo.getPluginName()));
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginInstalled", pluginInfo.getPluginName()));
 				}
 				else {
-					pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginNotInstalled", pluginInfo.getPluginName()));					
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginNotInstalled", pluginInfo.getPluginName()));					
 				}
 				
 				requestRunning.set(false);
@@ -596,10 +595,10 @@ public class PluginsPanel extends Panel {
 				
 				// Set status text
 				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
-					pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginRemoved", pluginInfo.getPluginName()));
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginRemoved", pluginInfo.getPluginName()));
 				}
 				else {
-					pluginStatusTexts.put(pluginInfo.getPluginId(), _("org.syncany.gui.preferences.PluginsPanel.status.pluginNotRemoved", pluginInfo.getPluginName()));					
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginNotRemoved", pluginInfo.getPluginName()));					
 				}				
 				
 				requestRunning.set(false);

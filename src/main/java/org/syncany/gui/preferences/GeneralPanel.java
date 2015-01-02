@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.preferences;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +35,7 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.util.EnvironmentUtil;
@@ -83,7 +82,7 @@ public class GeneralPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText(_("org.syncany.gui.preferences.GeneralPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
@@ -99,19 +98,19 @@ public class GeneralPanel extends Panel {
 	    launchAtStartupButton = new Button(this, SWT.CHECK);
 	    
 	    if (EnvironmentUtil.isUnixLikeOperatingSystem() || EnvironmentUtil.isWindows()) {
-		    launchAtStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
+		    launchAtStartupButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
 		    launchAtStartupButton.setSelection(guiConfig.isStartup());
 		    launchAtStartupButton.addSelectionListener(commonSelectionListener);
 	    }
 	    else {
-		    launchAtStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchAtStartupNotSupported"));
+		    launchAtStartupButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.launchAtStartupNotSupported"));
 		    launchAtStartupButton.setSelection(false);
 		    launchAtStartupButton.setEnabled(false);
 	    }
 	    
 	    // Notifications
 	    displayNotificationsButton = new Button(this, SWT.CHECK);
-	    displayNotificationsButton.setText(_("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
+	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
 	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  	    
 	    displayNotificationsButton.addSelectionListener(commonSelectionListener);	
 	}

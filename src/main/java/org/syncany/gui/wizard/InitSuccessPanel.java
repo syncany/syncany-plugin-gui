@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.io.File;
 
 import org.eclipse.swt.SWT;
@@ -31,6 +29,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 
 /**
@@ -59,13 +58,13 @@ public class InitSuccessPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.InitSuccessPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.InitSuccessPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 2, 1));
-		descriptionLabel.setText(_("org.syncany.gui.wizard.InitSuccessPanel.description"));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.InitSuccessPanel.description"));
 		
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -78,7 +77,7 @@ public class InitSuccessPanel extends Panel {
 		
 		// Button "Copy"
 		Button copyLinkButton = new Button(this, SWT.FLAT);
-		copyLinkButton.setText(_("org.syncany.gui.wizard.InitSuccessPanel.button.copyLink"));
+		copyLinkButton.setText(I18n.getText("org.syncany.gui.wizard.InitSuccessPanel.button.copyLink"));
 		copyLinkButton.setLayoutData(buttonGridData);
 		copyLinkButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -89,7 +88,7 @@ public class InitSuccessPanel extends Panel {
 		
 		// Button "Open folder"
 		Button openFolderButton = new Button(this, SWT.FLAT);
-		openFolderButton.setText(_("org.syncany.gui.wizard.InitSuccessPanel.button.openFolder"));
+		openFolderButton.setText(I18n.getText("org.syncany.gui.wizard.InitSuccessPanel.button.openFolder"));
 		openFolderButton.setLayoutData(buttonGridData);
 		openFolderButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -104,7 +103,7 @@ public class InitSuccessPanel extends Panel {
 		
 		Label linkHelpLabel = new Label(this, SWT.WRAP);
 		linkHelpLabel.setLayoutData(linkHelpLabelGridData);
-		linkHelpLabel.setText(_("org.syncany.gui.wizard.InitSuccessPanel.linkHelp"));
+		linkHelpLabel.setText(I18n.getText("org.syncany.gui.wizard.InitSuccessPanel.linkHelp"));
 		
 		WidgetDecorator.normal(linkHelpLabel);
 		

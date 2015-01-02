@@ -33,7 +33,7 @@ public class I18n {
 	 * Returns the translation for the key String, given the selected
 	 * default locale.
 	 */
-	public static String _(String key, Object... args) {
+	public static String getText(String key, Object... args) {
 		if (!bundles.containsKey(Locale.getDefault())) {
 			loadBundle(Locale.getDefault());
 		}

@@ -138,7 +138,7 @@ public class WizardDialog extends Dialog {
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
-		windowShell.setText(I18n._("org.syncany.gui.wizard.WizardDialog.title"));
+		windowShell.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 
 		// Row 1, Column 1: Image
@@ -183,7 +183,7 @@ public class WizardDialog extends Dialog {
 		// Buttons
 		previousButton = new Button(buttonComposite, SWT.NONE);
 		previousButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		previousButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.previous"));
+		previousButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.previous"));
 		previousButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -193,7 +193,7 @@ public class WizardDialog extends Dialog {
 
 		nextButton = new Button(buttonComposite, SWT.NONE);
 		nextButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		nextButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.next"));
+		nextButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.next"));
 		nextButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -206,7 +206,7 @@ public class WizardDialog extends Dialog {
 
 		cancelButton = new Button(buttonComposite, SWT.NONE);
 		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
+		cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 		cancelButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -311,12 +311,12 @@ public class WizardDialog extends Dialog {
 					}
 					
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.finish"));
+						cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.finish"));
 					}
 				}
 				else {
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
+						cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 					}
 				}
 			}

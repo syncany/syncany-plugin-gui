@@ -1,13 +1,12 @@
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.transfer.TransferPlugin;
 
@@ -37,13 +36,13 @@ public class PluginSelectPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.PluginSelectPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSelectPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
-		descriptionLabel.setText(_("org.syncany.gui.wizard.PluginSelectPanel.description"));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSelectPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 
