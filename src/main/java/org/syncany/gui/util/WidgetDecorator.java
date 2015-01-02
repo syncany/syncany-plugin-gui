@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.wizard;
+package org.syncany.gui.util;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
@@ -24,7 +24,6 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
-import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
 /**

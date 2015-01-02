@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,22 @@
 package org.syncany.operations.daemon.messages;
 
 import org.simpleframework.xml.Element;
+import org.syncany.operations.daemon.messages.api.ManagementRequest;
+import org.syncany.operations.plugin.PluginOperationOptions;
 
-public class ClickTrayMenuGuiInternalEvent extends GuiInternalEvent {
-	public enum TrayAction { NEW, PREFERENCES, WEBSITE, DONATE, REPORT_ISSUE, EXIT }
-	
-	@Element(name = "action")
-	private TrayAction action;
+public class PluginManagementRequest extends ManagementRequest {
+	@Element(name = "options", required = true)	
+	private PluginOperationOptions options;
 
-	public ClickTrayMenuGuiInternalEvent() {
+	public PluginManagementRequest() {
 		// Nothing
 	}
 
-	public ClickTrayMenuGuiInternalEvent(TrayAction action) {
-		this.action = action;
+	public PluginManagementRequest(PluginOperationOptions options) {
+		this.options = options;
 	}
 
-	public TrayAction getAction() {
-		return action;
+	public PluginOperationOptions getOptions() {
+		return options;
 	}
 }

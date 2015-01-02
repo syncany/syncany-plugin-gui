@@ -197,6 +197,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 					showFolder(folder);
 					break;
 					
+				case COPY_LINK:
+					copyLink(folder);
+					break;
+					
 				case REMOVE:
 					removeFolder(folder);
 					break;
@@ -208,6 +212,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				switch (clickEvent.getAction()) {
 				case NEW:
 					showNew();
+					break;
+					
+				case PREFERENCES:
+					showPreferences();
 					break;
 
 				case REPORT_ISSUE:

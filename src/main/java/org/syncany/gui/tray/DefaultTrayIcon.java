@@ -79,7 +79,7 @@ public class DefaultTrayIcon extends TrayIcon {
 
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
-			Image trayImage = SWTResourceManager.getImage(trayImageFileName, false);
+			Image trayImage = SWTResourceManager.getImage(trayImageFileName);
 
 			images.put(trayIconImage, trayImage);
 		}
@@ -198,6 +198,16 @@ public class DefaultTrayIcon extends TrayIcon {
 							}
 						});
 						
+						// Menu item for 'Copy link' 
+						MenuItem folderCopyLinkMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
+						folderCopyLinkMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.copyLink"));
+						folderCopyLinkMenuItem.addSelectionListener(new SelectionAdapter() {
+							@Override
+							public void widgetSelected(SelectionEvent e) {
+								copyLink(folder);
+							}
+						});
+
 						// Menu item for 'Remove' 
 						MenuItem folderRemoveMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
 						folderRemoveMenuItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.remove"));
@@ -233,6 +243,17 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildStaticMenuItems() {
+		MenuItem preferencesItem = new MenuItem(menu, SWT.PUSH);
+		preferencesItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.preferences"));
+		preferencesItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showPreferences();
+			}
+		});
+
+		new MenuItem(menu, SWT.SEPARATOR);
+		
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
 		reportIssueItem.setText(_("org.syncany.gui.tray.TrayIcon.menu.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {

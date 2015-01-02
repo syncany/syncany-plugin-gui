@@ -19,9 +19,6 @@ package org.syncany.gui.wizard;
 
 import static org.syncany.gui.util.I18n._;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.io.File;
 
 import org.eclipse.swt.SWT;
@@ -32,7 +29,9 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -84,10 +83,7 @@ public class InitSuccessPanel extends Panel {
 		copyLinkButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				StringSelection applicationLinkStringSelection = new StringSelection(applicationLinkText);
-				
-			    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-			    clipboard.setContents(applicationLinkStringSelection, applicationLinkStringSelection);
+				DesktopUtil.copyToClipboard(applicationLinkText);
 			}
 		});
 		

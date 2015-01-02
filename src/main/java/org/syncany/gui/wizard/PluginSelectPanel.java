@@ -7,6 +7,8 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.syncany.gui.Panel;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.transfer.TransferPlugin;
 
 /**

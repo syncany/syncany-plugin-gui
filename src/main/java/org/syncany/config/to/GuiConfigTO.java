@@ -34,8 +34,12 @@ public class GuiConfigTO {
 	@Element(name = "theme", required = false)
 	private TrayIconTheme theme;
 
+	@Element(name = "notifications", required = false)
+	private boolean notifications;
+
 	public GuiConfigTO() {
-		// Nothing
+		this.tray = null;
+		this.notifications = true;
 	}
 
 	public static GuiConfigTO load(File file) throws ConfigException {
@@ -70,5 +74,13 @@ public class GuiConfigTO {
 
 	public void setTheme(TrayIconTheme theme) {
 		this.theme = theme;
+	}
+
+	public boolean isNotifications() {
+		return notifications;
+	}
+
+	public void setNotifications(boolean notifications) {
+		this.notifications = notifications;
 	}
 }

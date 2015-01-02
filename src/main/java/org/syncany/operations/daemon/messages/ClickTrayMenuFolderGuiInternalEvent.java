@@ -21,7 +21,7 @@ import org.simpleframework.xml.Element;
 
 public class ClickTrayMenuFolderGuiInternalEvent extends GuiInternalEvent {
 	public enum ClickAction {
-		OPEN, REMOVE
+		OPEN, COPY_LINK, REMOVE
 	}
 	
 	@Element(name = "folder")

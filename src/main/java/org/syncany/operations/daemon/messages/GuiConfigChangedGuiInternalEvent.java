@@ -17,23 +17,20 @@
  */
 package org.syncany.operations.daemon.messages;
 
-import org.simpleframework.xml.Element;
+import org.syncany.config.to.GuiConfigTO;
 
-public class ClickTrayMenuGuiInternalEvent extends GuiInternalEvent {
-	public enum TrayAction { NEW, PREFERENCES, WEBSITE, DONATE, REPORT_ISSUE, EXIT }
+public class GuiConfigChangedGuiInternalEvent {
+	private GuiConfigTO newGuiConfig;
 	
-	@Element(name = "action")
-	private TrayAction action;
-
-	public ClickTrayMenuGuiInternalEvent() {
+	public GuiConfigChangedGuiInternalEvent() {
 		// Nothing
 	}
-
-	public ClickTrayMenuGuiInternalEvent(TrayAction action) {
-		this.action = action;
+	
+	public GuiConfigChangedGuiInternalEvent(GuiConfigTO newGuiConfig) {
+		this.newGuiConfig = newGuiConfig;
 	}
 
-	public TrayAction getAction() {
-		return action;
+	public GuiConfigTO getNewGuiConfig() {
+		return newGuiConfig;
 	}
 }

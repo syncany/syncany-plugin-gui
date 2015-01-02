@@ -3,10 +3,16 @@ Change Log
 
 ### Syncany 0.4.1-alpha (Date: Tbd.)
 - Developer/alpha release (**We are now nearing the beta phase. Stay tuned!**)
+- Features and significant changes:
+  + New 'Remove folder' function in tray menu #330
+  + New 'Preferences' dialog with ability to remove/add plugins, 
+    and enable/disable notifications #334
 - Bugfixes and other things:
   + Fix Dropbox plugin bug when deleting non-existing files #325
   + Cleanup status information / status texts in tray #317/#329
   + Code refactoring based on SonarQube output #302/#326
+  + Fix invalid "uploading" status message #314
+  + Fix confusing error message when plugin not installed #328
   
 ### Syncany 0.4.0-alpha (Date: 28 Dec 2014)
 - Developer/alpha release (**We are now nearing the beta phase. Stay tuned!**)
