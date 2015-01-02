@@ -81,7 +81,7 @@ import com.google.common.eventbus.Subscribe;
 public abstract class TrayIcon {
 	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
-	private static int REFRESH_TIME = 500;
+	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
