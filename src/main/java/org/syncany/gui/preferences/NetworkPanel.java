@@ -334,11 +334,15 @@ public class NetworkPanel extends Panel {
 		if (enable) {
 			boolean needsAuth = proxyNeedsAuthCheckButton.getSelection();
 			
+			proxyAuthUserLabel.setEnabled(needsAuth);
 			proxyAuthUserText.setEnabled(needsAuth);
+			proxyAuthPassLabel.setEnabled(needsAuth);
 			proxyAuthPassText.setEnabled(needsAuth);
 		}
 		else {
+			proxyAuthUserLabel.setEnabled(false);
 			proxyAuthUserText.setEnabled(false);
+			proxyAuthPassLabel.setEnabled(false);
 			proxyAuthPassText.setEnabled(false);			
 		}
 	}
