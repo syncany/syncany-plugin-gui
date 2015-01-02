@@ -19,8 +19,12 @@ package org.syncany.gui.tray;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,6 +35,9 @@ import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.database.DatabaseVersion;
+import org.syncany.database.FileVersion;
+import org.syncany.database.FileVersion.FileStatus;
+import org.syncany.database.PartialFileHistory;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
@@ -66,13 +73,11 @@ import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
 import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.log.LogOperationOptions;
-import org.syncany.operations.log.LogOperationResult;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
@@ -246,22 +251,33 @@ public abstract class TrayIcon {
 		sendLogRequests(listWatchesResponse.getWatches());		
 	}
 
-	private void sendLogRequests(ArrayList<Watch> watchedFolders) {
+	private void sendLogRequests(final ArrayList<Watch> watchedFolders) {
 		if (watchedFolders.size() > 0) {
-			int perFolderMaxCount = (int) Math.ceil((double) 15 / watchedFolders.size()); 
+			Timer logRequestTimer = new Timer();
+			
+			logRequestTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					int perFolderMaxCount = (int) Math.ceil((double) 5 / watchedFolders.size());
 					
-			for (Watch watch : watchedFolders) {
-				LogOperationOptions logOptions = new LogOperationOptions();
-				logOptions.setExcludeChunkData(true);
-				logOptions.setMaxCount(perFolderMaxCount);
-								
-				LogFolderRequest logRequest = new LogFolderRequest();
-				logRequest.setRoot(watch.getFolder().getAbsolutePath());
-				logRequest.setOptions(logOptions);
-								
-				clientPendingRecentChangesRequests.put(watch.getFolder().getAbsolutePath(), logRequest);				
-				eventBus.post(logRequest);
-			}
+					if (perFolderMaxCount == 0) {
+						perFolderMaxCount = 1;
+					}
+							
+					for (Watch watch : watchedFolders) {
+						LogOperationOptions logOptions = new LogOperationOptions();
+						logOptions.setExcludeChunkData(true);
+						logOptions.setMaxCount(perFolderMaxCount);
+										
+						LogFolderRequest logRequest = new LogFolderRequest();
+						logRequest.setRoot(watch.getFolder().getAbsolutePath());
+						logRequest.setOptions(logOptions);
+										
+						clientPendingRecentChangesRequests.put(watch.getFolder().getAbsolutePath(), logRequest);				
+						eventBus.post(logRequest);
+					}
+				}				
+			}, 5000);					
 		}
 	}
 
@@ -427,14 +443,14 @@ public abstract class TrayIcon {
 	
 	@Subscribe
 	public void onLogResponse(LogFolderResponse logResponse) {
+		clientRecentChangesLists.put(logResponse.getRoot(), logResponse.getResult().getDatabaseVersions());
+		clientPendingRecentChangesRequests.remove(logResponse.getRoot());
 		
-		Iterables.removeIf(clientPendingRecentChangesRequests, new Predicate<>)
-		clientRecentChangesLists.put(folderRoot, logResponse.getResult().getDatabaseVersions());
-		
-		
-		
-		setRecentChanges(clientRecentChangesLists);
-	}		
+		if (clientPendingRecentChangesRequests.isEmpty()) {
+			List<File> recentChanges = getRecentFiles();
+			setRecentChanges(recentChanges);
+		}
+	}
 
 	private void initAnimationThread() {
 		systemTrayAnimationThread = new Thread(new Runnable() {
@@ -501,6 +517,57 @@ public abstract class TrayIcon {
 		});
 
 		syncing.set(syncingFolders.size() > 0);
+	}
+	
+	
+	private List<File> getRecentFiles() {
+		// Fill flat temporary map with recent entries 
+		List<RecentFileEntry> recentFiles = Lists.newArrayList();
+		
+		for (Map.Entry<String, List<DatabaseVersion>> clientRecentChangesListEntry : clientRecentChangesLists.entrySet()) {
+			String root = clientRecentChangesListEntry.getKey();
+			
+			for (DatabaseVersion databaseVersion : clientRecentChangesListEntry.getValue()) {
+				for (PartialFileHistory fileHistory : databaseVersion.getFileHistories()) {
+					for (FileVersion fileVersion : fileHistory.getFileVersions().values()) {
+						if (fileVersion.getStatus() != FileStatus.DELETED) {
+							recentFiles.add(new RecentFileEntry(root, fileVersion));
+						}
+					}
+				}
+			}
+		}
+		
+		// Sort it
+		Collections.sort(recentFiles, new RecentFileEntryComparator());
+		
+		// Build target map
+		List<File> recentChanges = Lists.newArrayList();
+		int maxEntries = (recentFiles.size() < 15) ? recentFiles.size() : 15;
+		
+		for (int i = 0; i < maxEntries; i++) {
+			RecentFileEntry recentFileEntry = recentFiles.get(i);
+			recentChanges.add(new File(recentFileEntry.root, recentFileEntry.fileVersion.getPath()));
+		}
+
+		return recentChanges;
+	}
+	
+	private class RecentFileEntry {
+		private String root;
+		private FileVersion fileVersion;
+		
+		public RecentFileEntry(String root, FileVersion fileVersion) {
+			this.root = root;
+			this.fileVersion = fileVersion;
+		}
+	}
+	
+	private class RecentFileEntryComparator implements Comparator<RecentFileEntry> {
+		@Override
+		public int compare(RecentFileEntry f1, RecentFileEntry f2) {
+			return f2.fileVersion.getUpdated().compareTo(f1.fileVersion.getUpdated());
+		}		
 	}
 
 	// Abstract methods

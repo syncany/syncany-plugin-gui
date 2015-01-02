@@ -283,4 +283,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	protected void dispose() {
 		// Do nothing.
 	}
+
+	@Override
+	protected void setRecentChanges(List<File> recentFiles) {
+		// TODO Auto-generated method stub
+		
+	}
 }

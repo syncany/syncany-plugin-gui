@@ -36,6 +36,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolTip;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
@@ -54,6 +55,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private TrayItem trayItem;
 	private Menu menu;
 	private List<File> watches;
+	private List<File> recentChangesFiles;
 	private Map<String, MenuItem> statusTextItems = new TreeMap<String, MenuItem>();
 	private Map<String, String> statusTexts = new TreeMap<String, String>();
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
@@ -122,6 +124,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		
 		buildStatusTextMenuItems();
 		buildNewWatchMenuItem();
+		buildRecentChangesMenuItems();
 		buildWatchMenuItems();
 		buildStaticMenuItems();		
 	}
@@ -167,6 +170,28 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 	}
 
+	private void buildRecentChangesMenuItems() {
+		if (recentChangesFiles != null && recentChangesFiles.size() > 0) {
+			// 'Recent changes >'
+			MenuItem recentChangesItem = new MenuItem(menu, SWT.CASCADE);
+			recentChangesItem.setText("Recent changes");
+			
+			Menu recentChangesSubMenu = new Menu(menu);
+			recentChangesItem.setMenu(recentChangesSubMenu);
+			
+			for (final File recentFile : recentChangesFiles) {
+				MenuItem recentFileItem = new MenuItem(recentChangesSubMenu, SWT.PUSH);
+				recentFileItem.setText(recentFile.getName());
+				recentFileItem.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+						DesktopUtil.launch(recentFile.getAbsolutePath());
+					}
+				});		
+			}			
+		}
+	}
+	
 	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
@@ -352,6 +377,17 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 	}
 
+	@Override
+	protected void setRecentChanges(List<File> recentFiles) {
+		this.recentChangesFiles = recentFiles;
+		
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				buildMenuItems();
+			}
+		});		
+	}
+	
 	@Override
 	protected void dispose() {
 		trayItem.dispose();
