@@ -67,7 +67,7 @@ def do_notify(request):
 		gtk.gdk.threads_leave()
 	except:
 		do_print(sys.exc_info())
-		do_print("Displaying notifcation via pynotify failed; trying notify-send ...")
+		do_print("Displaying notification via pynotify failed; trying notify-send ...")
 
 		os.system("notify-send -t 2000 -i '{0}' '{1}' '{2}'".format(image, request["summary"], request["body"]))
 		
@@ -96,10 +96,22 @@ def do_update_text(request):
 	# Rebuild menu
 	do_update_menu(watches_last_request)	
 	
+	return None	
+	
+def do_update_recent_changes(request):
+	global recent_changes, watches_last_request
+
+	# Set recent changes		
+	recent_changes = request.find("recentChanges")
+			
+	# Rebuild menu
+	do_update_menu(watches_last_request)	
+	
 	return None			
+			
 	
 def do_update_menu(request):
-	global menu, status_texts, status_text_default, watches_last_request
+	global menu, status_texts, status_text_default, recent_changes, watches_last_request
 
 	gtk.gdk.threads_enter()
 	
@@ -136,11 +148,30 @@ def do_update_menu(request):
 	menu.append(gtk.SeparatorMenuItem())	
 
 	# New ...
-	menu_item_donate = gtk.MenuItem("New folder ...")
-	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
+	menu_item_new_folder = gtk.MenuItem("New folder ...")
+	menu_item_new_folder.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
 	
-	menu.append(menu_item_donate)	
+	menu.append(menu_item_new_folder)	
+	
+	if recent_changes is not None:
+		# Create submenu
+		sub_menu_recent_changes = gtk.Menu()
 
+		# Create submenu entries
+		files = recent_changes.xpath("//file")
+		
+		for afile in files:
+			menu_item_recent_changes_file = gtk.MenuItem(os.path.basename(afile.text))
+			menu_item_recent_changes_file.connect("activate", menu_item_recent_changes_file_clicked, afile.text)
+		
+			sub_menu_recent_changes.append(menu_item_recent_changes_file)		
+			
+		# Create folder menu item
+		menu_item_recent_changes = gtk.MenuItem("Recent changes")
+		menu_item_recent_changes.set_submenu(sub_menu_recent_changes)
+	
+		menu.append(menu_item_recent_changes)			
+	
 	# ---
 	menu.append(gtk.SeparatorMenuItem())	
 
@@ -244,6 +275,10 @@ def menu_item_clicked(widget, message):
 		time.sleep(2)
 		sys.exit(0)
 
+def menu_item_recent_changes_file_clicked(widget, afile):
+	do_print("Opening file/folder '" + afile + "' ...")
+	ws.send("<clickRecentChangesGuiInternalEvent><file>" + afile + "</file></clickRecentChangesGuiInternalEvent>")
+
 def menu_item_folder_open_clicked(widget, folder):
 	do_print("Opening folder '" + folder + "' ...")
 	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>OPEN</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
@@ -294,6 +329,9 @@ def on_ws_message(ws, message):
 		
 		elif messageType == "updateStatusTextGuiInternalEvent":
 			response = do_update_text(request)
+
+		elif messageType == "updateRecentChangesGuiInternalEvent":
+			response = do_update_recent_changes(request)
 			
 		else:
 			do_print("UNKNOWN MESSAGE. IGNORING.")			
@@ -351,6 +389,7 @@ if __name__ == "__main__":
 	images_map = dict()
 	status_text_default = "All files in sync"
 	status_texts = dict()
+	recent_changes = None
 	watches_last_request = None
 	
 	indicator = None

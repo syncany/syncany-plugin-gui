@@ -21,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -34,10 +35,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
-import org.syncany.database.DatabaseVersion;
-import org.syncany.database.FileVersion;
-import org.syncany.database.FileVersion.FileStatus;
-import org.syncany.database.PartialFileHistory;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
@@ -72,6 +69,7 @@ import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExter
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
 import org.syncany.operations.init.GenlinkOperationOptions;
+import org.syncany.operations.log.LightweightDatabaseVersion;
 import org.syncany.operations.log.LogOperationOptions;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
@@ -97,6 +95,7 @@ public abstract class TrayIcon {
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
+	private static int RECENT_CHANGES_COUNT = 15;
 
 	protected Shell trayShell;
 	protected WizardDialog wizard;
@@ -111,7 +110,7 @@ public abstract class TrayIcon {
 	private Map<String, Long> clientUploadFileSize;
 	
 	private Map<String, LogFolderRequest> clientPendingRecentChangesRequests;
-	private Map<String, List<DatabaseVersion>> clientRecentChangesLists;
+	private Map<String, List<LightweightDatabaseVersion>> clientRecentChangesLists;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -162,6 +161,10 @@ public abstract class TrayIcon {
 
 	protected void showFolder(File folder) {
 		DesktopUtil.launch(folder.getAbsolutePath());
+	}
+	
+	protected void showRecentFile(File file) {
+		DesktopUtil.launch(file.getAbsolutePath());
 	}
 	
 	protected void showReportIssue() {
@@ -258,16 +261,16 @@ public abstract class TrayIcon {
 			logRequestTimer.schedule(new TimerTask() {
 				@Override
 				public void run() {
-					int perFolderMaxCount = (int) Math.ceil((double) 5 / watchedFolders.size());
+					int maxDatabaseVersionCount = (int) Math.ceil((double) RECENT_CHANGES_COUNT / watchedFolders.size());
 					
-					if (perFolderMaxCount == 0) {
-						perFolderMaxCount = 1;
+					if (maxDatabaseVersionCount == 0) {
+						maxDatabaseVersionCount = 1;
 					}
 							
 					for (Watch watch : watchedFolders) {
 						LogOperationOptions logOptions = new LogOperationOptions();
-						logOptions.setExcludeChunkData(true);
-						logOptions.setMaxCount(perFolderMaxCount);
+						logOptions.setMaxDatabaseVersionCount(maxDatabaseVersionCount);
+						logOptions.setMaxFileHistoryCount(RECENT_CHANGES_COUNT);
 										
 						LogFolderRequest logRequest = new LogFolderRequest();
 						logRequest.setRoot(watch.getFolder().getAbsolutePath());
@@ -518,27 +521,27 @@ public abstract class TrayIcon {
 
 		syncing.set(syncingFolders.size() > 0);
 	}
-	
-	
+		
 	private List<File> getRecentFiles() {
 		// Fill flat temporary map with recent entries 
 		List<RecentFileEntry> recentFiles = Lists.newArrayList();
 		
-		for (Map.Entry<String, List<DatabaseVersion>> clientRecentChangesListEntry : clientRecentChangesLists.entrySet()) {
+		for (Map.Entry<String, List<LightweightDatabaseVersion>> clientRecentChangesListEntry : clientRecentChangesLists.entrySet()) {
 			String root = clientRecentChangesListEntry.getKey();
+			List<LightweightDatabaseVersion> databaseVersions = clientRecentChangesListEntry.getValue();
 			
-			for (DatabaseVersion databaseVersion : clientRecentChangesListEntry.getValue()) {
-				for (PartialFileHistory fileHistory : databaseVersion.getFileHistories()) {
-					for (FileVersion fileVersion : fileHistory.getFileVersions().values()) {
-						if (fileVersion.getStatus() != FileStatus.DELETED) {
-							recentFiles.add(new RecentFileEntry(root, fileVersion));
-						}
-					}
+			for (LightweightDatabaseVersion databaseVersion : databaseVersions) {
+				for (String newFile : databaseVersion.getChangeSet().getNewFiles()) {
+					recentFiles.add(new RecentFileEntry(new File(root, newFile), databaseVersion.getDate()));
+				}
+
+				for (String changedFile : databaseVersion.getChangeSet().getChangedFiles()) {
+					recentFiles.add(new RecentFileEntry(new File(root, changedFile), databaseVersion.getDate()));
 				}
 			}
 		}
 		
-		// Sort it
+		// Sort by date
 		Collections.sort(recentFiles, new RecentFileEntryComparator());
 		
 		// Build target map
@@ -547,26 +550,26 @@ public abstract class TrayIcon {
 		
 		for (int i = 0; i < maxEntries; i++) {
 			RecentFileEntry recentFileEntry = recentFiles.get(i);
-			recentChanges.add(new File(recentFileEntry.root, recentFileEntry.fileVersion.getPath()));
+			recentChanges.add(recentFileEntry.file);
 		}
 
 		return recentChanges;
 	}
 	
 	private class RecentFileEntry {
-		private String root;
-		private FileVersion fileVersion;
+		private File file;
+		private Date date;
 		
-		public RecentFileEntry(String root, FileVersion fileVersion) {
-			this.root = root;
-			this.fileVersion = fileVersion;
+		public RecentFileEntry(File file, Date date) {
+			this.file = file;
+			this.date = date;
 		}
 	}
 	
 	private class RecentFileEntryComparator implements Comparator<RecentFileEntry> {
 		@Override
 		public int compare(RecentFileEntry f1, RecentFileEntry f2) {
-			return f2.fileVersion.getUpdated().compareTo(f1.fileVersion.getUpdated());
+			return f2.date.compareTo(f1.date);
 		}		
 	}
 

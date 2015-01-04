@@ -41,9 +41,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.operations.daemon.messages.ClickRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
 import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
@@ -164,6 +166,11 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	}
 
 	@Override
+	protected void setRecentChanges(List<File> recentFiles) {
+		sendWebSocketMessage(new UpdateRecentChangesGuiInternalEvent(recentFiles));
+	}
+
+	@Override
 	protected void displayNotification(String subject, String message) {
 		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
 	}
@@ -205,6 +212,12 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 					removeFolder(folder);
 					break;
 				}				
+			}
+			else if (message instanceof ClickRecentChangesGuiInternalEvent) {
+				ClickRecentChangesGuiInternalEvent folderClickEvent = (ClickRecentChangesGuiInternalEvent) message;
+				File file = new File(folderClickEvent.getFile());
+				
+				showRecentFile(file);
 			}
 			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
@@ -282,11 +295,5 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	@Override
 	protected void dispose() {
 		// Do nothing.
-	}
-
-	@Override
-	protected void setRecentChanges(List<File> recentFiles) {
-		// TODO Auto-generated method stub
-		
 	}
 }

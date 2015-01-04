@@ -36,7 +36,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolTip;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
-import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
@@ -174,7 +173,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		if (recentChangesFiles != null && recentChangesFiles.size() > 0) {
 			// 'Recent changes >'
 			MenuItem recentChangesItem = new MenuItem(menu, SWT.CASCADE);
-			recentChangesItem.setText("Recent changes");
+			recentChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
 			
 			Menu recentChangesSubMenu = new Menu(menu);
 			recentChangesItem.setMenu(recentChangesSubMenu);
@@ -185,7 +184,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				recentFileItem.addSelectionListener(new SelectionAdapter() {
 					@Override
 					public void widgetSelected(SelectionEvent e) {
-						DesktopUtil.launch(recentFile.getAbsolutePath());
+						showRecentFile(recentFile);
 					}
 				});		
 			}			
