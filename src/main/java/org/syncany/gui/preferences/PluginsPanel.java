@@ -141,7 +141,6 @@ public class PluginsPanel extends Panel {
 		
 	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(true);
-		pluginTable.setBackground(WidgetDecorator.WHITE);
 		pluginTable.setLayoutData(pluginTableGridData);
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {
