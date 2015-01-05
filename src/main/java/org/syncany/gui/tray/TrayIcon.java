@@ -19,9 +19,9 @@ package org.syncany.gui.tray;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -38,6 +38,7 @@ import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.LimitedSortedSet;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
@@ -109,8 +110,9 @@ public abstract class TrayIcon {
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
 	
-	private Map<String, LogFolderRequest> clientPendingRecentChangesRequests;
-	private Map<String, List<LightweightDatabaseVersion>> clientRecentChangesLists;
+	private Timer recentFileChangesUpdateTimer;
+	private AtomicBoolean recentFileChangesUpdated;
+	private LimitedSortedSet<RecentFileEntry> recentFileChanges;
 
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -124,10 +126,12 @@ public abstract class TrayIcon {
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
 		
-		this.clientPendingRecentChangesRequests = Maps.newConcurrentMap();
-		this.clientRecentChangesLists = Maps.newConcurrentMap();
+		this.recentFileChangesUpdateTimer = new Timer();
+		this.recentFileChangesUpdated = new AtomicBoolean(false);
+		this.recentFileChanges = new LimitedSortedSet<>(RECENT_CHANGES_COUNT, new RecentFileEntryComparator());
 
 		initAnimationThread();
+		initRecentFileChangesTimer();
 		initTrayImage();
 	}
 
@@ -261,22 +265,15 @@ public abstract class TrayIcon {
 			logRequestTimer.schedule(new TimerTask() {
 				@Override
 				public void run() {
-					int maxDatabaseVersionCount = (int) Math.ceil((double) RECENT_CHANGES_COUNT / watchedFolders.size());
-					
-					if (maxDatabaseVersionCount == 0) {
-						maxDatabaseVersionCount = 1;
-					}
-							
 					for (Watch watch : watchedFolders) {
 						LogOperationOptions logOptions = new LogOperationOptions();
-						logOptions.setMaxDatabaseVersionCount(maxDatabaseVersionCount);
+						logOptions.setMaxDatabaseVersionCount(RECENT_CHANGES_COUNT);
 						logOptions.setMaxFileHistoryCount(RECENT_CHANGES_COUNT);
 										
 						LogFolderRequest logRequest = new LogFolderRequest();
 						logRequest.setRoot(watch.getFolder().getAbsolutePath());
 						logRequest.setOptions(logOptions);
-										
-						clientPendingRecentChangesRequests.put(watch.getFolder().getAbsolutePath(), logRequest);				
+														
 						eventBus.post(logRequest);
 					}
 				}				
@@ -345,6 +342,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
+		updateRecentFiles(syncEvent.getRoot(), new Date(), syncEvent.getResult());
 		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 
@@ -364,12 +362,15 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		// Display notification
-		boolean notificationsEnabled = guiConfig.isNotifications();
+		String root = downEndSyncEvent.getRoot();
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
-		if (notificationsEnabled && changeSet.hasChanges()) {
-			String rootName = new File(downEndSyncEvent.getRoot()).getName();
+		// Update recent changes entries
+		updateRecentFiles(root, new Date(), changeSet); // TODO [low] A 'date' field should be in the event
+		
+		// Display notification (if enabled)		
+		if (guiConfig.isNotifications() && changeSet.hasChanges()) {
+			String rootName = new File(root).getName();
 			int totalChangedFiles = changeSet.getNewFiles().size() + changeSet.getChangedFiles().size() + changeSet.getDeletedFiles().size();
 
 			String subject = "";
@@ -446,13 +447,7 @@ public abstract class TrayIcon {
 	
 	@Subscribe
 	public void onLogResponse(LogFolderResponse logResponse) {
-		clientRecentChangesLists.put(logResponse.getRoot(), logResponse.getResult().getDatabaseVersions());
-		clientPendingRecentChangesRequests.remove(logResponse.getRoot());
-		
-		if (clientPendingRecentChangesRequests.isEmpty()) {
-			List<File> recentChanges = getRecentFiles();
-			setRecentChanges(recentChanges);
-		}
+		updateRecentFiles(logResponse.getRoot(), logResponse.getResult().getDatabaseVersions());
 	}
 
 	private void initAnimationThread() {
@@ -496,6 +491,18 @@ public abstract class TrayIcon {
 
 		systemTrayAnimationThread.start();
 	}
+	
+	private void initRecentFileChangesTimer() {
+		recentFileChangesUpdateTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if (recentFileChangesUpdated.get()) {
+					setRecentChanges(getRecentFiles());
+					recentFileChangesUpdated.set(false);
+				}					
+			}
+		}, 5000, 5000);
+	}
 
 	private void initTrayImage() {
 		setTrayImage(TrayIconImage.TRAY_NO_OVERLAY);
@@ -522,36 +529,35 @@ public abstract class TrayIcon {
 		syncing.set(syncingFolders.size() > 0);
 	}
 		
-	private List<File> getRecentFiles() {
-		// Fill flat temporary map with recent entries 
-		List<RecentFileEntry> recentFiles = Lists.newArrayList();
-		
-		for (Map.Entry<String, List<LightweightDatabaseVersion>> clientRecentChangesListEntry : clientRecentChangesLists.entrySet()) {
-			String root = clientRecentChangesListEntry.getKey();
-			List<LightweightDatabaseVersion> databaseVersions = clientRecentChangesListEntry.getValue();
-			
-			for (LightweightDatabaseVersion databaseVersion : databaseVersions) {
-				for (String newFile : databaseVersion.getChangeSet().getNewFiles()) {
-					recentFiles.add(new RecentFileEntry(new File(root, newFile), databaseVersion.getDate()));
-				}
+	private void updateRecentFiles(String root, List<LightweightDatabaseVersion> databaseVersions) {
+		for (LightweightDatabaseVersion databaseVersion : databaseVersions) {
+			updateRecentFiles(root, databaseVersion.getDate(), databaseVersion.getChangeSet());
+		}
+	}
+	
+	private void updateRecentFiles(String root, Date date, ChangeSet changeSet) {
+		// Update recent file entries (list only)
+		for (String newFile : changeSet.getNewFiles()) {
+			recentFileChanges.add(new RecentFileEntry(new File(root, newFile), date));
+		}
 
-				for (String changedFile : databaseVersion.getChangeSet().getChangedFiles()) {
-					recentFiles.add(new RecentFileEntry(new File(root, changedFile), databaseVersion.getDate()));
-				}
-			}
+		for (String changedFile : changeSet.getChangedFiles()) {
+			recentFileChanges.add(new RecentFileEntry(new File(root, changedFile), date));
 		}
 		
-		// Sort by date
-		Collections.sort(recentFiles, new RecentFileEntryComparator());
-		
-		// Build target map
-		List<File> recentChanges = Lists.newArrayList();
-		int maxEntries = (recentFiles.size() < 15) ? recentFiles.size() : 15;
-		
-		for (int i = 0; i < maxEntries; i++) {
-			RecentFileEntry recentFileEntry = recentFiles.get(i);
-			recentChanges.add(recentFileEntry.file);
+		// Trigger update thread
+		if (changeSet.getNewFiles().size() > 0 || changeSet.getChangedFiles().size() > 0) {
+			recentFileChangesUpdated.set(true);
 		}
+	}
+	
+	private List<File> getRecentFiles() {		
+		List<File> recentChanges = Lists.newArrayList();		
+		Iterator<RecentFileEntry> recentChangeEntryIterator = recentFileChanges.iterator();
+		
+		while (recentChangeEntryIterator.hasNext()) {
+			recentChanges.add(recentChangeEntryIterator.next().file);
+		}			
 
 		return recentChanges;
 	}
@@ -569,7 +575,14 @@ public abstract class TrayIcon {
 	private class RecentFileEntryComparator implements Comparator<RecentFileEntry> {
 		@Override
 		public int compare(RecentFileEntry f1, RecentFileEntry f2) {
-			return f2.date.compareTo(f1.date);
+			int dateCompare = f2.date.compareTo(f1.date);
+			
+			if (dateCompare == 0) {
+				return f2.file.compareTo(f1.file);
+			}
+			else {
+				return dateCompare;
+			}
 		}		
 	}
 

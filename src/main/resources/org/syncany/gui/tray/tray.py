@@ -163,6 +163,7 @@ def do_update_menu(request):
 		for afile in files:
 			menu_item_recent_changes_file = gtk.MenuItem(os.path.basename(afile.text))
 			menu_item_recent_changes_file.connect("activate", menu_item_recent_changes_file_clicked, afile.text)
+			menu_item_recent_changes_file.set_tooltip_text(afile.text)
 		
 			sub_menu_recent_changes.append(menu_item_recent_changes_file)		
 			

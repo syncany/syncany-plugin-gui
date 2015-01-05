@@ -180,13 +180,13 @@ public class DefaultTrayIcon extends TrayIcon {
 			
 			for (final File recentFile : recentChangesFiles) {
 				MenuItem recentFileItem = new MenuItem(recentChangesSubMenu, SWT.PUSH);
-				recentFileItem.setText(recentFile.getName());
+				recentFileItem.setText(recentFile.getName());				
 				recentFileItem.addSelectionListener(new SelectionAdapter() {
 					@Override
 					public void widgetSelected(SelectionEvent e) {
 						showRecentFile(recentFile);
 					}
-				});		
+				});	
 			}			
 		}
 	}
