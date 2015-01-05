@@ -75,7 +75,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
-	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; exec urllib2.urlopen('%s').read()";
+	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
 
 	private Undertow webServer;
 	private Process pythonProcess;
