@@ -51,7 +51,6 @@ import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
-import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.GenlinkFolderRequest;
 import org.syncany.operations.daemon.messages.GenlinkFolderResponse;
@@ -65,7 +64,6 @@ import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
-import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
@@ -298,11 +296,6 @@ public abstract class TrayIcon {
 	}
 
 	@Subscribe
-	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.start"));
-	}
-
-	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
 		if (syncEvent.getFileCount() > 0) {
 			setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));
@@ -354,11 +347,6 @@ public abstract class TrayIcon {
 		int maxFileCount = syncEvent.getMaxFileCount();
 
 		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.down.downloadFile", fileDescription, currentFileIndex, maxFileCount));
-	}
-
-	@Subscribe
-	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.down.start"));
 	}
 
 	@Subscribe
