@@ -19,9 +19,9 @@ package org.syncany.gui.tray;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -40,6 +40,8 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.util.EnvironmentUtil;
 
+import com.google.common.collect.Maps;
+
 /**
  * The default tray icon uses the default SWT {@link TrayItem}
  * class and the {@link Menu} to display the tray icon.
@@ -51,18 +53,24 @@ import org.syncany.util.EnvironmentUtil;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public class DefaultTrayIcon extends TrayIcon {
+	private static final String STATUS_TEXT_GLOBAL_IDENTIFIER = "GLOBAL";
+	private static final String STATUS_TEXT_PREFIX_SEPARATOR = (EnvironmentUtil.isWindows()) ? ": " : "\n";
+
 	private TrayItem trayItem;
 	private Menu menu;
 	private List<File> watches;
 	private List<File> recentChangesFiles;
-	private Map<String, MenuItem> statusTextItems = new TreeMap<String, MenuItem>();
-	private Map<String, String> statusTexts = new TreeMap<String, String>();
+	private Map<String, String> statusTexts;
+	private Map<String, MenuItem> statusTextItems;
 	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
 	private Map<TrayIconImage, Image> images;
 
 	public DefaultTrayIcon(final Shell shell) {
 		super(shell);
 
+		this.statusTexts = Maps.newConcurrentMap();
+		this.statusTextItems = Maps.newConcurrentMap();
+		
 		fillImageCache();
 		buildTray();
 	}
@@ -129,31 +137,16 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private void buildStatusTextMenuItems() {
-		String inSyncStatusText = I18n.getText("org.syncany.gui.tray.TrayIcon.insync");
-
 		// Create per-folder status text item
 		for (String root : statusTexts.keySet()) {
-			boolean watchIsInSync = statusTexts.get(root).equals(inSyncStatusText); 
-			
-			if (!watchIsInSync) {
-				String statusTextPrefix = new File(root).getName(); 
-				
-				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
-				statusTextItem.setText(statusTextPrefix + "\n" + statusTexts.get(root));
-				statusTextItem.setEnabled(false);
-				
-				statusTextItems.put(root, statusTextItem);
-			}
+			String statusText = statusTexts.get(root);
+			updateFolderStatusTextItem(root, statusText);				
 		}
 
 		// Or, if they are all in sync, create a global one
-		if (statusTextItems.isEmpty()) {
-			MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH);
-			statusTextItem.setText(inSyncStatusText);
-			statusTextItem.setEnabled(false);
-			
-			statusTextItems.put("GLOBAL", statusTextItem);
-		}	
+		if (statusTexts.isEmpty()) {
+			resetGlobalStatusTextItem();
+		}
 	}
 	
 	private void buildNewWatchMenuItem() {
@@ -337,16 +330,80 @@ public class DefaultTrayIcon extends TrayIcon {
 	public void setStatusText(final String root, final String statusText) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
-				if (root != null) {
-					statusTexts.put(root, statusText);
+				if (root != null) {			
+					updateFolderStatusTextItem(root, statusText);
+					resetGlobalStatusTextItem();
 				}
-				else {
-					statusTexts.clear();
-				}
-				
-				buildMenuItems();
+				else {					
+					clearStatusTextItems();
+					resetGlobalStatusTextItem();
+				}											
 			}
 		});
+	}
+
+	private void clearStatusTextItems() {
+		Iterator<String> rootIterator = statusTextItems.keySet().iterator();
+		
+		while (rootIterator.hasNext()) {
+			String root = rootIterator.next();
+			MenuItem statusTextItem = statusTextItems.remove(root);
+			
+			statusTextItem.dispose();			
+		}
+	}	
+	
+	private void updateFolderStatusTextItem(String root, String statusText) {
+		String inSyncStatusText = I18n.getText("org.syncany.gui.tray.TrayIcon.insync");
+		
+		MenuItem statusTextItem = statusTextItems.get(root);
+		boolean watchIsInSync = statusText.equals(inSyncStatusText); 
+		
+		if (watchIsInSync) {
+			statusTexts.remove(root);
+			statusTextItems.remove(root);
+			
+			if (statusTextItem != null) {
+				statusTextItem.dispose();
+			}			
+		}
+		else {
+			statusTexts.put(root, statusText);
+			
+			String statusTextPrefix = new File(root).getName(); 
+			String fullStatusText = statusTextPrefix + STATUS_TEXT_PREFIX_SEPARATOR + statusText;
+			
+			if (statusTextItem != null) {
+				statusTextItem.setText(fullStatusText);
+			}
+			else {
+				statusTextItem = new MenuItem(menu, SWT.PUSH, 0);
+				statusTextItem.setText(fullStatusText);
+				statusTextItem.setEnabled(false);			
+				
+				statusTextItems.put(root, statusTextItem);
+			}
+		}		
+	}
+	
+	private void resetGlobalStatusTextItem() {
+		MenuItem globalStatusTextItem = statusTextItems.get(STATUS_TEXT_GLOBAL_IDENTIFIER);
+		boolean otherStatusTextItemsVisible = statusTexts.size() > 0;
+		
+		if (otherStatusTextItemsVisible) {
+			if (globalStatusTextItem != null) {
+				globalStatusTextItem.dispose();
+			}
+		}
+		else {
+			if (globalStatusTextItem == null) {
+				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH, 0);
+				statusTextItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
+				statusTextItem.setEnabled(false);
+				
+				statusTextItems.put(STATUS_TEXT_GLOBAL_IDENTIFIER, statusTextItem);
+			}
+		}
 	}
 
 	@Override
