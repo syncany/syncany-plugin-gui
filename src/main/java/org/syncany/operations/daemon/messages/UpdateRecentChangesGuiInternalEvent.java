@@ -18,27 +18,27 @@
 package org.syncany.operations.daemon.messages;
 
 import java.io.File;
-import java.util.List;
+import java.util.ArrayList;
 
 import org.simpleframework.xml.ElementList;
 
 public class UpdateRecentChangesGuiInternalEvent extends GuiInternalEvent {
 	@ElementList(name = "recentChanges", entry = "file", required = true)
-	private List<File> recentChanges;
+	private ArrayList<File> recentChanges;
 	
 	public UpdateRecentChangesGuiInternalEvent() {
 		// Nothing
 	}
 
-	public UpdateRecentChangesGuiInternalEvent(List<File> recentChanges) {
+	public UpdateRecentChangesGuiInternalEvent(ArrayList<File> recentChanges) {
 		this.recentChanges = recentChanges;
 	}
 
-	public List<File> getRecentChanges() {
+	public ArrayList<File> getRecentChanges() {
 		return recentChanges;
 	}
 
-	public void setRecentChanges(List<File> recentChanges) {
+	public void setRecentChanges(ArrayList<File> recentChanges) {
 		this.recentChanges = recentChanges;
 	}	
 }

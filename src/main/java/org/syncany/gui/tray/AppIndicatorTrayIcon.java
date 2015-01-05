@@ -167,7 +167,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	@Override
 	protected void setRecentChanges(List<File> recentFiles) {
-		sendWebSocketMessage(new UpdateRecentChangesGuiInternalEvent(recentFiles));
+		sendWebSocketMessage(new UpdateRecentChangesGuiInternalEvent(new ArrayList<>(recentFiles)));
 	}
 
 	@Override
