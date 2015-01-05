@@ -255,6 +255,7 @@ public abstract class TrayIcon {
 		}	
 		
 		// Get recent changes
+		recentFileChanges.clear();
 		sendLogRequests(listWatchesResponse.getWatches());		
 	}
 
@@ -501,7 +502,7 @@ public abstract class TrayIcon {
 					recentFileChangesUpdated.set(false);
 				}					
 			}
-		}, 5000, 5000);
+		}, 6000, 3000);
 	}
 
 	private void initTrayImage() {
