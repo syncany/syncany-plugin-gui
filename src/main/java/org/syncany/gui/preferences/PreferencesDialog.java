@@ -132,6 +132,11 @@ public class PreferencesDialog extends Dialog {
 		windowShell.setSize(640, 480);
 		windowShell.setText(I18n.getText("org.syncany.gui.preferences.PreferencesDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
+		windowShell.addListener(SWT.Close, new Listener() {
+			public void handleEvent(Event event) {
+				safeDispose();
+			}
+		});
 		
 		// Navigation table (row 1, column 1) and stack composite (row 1, column 2)
 		createNavTable();
@@ -306,7 +311,7 @@ public class PreferencesDialog extends Dialog {
 	}
 	
 	public void safeDispose() {
-		Display.getDefault().asyncExec(new Runnable() {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
 				if (!pluginsPanel.isDisposed()) {

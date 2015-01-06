@@ -83,7 +83,7 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
-	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
+	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
 	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";

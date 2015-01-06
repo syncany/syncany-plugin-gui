@@ -18,10 +18,13 @@
 package org.syncany.gui.tray;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -62,7 +65,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private MenuItem addFolderMenuItem;
 	
 	private List<File> watches;
-	private Map<String, MenuItem> watchedFolderMenuItems = new HashMap<String, MenuItem>();
+	private Map<String, MenuItem> watchedFolderMenuItems;
 	
 	private List<File> recentChangesFiles;
 	private MenuItem recentChangesItem;
@@ -75,8 +78,21 @@ public class DefaultTrayIcon extends TrayIcon {
 	public DefaultTrayIcon(final Shell shell) {
 		super(shell);
 
+		this.trayItem = null;
+		this.menu = null;
+		
+		this.addFolderMenuItem = null;
+		
+		this.watches = Collections.synchronizedList(new ArrayList<File>());
+		this.watchedFolderMenuItems = Maps.newConcurrentMap();
+		
+		this.recentChangesFiles = Collections.synchronizedList(new ArrayList<File>());
+		this.recentChangesItem = null;
+		
 		this.statusTexts = Maps.newConcurrentMap();
 		this.statusTextItems = Maps.newConcurrentMap();
+
+		this.images = null;
 		
 		fillImageCache();
 		buildTray();
@@ -123,8 +139,12 @@ public class DefaultTrayIcon extends TrayIcon {
 		}
 	}
 
-	private void buildMenuItems(final List<File> watches) {
-		this.watches = watches;
+	private void buildMenuItems(final List<File> newWatches) {
+		watches.clear();
+		
+		if (newWatches != null) {
+			watches.addAll(newWatches);
+		}
 		
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
@@ -146,10 +166,8 @@ public class DefaultTrayIcon extends TrayIcon {
 			updateFolderStatusTextItem(root, statusText);				
 		}
 
-		// Or, if they are all in sync, create a global one
-		if (statusTexts.isEmpty()) {
-			resetGlobalStatusTextItem();
-		}
+		// Add or hide global status text
+		resetGlobalStatusTextItem();
 	}
 	
 	private void buildAddFolderMenuItem() {
@@ -165,39 +183,46 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 	}
 
-	private void buildOrUpdateRecentChangesMenuItems() {
-		if (recentChangesItem != null) {
-			if (recentChangesFiles != null && recentChangesFiles.size() > 0) {
-				Menu recentChangesSubMenu = recentChangesItem.getMenu();
-				
-				// Clear old items from submenu
-				for (MenuItem recentChangesSubMenuItem : recentChangesSubMenu.getItems()) {
-					recentChangesSubMenuItem.dispose();
-				}
-				
-				// Add items to old submenu 
-				updateRecentChangesSubMenu(recentChangesSubMenu);				
-			}
-			else {
-				recentChangesItem.dispose();
-				recentChangesItem = null;
-			}
+	private synchronized void buildOrUpdateRecentChangesMenuItems() {
+		if (recentChangesItem != null && !recentChangesItem.isDisposed()) {		
+			updateRecentChangesMenuItems();
 		}
 		else {
-			if (recentChangesFiles != null && recentChangesFiles.size() > 0) {
-				// Create new 'Recent changes >' item, and submenu 
-				recentChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
-				recentChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
-				
-				Menu recentChangesSubMenu = new Menu(menu);
-				recentChangesItem.setMenu(recentChangesSubMenu);
-				
-				// Add items to submenu 
-				updateRecentChangesSubMenu(recentChangesSubMenu);		
-			}
+			buildRecentChangesMenuItems();
 		}		
 	}
+
+	private void updateRecentChangesMenuItems() {
+		if (recentChangesFiles.size() > 0) {
+			Menu recentChangesSubMenu = recentChangesItem.getMenu();
+			
+			// Clear old items from submenu
+			for (MenuItem recentChangesSubMenuItem : recentChangesSubMenu.getItems()) {
+				recentChangesSubMenuItem.dispose();
+			}
+			
+			// Add items to old submenu 
+			updateRecentChangesSubMenu(recentChangesSubMenu);				
+		}
+		else {
+			recentChangesItem.dispose();
+		}
+	}
 	
+	private void buildRecentChangesMenuItems() {
+		if (recentChangesFiles.size() > 0) {
+			// Create new 'Recent changes >' item, and submenu 
+			recentChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
+			recentChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
+			
+			Menu recentChangesSubMenu = new Menu(menu);
+			recentChangesItem.setMenu(recentChangesSubMenu);
+			
+			// Add items to submenu 
+			updateRecentChangesSubMenu(recentChangesSubMenu);		
+		}
+	}
+
 	private void updateRecentChangesSubMenu(Menu recentChangesSubMenu) {
 		for (final File recentFile : recentChangesFiles) {
 			MenuItem recentFileItem = new MenuItem(recentChangesSubMenu, SWT.PUSH);
@@ -226,7 +251,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
-		if (watches != null && watches.size() > 0) {
+		if (watches.size() > 0) {
 			for (final File folder : watches) {
 				if (!watchedFolderMenuItems.containsKey(folder.getAbsolutePath())) {
 					if (folder.exists()) {		
@@ -369,26 +394,32 @@ public class DefaultTrayIcon extends TrayIcon {
 	public void setStatusText(final String root, final String statusText) {
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
+				logger.log(Level.INFO, "setStatusText(" + root + ", " + statusText + ")");
+
 				if (root != null) {			
 					updateFolderStatusTextItem(root, statusText);
-					resetGlobalStatusTextItem();
 				}
 				else {					
 					clearStatusTextItems();
-					resetGlobalStatusTextItem();
-				}											
+				}
+				
+				resetGlobalStatusTextItem();				
 			}
 		});
 	}
 
 	private void clearStatusTextItems() {
-		Iterator<String> rootIterator = statusTextItems.keySet().iterator();
+		statusTexts.clear();
 		
-		while (rootIterator.hasNext()) {
-			String root = rootIterator.next();
-			MenuItem statusTextItem = statusTextItems.remove(root);
+		synchronized (statusTextItems) {
+			Iterator<String> rootIterator = statusTextItems.keySet().iterator();
 			
-			statusTextItem.dispose();			
+			while (rootIterator.hasNext()) {
+				String root = rootIterator.next();
+				MenuItem statusTextItem = statusTextItems.remove(root);
+				
+				statusTextItem.dispose();			
+			}			
 		}
 	}	
 	
@@ -430,12 +461,12 @@ public class DefaultTrayIcon extends TrayIcon {
 		boolean otherStatusTextItemsVisible = statusTexts.size() > 0;
 		
 		if (otherStatusTextItemsVisible) {
-			if (globalStatusTextItem != null) {
+			if (globalStatusTextItem != null && !globalStatusTextItem.isDisposed()) {
 				globalStatusTextItem.dispose();
 			}
 		}
 		else {
-			if (globalStatusTextItem == null) {
+			if (globalStatusTextItem == null || globalStatusTextItem.isDisposed()) {
 				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH, 0);
 				statusTextItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 				statusTextItem.setEnabled(false);
@@ -473,8 +504,12 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	@Override
-	protected void setRecentChanges(List<File> recentFiles) {
-		this.recentChangesFiles = recentFiles;
+	protected void setRecentChanges(List<File> newRecentChangesFiles) {
+		recentChangesFiles.clear();
+		
+		if (newRecentChangesFiles != null) {
+			recentChangesFiles.addAll(newRecentChangesFiles);
+		}
 		
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {

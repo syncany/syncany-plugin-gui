@@ -89,7 +89,7 @@ public class RecentFileChanges {
 		}
 	}
 	
-	private void replaceEntry(final RecentFileEntry recentFileEntry) {
+	private synchronized void replaceEntry(final RecentFileEntry recentFileEntry) {
 		// Remove old entry
 		Iterables.removeIf(recentFileChanges, new Predicate<RecentFileEntry>() {
 			@Override
@@ -102,7 +102,7 @@ public class RecentFileChanges {
 		recentFileChanges.add(recentFileEntry);
 	}
 
-	public List<File> getRecentFiles() {		
+	public synchronized List<File> getRecentFiles() {		
 		List<File> recentChanges = Lists.newArrayList();		
 		Iterator<RecentFileEntry> recentChangeEntryIterator = recentFileChanges.iterator();
 		
