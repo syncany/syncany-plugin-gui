@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.Plugin;
 import org.syncany.plugins.Plugins;
 import org.syncany.plugins.transfer.StorageException;
@@ -27,6 +28,7 @@ import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferPluginOption;
 import org.syncany.plugins.transfer.TransferPluginOptions;
 import org.syncany.plugins.transfer.TransferSettings;
+import org.syncany.util.EnvironmentUtil;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -62,13 +64,17 @@ public class PluginSelectComposite extends Composite {
 		setLayout(mainCompositeGridLayout);		
 		
 		// Plugin list
-		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.TOP, true, true);
+		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
 		pluginTableGridData.verticalIndent = 0;
 		pluginTableGridData.horizontalIndent = 0;
 		
 	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(false);
 		pluginTable.setLayoutData(pluginTableGridData);
+		
+		if (EnvironmentUtil.isWindows()) {
+			pluginTable.setBackground(WidgetDecorator.WHITE);
+		}
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
@@ -110,8 +116,8 @@ public class PluginSelectComposite extends Composite {
 	    pluginTableColumnImage.setWidth(30);
 
 	    TableColumn pluginTableColumnText = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnText.setWidth(300);	    
-
+	    pluginTableColumnText.setWidth(370); // Only relevant on Windows
+	    
 	    for (TransferPlugin plugin : plugins) {	   	    	
 		    if (isSupportedPlugin(plugin)) {
 		    	String pluginImageResource = String.format(PLUGIN_ICON_RESOURCE_FORMAT, plugin.getId());
