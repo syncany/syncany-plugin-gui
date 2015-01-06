@@ -58,6 +58,7 @@ import org.syncany.operations.plugin.PluginOperationResult;
 import org.syncany.operations.plugin.PluginOperationResult.PluginResultCode;
 import org.syncany.plugins.Plugin;
 import org.syncany.plugins.gui.GuiPlugin;
+import org.syncany.util.EnvironmentUtil;
 
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
@@ -142,6 +143,10 @@ public class PluginsPanel extends Panel {
 	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(true);
 		pluginTable.setLayoutData(pluginTableGridData);
+		
+		if (EnvironmentUtil.isWindows()) {
+			pluginTable.setBackground(WidgetDecorator.WHITE);
+		}
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {

@@ -215,6 +215,11 @@ public class WizardDialog extends Dialog {
 		});
 
 		windowShell.setDefaultButton(nextButton);
+		windowShell.addListener(SWT.Close, new Listener() {
+			public void handleEvent(Event event) {
+				safeDispose();
+			}
+		});
 
 		WidgetDecorator.normal(nextButton, previousButton, cancelButton);
 	}
@@ -336,7 +341,7 @@ public class WizardDialog extends Dialog {
 	}
 
 	public void safeDispose() {
-		Display.getDefault().asyncExec(new Runnable() {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				if (panelController != null) {

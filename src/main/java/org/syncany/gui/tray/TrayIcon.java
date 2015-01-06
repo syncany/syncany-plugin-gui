@@ -83,7 +83,7 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
-	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
+	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
 	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
@@ -102,7 +102,7 @@ public abstract class TrayIcon {
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
 	
-	private RecentFileChanges recentFileChanges;
+	protected RecentFileChanges recentFileChanges;
 	
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -265,7 +265,7 @@ public abstract class TrayIcon {
 						eventBus.post(logRequest);
 					}
 				}				
-			}, 5000);					
+			}, 2000);					
 		}
 	}
 
