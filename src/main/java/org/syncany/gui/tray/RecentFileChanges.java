@@ -117,6 +117,10 @@ public class RecentFileChanges {
 		recentFileChanges.clear();
 	}
 	
+	public synchronized int size() {
+		return recentFileChanges.size();
+	}
+	
 	private static class RecentFileEntry implements Comparable<RecentFileEntry> {
 		private File file;
 		private Date date;

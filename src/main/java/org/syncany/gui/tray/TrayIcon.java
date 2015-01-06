@@ -102,7 +102,7 @@ public abstract class TrayIcon {
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
 	
-	private RecentFileChanges recentFileChanges;
+	protected RecentFileChanges recentFileChanges;
 	
 	public TrayIcon(Shell shell) {
 		this.trayShell = shell;
@@ -265,7 +265,7 @@ public abstract class TrayIcon {
 						eventBus.post(logRequest);
 					}
 				}				
-			}, 5000);					
+			}, 2000);					
 		}
 	}
 

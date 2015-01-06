@@ -67,8 +67,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private List<File> watches;
 	private Map<String, MenuItem> watchedFolderMenuItems;
 	
-	private List<File> recentChangesFiles;
-	private MenuItem recentChangesItem;
+	private MenuItem recentFileChangesItem;
 	
 	private Map<String, String> statusTexts;
 	private Map<String, MenuItem> statusTextItems;
@@ -86,8 +85,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		this.watches = Collections.synchronizedList(new ArrayList<File>());
 		this.watchedFolderMenuItems = Maps.newConcurrentMap();
 		
-		this.recentChangesFiles = Collections.synchronizedList(new ArrayList<File>());
-		this.recentChangesItem = null;
+		this.recentFileChangesItem = null;
 		
 		this.statusTexts = Maps.newConcurrentMap();
 		this.statusTextItems = Maps.newConcurrentMap();
@@ -184,48 +182,48 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private synchronized void buildOrUpdateRecentChangesMenuItems() {
-		if (recentChangesItem != null && !recentChangesItem.isDisposed()) {		
-			updateRecentChangesMenuItems();
+		if (recentFileChangesItem != null && !recentFileChangesItem.isDisposed()) {		
+			updateRecentFileChangesMenuItems();
 		}
 		else {
-			buildRecentChangesMenuItems();
+			buildRecentFileChangesMenuItems();
 		}		
 	}
 
-	private void updateRecentChangesMenuItems() {
-		if (recentChangesFiles.size() > 0) {
-			Menu recentChangesSubMenu = recentChangesItem.getMenu();
+	private void updateRecentFileChangesMenuItems() {
+		if (recentFileChanges.size() > 0) {
+			Menu recentFileChangesSubMenu = recentFileChangesItem.getMenu();
 			
 			// Clear old items from submenu
-			for (MenuItem recentChangesSubMenuItem : recentChangesSubMenu.getItems()) {
-				recentChangesSubMenuItem.dispose();
+			for (MenuItem recentFileChangesSubMenuItem : recentFileChangesSubMenu.getItems()) {
+				recentFileChangesSubMenuItem.dispose();
 			}
 			
 			// Add items to old submenu 
-			updateRecentChangesSubMenu(recentChangesSubMenu);				
+			updateRecentFileChangesSubMenu(recentFileChangesSubMenu);				
 		}
 		else {
-			recentChangesItem.dispose();
+			recentFileChangesItem.dispose();
 		}
 	}
 	
-	private void buildRecentChangesMenuItems() {
-		if (recentChangesFiles.size() > 0) {
+	private void buildRecentFileChangesMenuItems() {
+		if (recentFileChanges.size() > 0) {
 			// Create new 'Recent changes >' item, and submenu 
-			recentChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
-			recentChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
+			recentFileChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
+			recentFileChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
 			
 			Menu recentChangesSubMenu = new Menu(menu);
-			recentChangesItem.setMenu(recentChangesSubMenu);
+			recentFileChangesItem.setMenu(recentChangesSubMenu);
 			
 			// Add items to submenu 
-			updateRecentChangesSubMenu(recentChangesSubMenu);		
+			updateRecentFileChangesSubMenu(recentChangesSubMenu);		
 		}
 	}
 
-	private void updateRecentChangesSubMenu(Menu recentChangesSubMenu) {
-		for (final File recentFile : recentChangesFiles) {
-			MenuItem recentFileItem = new MenuItem(recentChangesSubMenu, SWT.PUSH);
+	private void updateRecentFileChangesSubMenu(Menu recentFileChangesSubMenu) {
+		for (final File recentFile : recentFileChanges.getRecentFiles()) {
+			MenuItem recentFileItem = new MenuItem(recentFileChangesSubMenu, SWT.PUSH);
 			recentFileItem.setText(recentFile.getName());				
 			recentFileItem.addSelectionListener(new SelectionAdapter() {
 				@Override
@@ -505,12 +503,6 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	@Override
 	protected void setRecentChanges(List<File> newRecentChangesFiles) {
-		recentChangesFiles.clear();
-		
-		if (newRecentChangesFiles != null) {
-			recentChangesFiles.addAll(newRecentChangesFiles);
-		}
-		
 		Display.getDefault().asyncExec(new Runnable() {
 			public void run() {
 				buildOrUpdateRecentChangesMenuItems();

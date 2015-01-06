@@ -154,7 +154,7 @@ def do_update_menu(request):
 	menu.append(gtk.SeparatorMenuItem())	
 
 	# New ...
-	menu_item_new_folder = gtk.MenuItem("New folder ...")
+	menu_item_new_folder = gtk.MenuItem("Add folder ...")
 	menu_item_new_folder.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
 	
 	menu.append(menu_item_new_folder)	
