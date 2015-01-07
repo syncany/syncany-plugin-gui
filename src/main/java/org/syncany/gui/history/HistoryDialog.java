@@ -290,7 +290,7 @@ public class HistoryDialog extends Dialog {
 	
 	@Subscribe
 	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
-		Display.getDefault().syncExec(new Runnable() {
+		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
@@ -299,7 +299,9 @@ public class HistoryDialog extends Dialog {
 				dateSlider.setMinimum(0);
 				dateSlider.setMaximum(headers.size()-1);
 				dateSlider.setSelection(headers.size()-1);
-				dateSlider.setEnabled(true);				
+				dateSlider.setEnabled(true);	
+				
+				System.out.println(headers);
 			}
 		});
 	}
