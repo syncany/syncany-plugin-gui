@@ -116,7 +116,7 @@ public class PluginSelectComposite extends Composite {
 	    pluginTableColumnImage.setWidth(30);
 
 	    TableColumn pluginTableColumnText = new TableColumn(pluginTable,  SWT.LEFT);
-	    pluginTableColumnText.setWidth(370); // Only relevant on Windows
+	    pluginTableColumnText.setWidth(320); // Only relevant on Windows
 	    
 	    for (TransferPlugin plugin : plugins) {	   	    	
 		    if (isSupportedPlugin(plugin)) {
