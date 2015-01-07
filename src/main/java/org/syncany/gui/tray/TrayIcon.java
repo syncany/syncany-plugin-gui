@@ -83,7 +83,7 @@ public abstract class TrayIcon {
 
 	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
-	private static String URL_DONATE = "https://www.syncany.org/donate.html";
+	private static String URL_DONATE = "https://www.syncany.org/r/donate";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	protected Shell trayShell;

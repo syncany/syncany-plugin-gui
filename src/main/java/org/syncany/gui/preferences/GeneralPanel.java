@@ -17,10 +17,12 @@
  */
 package org.syncany.gui.preferences;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -44,13 +46,14 @@ import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.plugins.Plugin;
 import org.syncany.plugins.Plugins;
 import org.syncany.plugins.gui.GuiPlugin;
+import org.syncany.plugins.local.LocalTransferPlugin;
 import org.syncany.util.EnvironmentUtil;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
 	private static String URL_AUTHOR = "http://www.philippheckel.com/";
-	private static String URL_TEAM = "https://syncany.org/r/team";
-	private static String URL_DONATE = "https://www.syncany.org/donate.html";
+	private static String URL_TEAM = "https://www.syncany.org/r/team";
+	private static String URL_DONATE = "https://www.syncany.org/r/donate";
 	
 	private Button launchAtStartupButton;
 	private Button displayNotificationsButton;
@@ -157,7 +160,6 @@ public class GeneralPanel extends Panel {
 	 	
 	 	// Spacing
 	    new Label(this, SWT.NONE);
-
 	    
 	    // About title
  		Label aboutTitleLabel = new Label(this, SWT.WRAP);
@@ -166,19 +168,31 @@ public class GeneralPanel extends Panel {
 	 	WidgetDecorator.bold(aboutTitleLabel);
 	 	
 	 	// About text
-	 	String appVersion = Client.getApplicationVersionFull();
-	 	String appDate = Client.getApplicationDate().toString();
-	 	String appRevision = Client.getApplicationRevision();
-	 	
-	 	Plugin guiPlugin = Plugins.get(GuiPlugin.ID);
-	 	String guiPluginVersion = guiPlugin.getVersion();
-	 	
-	 	Text aboutDescriptionText = new Text(this, SWT.WRAP);
-	 	aboutDescriptionText.setEditable(false);
-	 	aboutDescriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-	 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description", appVersion, appDate, appRevision, guiPluginVersion));
-	 	
-	    
+	 	final AtomicBoolean fullDescriptionVisible = new AtomicBoolean(false);
+	 	final String appVersion = Client.getApplicationVersionFull();	 	
+	 	final String guiPluginVersion = Plugins.get(GuiPlugin.ID).getVersion();	 	
+	 		 	
+	 	final Text aboutDescriptionText = new Text(this, SWT.WRAP);
+		aboutDescriptionText.setEditable(false);	
+		aboutDescriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 1, 1));
+		aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.short", appVersion, guiPluginVersion));
+		aboutDescriptionText.addFocusListener(new FocusAdapter() {
+			public void focusGained(org.eclipse.swt.events.FocusEvent e) {
+				if (!fullDescriptionVisible.get()) {
+					String pluginVersions = "";
+				 	
+				 	for (Plugin plugin : Plugins.list()) {
+				 		if (!LocalTransferPlugin.ID.equals(plugin.getId())) {
+				 			pluginVersions += I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.plugin", plugin.getName(), plugin.getVersion()) + "\n";
+				 		}
+				 	}
+				 	
+				 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.full", appVersion, pluginVersions));
+				 	
+				 	fullDescriptionVisible.set(true);
+				}				
+			}
+		});
 	}
 
 	private void loadConfig() {
