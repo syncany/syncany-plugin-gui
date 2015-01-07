@@ -26,7 +26,9 @@ import org.syncany.plugins.Plugin;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public class GuiPlugin extends Plugin {
+	public static final String ID = "gui";
+	
 	public GuiPlugin() {
-		super("gui");
+		super(ID);
 	}
 }
