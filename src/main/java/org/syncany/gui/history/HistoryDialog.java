@@ -17,10 +17,12 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
+import org.syncany.database.DatabaseVersionHeader;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileType;
 import org.syncany.gui.Dialog;
@@ -29,12 +31,15 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.Watch;
+import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderRequest;
+import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
@@ -49,9 +54,11 @@ public class HistoryDialog extends Dialog {
 	private Shell trayShell;
 	private Shell windowShell;
 	
-	private String root;
+	private String selectedRoot;
+	private Date selectedDate;
 	
 	private Combo rootSelectCombo;
+	private Slider dateSlider;
 	private Tree fileBrowserTree;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
@@ -75,12 +82,16 @@ public class HistoryDialog extends Dialog {
 
 	public HistoryDialog(Shell trayShell) {
 		this.trayShell = trayShell;
+		this.windowShell = null;
 		
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);
+		this.selectedRoot = null;
+		this.selectedDate = null;
 		
 		this.pendingListWatchesRequest = null;
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
+		
+		this.eventBus = GuiEventBus.getInstance();
+		this.eventBus.register(this);		
 	}
 
 	public void open() {
@@ -131,6 +142,7 @@ public class HistoryDialog extends Dialog {
 		
 		// Navigation table (row 1, column 1) and stack composite (row 1, column 2)
 		createRootSelectionCombo();
+		createDateSlider();
 		createFileBrowserTree();
 	}	
 
@@ -150,7 +162,7 @@ public class HistoryDialog extends Dialog {
 					int selectionIndex = rootSelectCombo.getSelectionIndex();
 
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {						
-						root = watches.get(selectionIndex).getFolder().getAbsolutePath();
+						selectedRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
 						
 						fileBrowserTree.removeAll();
 						refreshTree("");
@@ -158,6 +170,18 @@ public class HistoryDialog extends Dialog {
 				}
 			}
 		});
+	}
+	
+	private void createDateSlider() {
+		dateSlider = new Slider(windowShell, SWT.HORIZONTAL);
+		dateSlider.setEnabled(false);
+		
+		dateSlider.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				System.out.println(dateSlider.getSelection());
+			}
+		});		
 	}
 	
 	private void createFileBrowserTree() {
@@ -245,9 +269,10 @@ public class HistoryDialog extends Dialog {
 					rootSelectCombo.setEnabled(true);
 					
 					if (rootSelectCombo.getItemCount() > 0) {
-						root = watches.get(0).getFolder().getAbsolutePath();
+						selectedRoot = watches.get(0).getFolder().getAbsolutePath();
 						rootSelectCombo.select(0);
 						
+						refreshDateSlider();
 						refreshTree("");
 					}
 				}
@@ -255,6 +280,29 @@ public class HistoryDialog extends Dialog {
 		}
 	}
 	
+	private void refreshDateSlider() {
+		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
+		getHeadersRequest.setRoot(selectedRoot);
+		
+		eventBus.post(getHeadersRequest);
+	}
+	
+	@Subscribe
+	public void onListWatchesManagementResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
+					
+				dateSlider.setData(headers);
+				dateSlider.setMinimum(0);
+				dateSlider.setMaximum(headers.size()-1);
+				dateSlider.setSelection(headers.size()-1);
+				dateSlider.setEnabled(true);				
+			}
+		});
+	}
+
 	private void refreshTree(String pathExpression) {
 		// Adjust path expression
 		if (!"".equals(pathExpression)) {
@@ -272,7 +320,7 @@ public class HistoryDialog extends Dialog {
 		
 		LsFolderRequest lsRequest = new LsFolderRequest();
 		
-		lsRequest.setRoot(root);
+		lsRequest.setRoot(selectedRoot);
 		lsRequest.setOptions(lsOptions);
 		
 		// Send request
