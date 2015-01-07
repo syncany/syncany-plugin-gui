@@ -1,75 +1,34 @@
 package org.syncany.gui.history;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.TreeAdapter;
-import org.eclipse.swt.events.TreeEvent;
+import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Combo;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Slider;
-import org.eclipse.swt.widgets.Tree;
-import org.eclipse.swt.widgets.TreeItem;
-import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
-import org.syncany.database.DatabaseVersionHeader;
-import org.syncany.database.FileVersion;
-import org.syncany.database.FileVersion.FileType;
 import org.syncany.gui.Dialog;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
-import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.operations.daemon.Watch;
-import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderRequest;
-import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderResponse;
-import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
-import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
-import org.syncany.operations.daemon.messages.LsFolderRequest;
-import org.syncany.operations.daemon.messages.LsFolderResponse;
-import org.syncany.operations.ls.LsOperationOptions;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class HistoryDialog extends Dialog {
-	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
-	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
-	
 	private Shell trayShell;
-	private Shell windowShell;
+	private Shell windowShell;	
+	private Composite stackComposite;
+	private StackLayout stackLayout;
 	
-	private String selectedRoot;
-	private Date selectedDate;
+	private TreePanel treePanel;
 	
-	private Combo rootSelectCombo;
-	private Label dateLabel;
-	private Slider dateSlider;
-	private Tree fileBrowserTree;
-
-	private Timer dateSliderChangeTimer;
-	
-	private ListWatchesManagementRequest pendingListWatchesRequest;
-	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
-
-	private GuiEventBus eventBus;
+	private Panel currentPanel;
 
 	public static void main(String[] a) {
 		Logging.init();
@@ -87,25 +46,16 @@ public class HistoryDialog extends Dialog {
 
 	public HistoryDialog(Shell trayShell) {
 		this.trayShell = trayShell;
-		this.windowShell = null;
-		
-		this.selectedRoot = null;
-		this.selectedDate = null;
-		
-		this.dateSliderChangeTimer = null;
-		
-		this.pendingListWatchesRequest = null;
-		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-		
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);		
+		this.windowShell = null;		
 	}
 
 	public void open() {
 		// Create controls
 		createContents();
-		refreshRoots();
+		buildPanels();
 		
+		setCurrentPanel(treePanel);
+
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
 
@@ -126,7 +76,7 @@ public class HistoryDialog extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
-		GridLayout shellGridLayout = new GridLayout(3, false);
+		GridLayout shellGridLayout = new GridLayout(1, false);
 		shellGridLayout.marginTop = 0;
 		shellGridLayout.marginLeft = 0;
 		shellGridLayout.marginHeight = 0;
@@ -146,153 +96,30 @@ public class HistoryDialog extends Dialog {
 			}
 		});
 		
-		// Navigation table (row 1, column 1) and stack composite (row 1, column 2)
-		createRootSelectionCombo();
-		createDateSlider();
-		createFileBrowserTree();
-	}	
+		createStackComposite();
+	}		
 
-	private void createRootSelectionCombo() {
-		rootSelectCombo = new Combo(windowShell, SWT.NONE);
+	private void createStackComposite() {
+		stackLayout = new StackLayout();
+		stackLayout.marginHeight = 0;
+		stackLayout.marginWidth = 0;
 		
-		rootSelectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		rootSelectCombo.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));
-		rootSelectCombo.setEnabled(false);
-		
-		rootSelectCombo.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				ListWatchesManagementResponse listWatchesResponse = (ListWatchesManagementResponse) rootSelectCombo.getData();				
-				
-				if (listWatchesResponse != null) {
-					List<Watch> watches = listWatchesResponse.getWatches();
-					int selectionIndex = rootSelectCombo.getSelectionIndex();
+		GridData stackCompositeGridData = new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1);
+		stackCompositeGridData.minimumWidth = 500;
 
-					if (selectionIndex >= 0 && selectionIndex < watches.size()) {						
-						selectedRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
-						selectedDate = null;
-						
-						refreshDateSlider();
-						resetAndRefreshTree();
-					}
-				}
-			}
-		});
-	}
-	
-	private void createDateSlider() {
-		// Label
-		GridData dateLabelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		dateLabelGridData.minimumWidth = 150;
-		
-		dateLabel = new Label(windowShell, SWT.NONE);
-		dateLabel.setLayoutData(dateLabelGridData);
-		
-		// Slider
-		dateSlider = new Slider(windowShell, SWT.HORIZONTAL);
-		
-		dateSlider.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-		dateSlider.setEnabled(false);
-		
-		dateSlider.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				// Update label right away
-				updateDateLabel(getDateSliderDate());
-				
-				// Update file tree after a while  
-				synchronized (dateSlider) {		
-					if (dateSliderChangeTimer != null) {
-						dateSliderChangeTimer.cancel();
-					}
-					
-					dateSliderChangeTimer = new Timer();
-					dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
-				}
-			}
-		});		
-	}
-	
-	private void updateDateLabel(final Date dateSliderDate) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				dateLabel.setText(dateSliderDate.toString());
-			}
-		});
+		stackComposite = new Composite(windowShell, SWT.DOUBLE_BUFFERED);
+		stackComposite.setLayout(stackLayout);
+		stackComposite.setLayoutData(stackCompositeGridData);
 	}
 
-	private TimerTask createDateSliderTimerTask() {
-		return new TimerTask() {			
-			@Override
-			public void run() {		
-				Display.getDefault().syncExec(new Runnable() {
-					@Override
-					public void run() {	
-						Date newDate = getDateSliderDate();						
-						boolean listUpdateRequired = !newDate.equals(selectedDate);
-						
-						if (listUpdateRequired) {
-							selectedDate = newDate;
-							resetAndRefreshTree();
-						}
-					}
-				});
-			}
-		};
-	}
-	
-	@SuppressWarnings("unchecked")
-	private Date getDateSliderDate() {
-		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
-		
-		int dateSelectionIndex = dateSlider.getSelection();
-		
-		if (dateSelectionIndex >= 0 && dateSelectionIndex < headers.size()) {
-			return headers.get(dateSelectionIndex).getDate();
-		}
-		else {
-			return null;
-		}
-	}
-	
-	private void createFileBrowserTree() {
-		fileBrowserTree = new Tree(windowShell, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
-		
-		fileBrowserTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
-		fileBrowserTree.setEnabled(false);		
-
-		fileBrowserTree.addListener(SWT.Selection, new Listener() {
-			public void handleEvent(Event event) {
-				if (event.detail == SWT.CHECK) {
-					System.out.println(event.item + " was checked.");
-				}
-				else {
-					System.out.println(event.item + " was selected");
-				}
-			}
-		});
-		
-		fileBrowserTree.addTreeListener(new TreeAdapter() {
-			public void treeExpanded(TreeEvent e) {
-				TreeItem treeItem = (TreeItem) e.item;
-				expandTreeItem(treeItem);				
-			}
-		});
-	}	
-	
-	private void expandTreeItem(TreeItem treeItem) {
-		if (treeItem.getItemCount() > 0) {
-			TreeItem firstChildItem = treeItem.getItem(0);
-			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(firstChildItem.getData());
-			
-			if (isRetrievingItem) {
-				FileVersion fileVersion = (FileVersion) treeItem.getData();
-				refreshTree(fileVersion.getPath());
-			}
-		}
+	private void buildPanels() {
+		treePanel = new TreePanel(this, stackComposite, SWT.NONE);
 	}
 
+	public Panel getCurrentPanel() {
+		return currentPanel;
+	}
+	
 	public Shell getTrayShell() {
 		return trayShell;
 	}
@@ -301,221 +128,28 @@ public class HistoryDialog extends Dialog {
 		return windowShell;
 	}
 
+	public void setCurrentPanel(final Panel newPanel) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				currentPanel = newPanel;
+				
+				stackLayout.topControl = currentPanel;
+				stackComposite.layout();	
+				
+				currentPanel.setFocus();
+			}
+		});
+	}
+	
 	public void safeDispose() {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
-				}
-				
-				eventBus.unregister(HistoryDialog.this);
-			}
-		});
-	}	
-	
-	private void refreshRoots() {
-		pendingListWatchesRequest = new ListWatchesManagementRequest();
-		eventBus.post(pendingListWatchesRequest);		
-	}
-
-	@Subscribe
-	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
-		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
-			// Nullify pending request
-			pendingListWatchesRequest = null;
-
-			// Update combo box
-			Display.getDefault().syncExec(new Runnable() {
-				@Override
-				public void run() {
-					ArrayList<Watch> watches = listWatchesResponse.getWatches();
-					
-					rootSelectCombo.removeAll();
-					
-					for (Watch watch : watches) {
-						rootSelectCombo.add(watch.getFolder().getName());
-					}
-					
-					rootSelectCombo.setData(listWatchesResponse);
-					rootSelectCombo.setEnabled(true);
-					
-					if (rootSelectCombo.getItemCount() > 0) {
-						selectedRoot = watches.get(0).getFolder().getAbsolutePath();
-						rootSelectCombo.select(0);
-						
-						refreshDateSlider();
-						resetAndRefreshTree();
-					}
-				}
-			});
-		}
-	}
-	
-	private void refreshDateSlider() {
-		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
-		getHeadersRequest.setRoot(selectedRoot);
-		
-		eventBus.post(getHeadersRequest);
-	}
-	
-	@Subscribe
-	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
-				
-				if (headers.size() > 0) {
-					dateSlider.setData(headers);
-					dateSlider.setSelection(headers.size()-1);
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(headers.size()-1 + dateSlider.getThumb());
-					dateSlider.setEnabled(true);
-					
-					selectedDate = headers.get(headers.size()-1).getDate();	
-					updateDateLabel(selectedDate);
-				}
-				else {
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(0);
-					dateSlider.setEnabled(false);	
-					
-					selectedDate = null;
 				}				
 			}
 		});
-	}
-
-	private void resetAndRefreshTree() {
-		fileBrowserTree.removeAll();
-		refreshTree("");
-	}
-	
-	private void refreshTree(String pathExpression) {
-		// Adjust path expression
-		if (!"".equals(pathExpression)) {
-			pathExpression += "/";
-		}
-		
-		// Date
-		Date browseDate = (selectedDate != null) ? selectedDate : new Date();
-		
-		// Create list request
-		LsOperationOptions lsOptions = new LsOperationOptions();
-		
-		lsOptions.setPathExpression(pathExpression);
-		lsOptions.setDate(browseDate);
-		lsOptions.setRecursive(false);
-		lsOptions.setFetchHistories(false);
-		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.FOLDER, FileType.SYMLINK));
-		
-		LsFolderRequest lsRequest = new LsFolderRequest();
-		
-		lsRequest.setRoot(selectedRoot);
-		lsRequest.setOptions(lsOptions);
-		
-		// Send request
-		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
-		eventBus.post(lsRequest);
-	}
-	
-	@Subscribe
-	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				fileBrowserTree.setEnabled(true);
-				
-				LsFolderRequest lsRequest = pendingLsFolderRequests.get(lsResponse.getRequestId());
-				
-				if (lsRequest != null) {
-					updateTree(lsRequest, lsResponse);
-				}
-			}
-		});		
-	}
-
-	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
-		Map<String, FileVersion> fileTree = lsResponse.getResult().getFileTree();
-		
-		// Find parent path (where to attach new items)
-		TreeItem parentTreeItem = findTreeItemByPath(lsRequest.getOptions().getPathExpression());
-		
-		if (parentTreeItem != null) {
-			parentTreeItem.removeAll();
-		}
-		
-		// Create new items
-		for (FileVersion fileVersion : fileTree.values()) {
-			if (fileVersion.getType() == FileType.FOLDER) {
-				TreeItem treeItem = createTreeItem(parentTreeItem);
-				treeItem.setData(fileVersion);
-				treeItem.setText(fileVersion.getName());	
-				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "folder")));
-				
-				TreeItem retrieveListTreeItem = new TreeItem(treeItem, 0);
-				retrieveListTreeItem.setData(RETRIEVING_LIST_IDENTIFIER);
-				retrieveListTreeItem.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));
-			}
-		}
-		
-		for (FileVersion fileVersion : fileTree.values()) {
-			if (fileVersion.getType() != FileType.FOLDER) {
-				TreeItem treeItem = createTreeItem(parentTreeItem);
-				treeItem.setData(fileVersion);
-				treeItem.setText(fileVersion.getName());			
-				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));
-			}
-		}
-		
-		if (parentTreeItem != null) {
-			parentTreeItem.setExpanded(true);
-		}
-	}
-
-	private TreeItem createTreeItem(TreeItem parentItem) {
-		if (parentItem != null) {
-			return new TreeItem(parentItem, SWT.NONE);
-		}
-		else {
-			return new TreeItem(fileBrowserTree, SWT.NONE);
-		}
-	}
-
-	private TreeItem findTreeItemByPath(String pathExpression) {
-		if ("".equals(pathExpression)) {
-			return null;
-		}
-		else {
-			TreeItem[] treeItems = fileBrowserTree.getItems();
-			String searchPath = pathExpression.substring(0, pathExpression.length()-1);
-			
-			return findTreeItem(searchPath, treeItems);			
-		}		
-	}
-
-	private TreeItem findTreeItem(String searchPath, TreeItem[] treeItems) {
-		for (int i = 0; i < treeItems.length; i++) {
-			TreeItem treeItem = treeItems[i];
-			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());
-			
-			if (!isRetrievingItem) {
-				FileVersion fileVersion = (FileVersion) treeItem.getData();
-								
-				if (fileVersion.getPath().equals(searchPath)) {
-					return treeItem;
-				}
-				else if (treeItem.getItemCount() > 0) {
-					TreeItem searchItem = findTreeItem(searchPath, treeItem.getItems());
-					
-					if (searchItem != null) {
-						return searchItem;
-					}
-				}
-			}
-		}			
-			
-		return null;
-	}
+	}		
 }

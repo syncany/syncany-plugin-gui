@@ -272,7 +272,6 @@ public class PreferencesDialog extends Dialog {
 		WidgetDecorator.normal(closeButton);
 	}
 
-
 	private void buildPanels() {
 		generalPanel = new GeneralPanel(this, stackComposite, SWT.NONE);
 		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.NONE);
