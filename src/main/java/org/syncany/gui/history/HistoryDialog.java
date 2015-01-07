@@ -39,7 +39,6 @@ import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
@@ -119,14 +118,13 @@ public class HistoryDialog extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
-		GridLayout shellGridLayout = new GridLayout(1, false);
+		GridLayout shellGridLayout = new GridLayout(2, false);
 		shellGridLayout.marginTop = 0;
 		shellGridLayout.marginLeft = 0;
 		shellGridLayout.marginHeight = 0;
 		shellGridLayout.marginWidth = 0;
 		shellGridLayout.horizontalSpacing = 0;
 		shellGridLayout.verticalSpacing = 0;
-		shellGridLayout.numColumns = 1;
 
 		windowShell = new Shell(trayShell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL | SWT.DOUBLE_BUFFERED);
 		windowShell.setToolTipText("");
@@ -149,8 +147,9 @@ public class HistoryDialog extends Dialog {
 	private void createRootSelectionCombo() {
 		rootSelectCombo = new Combo(windowShell, SWT.NONE);
 		
-		rootSelectCombo.setEnabled(false);
+		rootSelectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		rootSelectCombo.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));
+		rootSelectCombo.setEnabled(false);
 		
 		rootSelectCombo.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -174,6 +173,8 @@ public class HistoryDialog extends Dialog {
 	
 	private void createDateSlider() {
 		dateSlider = new Slider(windowShell, SWT.HORIZONTAL);
+		
+		dateSlider.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		dateSlider.setEnabled(false);
 		
 		dateSlider.addSelectionListener(new SelectionAdapter() {
@@ -187,7 +188,7 @@ public class HistoryDialog extends Dialog {
 	private void createFileBrowserTree() {
 		fileBrowserTree = new Tree(windowShell, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
 		
-		fileBrowserTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+		fileBrowserTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
 		fileBrowserTree.setEnabled(false);		
 
 		fileBrowserTree.addListener(SWT.Selection, new Listener() {
@@ -288,7 +289,7 @@ public class HistoryDialog extends Dialog {
 	}
 	
 	@Subscribe
-	public void onListWatchesManagementResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
+	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -410,11 +411,8 @@ public class HistoryDialog extends Dialog {
 			
 			if (!isRetrievingItem) {
 				FileVersion fileVersion = (FileVersion) treeItem.getData();
-				
-				System.out.println(fileVersion);
-				
+								
 				if (fileVersion.getPath().equals(searchPath)) {
-					System.out.println(" --> found " + fileVersion);
 					return treeItem;
 				}
 				else if (treeItem.getItemCount() > 0) {
