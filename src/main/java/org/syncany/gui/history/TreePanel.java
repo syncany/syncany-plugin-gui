@@ -89,6 +89,10 @@ public class TreePanel extends Panel {
 		
 		this.createContents();
 	}
+	
+	public HistoryDialog getParentDialog() {
+		return (HistoryDialog) parentDialog;
+	}
 
 	private void createContents() {
 		refreshRoots();
@@ -221,13 +225,9 @@ public class TreePanel extends Panel {
 		fileTree.setEnabled(false);		
 
 		fileTree.addListener(SWT.Selection, new Listener() {
-			public void handleEvent(Event event) {
-				if (event.detail == SWT.CHECK) {
-					System.out.println(event.item + " was checked.");
-				}
-				else {
-					System.out.println(event.item + " was selected");
-				}
+			public void handleEvent(Event e) {
+				TreeItem treeItem = (TreeItem) e.item;
+				selectTreeItem(treeItem);
 			}
 		});
 		
@@ -244,6 +244,18 @@ public class TreePanel extends Panel {
 			}
 		});
 	}	
+
+	private void selectTreeItem(TreeItem treeItem) {
+		boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());
+		
+		if (!isRetrievingItem) {
+			FileVersion fileVersion = (FileVersion) treeItem.getData();
+			
+			if (fileVersion.getType() != FileType.FOLDER) {
+				getParentDialog().showDetails(selectedRoot, fileVersion.getFileHistoryId());
+			}
+		}
+	}
 
 	private void expandTreeItem(TreeItem treeItem) {
 		if (treeItem.getItemCount() > 0) {
@@ -393,7 +405,7 @@ public class TreePanel extends Panel {
 			public void run() {
 				fileTree.setEnabled(true);
 				
-				LsFolderRequest lsRequest = pendingLsFolderRequests.get(lsResponse.getRequestId());
+				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
 				
 				if (lsRequest != null) {
 					updateTree(lsRequest, lsResponse);
@@ -436,7 +448,7 @@ public class TreePanel extends Panel {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
 				treeItem.setText(fileVersion.getName());			
-				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));
+				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));				
 			}
 		}
 		

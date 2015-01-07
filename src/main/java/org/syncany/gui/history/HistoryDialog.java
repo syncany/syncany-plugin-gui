@@ -7,10 +7,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.Logging;
+import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Dialog;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
@@ -27,6 +27,7 @@ public class HistoryDialog extends Dialog {
 	private StackLayout stackLayout;
 	
 	private TreePanel treePanel;
+	private DetailPanel detailPanel;
 	
 	private Panel currentPanel;
 
@@ -84,7 +85,7 @@ public class HistoryDialog extends Dialog {
 		shellGridLayout.horizontalSpacing = 0;
 		shellGridLayout.verticalSpacing = 0;
 
-		windowShell = new Shell(trayShell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL | SWT.DOUBLE_BUFFERED);
+		windowShell = new Shell(Display.getDefault(), SWT.SHELL_TRIM | SWT.DOUBLE_BUFFERED);
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
@@ -114,6 +115,7 @@ public class HistoryDialog extends Dialog {
 
 	private void buildPanels() {
 		treePanel = new TreePanel(this, stackComposite, SWT.NONE);
+		detailPanel = new DetailPanel(this, stackComposite, SWT.NONE);
 	}
 
 	public Panel getCurrentPanel() {
@@ -146,10 +148,27 @@ public class HistoryDialog extends Dialog {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
+				if (!treePanel.isDisposed()) {
+					treePanel.safeDispose();
+				}	
+				
+				if (!detailPanel.isDisposed()) {
+					detailPanel.safeDispose();
+				}
+				
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
 				}				
 			}
 		});
-	}		
+	}
+	
+	public void showDetails(String root, FileHistoryId fileHistoryId) {
+		detailPanel.showDetails(root, fileHistoryId);
+		setCurrentPanel(detailPanel);
+	}
+
+	public void showTree() {
+		setCurrentPanel(treePanel);
+	}	
 }
