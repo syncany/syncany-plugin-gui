@@ -119,7 +119,7 @@ public class TreePanel extends Panel {
 	}
 	
 	private void createRootSelectionCombo() {
-		rootSelectCombo = new Combo(this, SWT.NONE);
+		rootSelectCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
 		
 		rootSelectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		rootSelectCombo.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));

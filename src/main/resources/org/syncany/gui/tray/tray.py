@@ -157,9 +157,18 @@ def do_update_menu(request):
 	menu_item_new_folder = gtk.MenuItem("Add folder ...")
 	menu_item_new_folder.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
 	
-	menu.append(menu_item_new_folder)	
+	menu.append(menu_item_new_folder)
+	
+	# Browse ...
+	menu_item_new_folder = gtk.MenuItem("Browse history ...")
+	menu_item_new_folder.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>BROWSE_HISTORY</action></clickTrayMenuGuiInternalEvent>")
+	
+	menu.append(menu_item_new_folder)		
 	
 	if recent_changes:
+		# ---
+		menu.append(gtk.SeparatorMenuItem())
+	
 		# Create submenu
 		sub_menu_recent_changes = gtk.Menu()
 
