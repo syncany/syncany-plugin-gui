@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -15,6 +17,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Slider;
@@ -57,8 +60,11 @@ public class HistoryDialog extends Dialog {
 	private Date selectedDate;
 	
 	private Combo rootSelectCombo;
+	private Label dateLabel;
 	private Slider dateSlider;
 	private Tree fileBrowserTree;
+
+	private Timer dateSliderChangeTimer;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
@@ -85,6 +91,8 @@ public class HistoryDialog extends Dialog {
 		
 		this.selectedRoot = null;
 		this.selectedDate = null;
+		
+		this.dateSliderChangeTimer = null;
 		
 		this.pendingListWatchesRequest = null;
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
@@ -118,7 +126,7 @@ public class HistoryDialog extends Dialog {
 	 * Create contents of the dialog.
 	 */
 	private void createContents() {
-		GridLayout shellGridLayout = new GridLayout(2, false);
+		GridLayout shellGridLayout = new GridLayout(3, false);
 		shellGridLayout.marginTop = 0;
 		shellGridLayout.marginLeft = 0;
 		shellGridLayout.marginHeight = 0;
@@ -162,9 +170,10 @@ public class HistoryDialog extends Dialog {
 
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {						
 						selectedRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
+						selectedDate = null;
 						
-						fileBrowserTree.removeAll();
-						refreshTree("");
+						refreshDateSlider();
+						resetAndRefreshTree();
 					}
 				}
 			}
@@ -172,6 +181,14 @@ public class HistoryDialog extends Dialog {
 	}
 	
 	private void createDateSlider() {
+		// Label
+		GridData dateLabelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		dateLabelGridData.minimumWidth = 150;
+		
+		dateLabel = new Label(windowShell, SWT.NONE);
+		dateLabel.setLayoutData(dateLabelGridData);
+		
+		// Slider
 		dateSlider = new Slider(windowShell, SWT.HORIZONTAL);
 		
 		dateSlider.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
@@ -180,15 +197,69 @@ public class HistoryDialog extends Dialog {
 		dateSlider.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				System.out.println(dateSlider.getSelection());
+				// Update label right away
+				updateDateLabel(getDateSliderDate());
+				
+				// Update file tree after a while  
+				synchronized (dateSlider) {		
+					if (dateSliderChangeTimer != null) {
+						dateSliderChangeTimer.cancel();
+					}
+					
+					dateSliderChangeTimer = new Timer();
+					dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
+				}
 			}
 		});		
+	}
+	
+	private void updateDateLabel(final Date dateSliderDate) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				dateLabel.setText(dateSliderDate.toString());
+			}
+		});
+	}
+
+	private TimerTask createDateSliderTimerTask() {
+		return new TimerTask() {			
+			@Override
+			public void run() {		
+				Display.getDefault().syncExec(new Runnable() {
+					@Override
+					public void run() {	
+						Date newDate = getDateSliderDate();						
+						boolean listUpdateRequired = !newDate.equals(selectedDate);
+						
+						if (listUpdateRequired) {
+							selectedDate = newDate;
+							resetAndRefreshTree();
+						}
+					}
+				});
+			}
+		};
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Date getDateSliderDate() {
+		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
+		
+		int dateSelectionIndex = dateSlider.getSelection();
+		
+		if (dateSelectionIndex >= 0 && dateSelectionIndex < headers.size()) {
+			return headers.get(dateSelectionIndex).getDate();
+		}
+		else {
+			return null;
+		}
 	}
 	
 	private void createFileBrowserTree() {
 		fileBrowserTree = new Tree(windowShell, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
 		
-		fileBrowserTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+		fileBrowserTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		fileBrowserTree.setEnabled(false);		
 
 		fileBrowserTree.addListener(SWT.Selection, new Listener() {
@@ -274,7 +345,7 @@ public class HistoryDialog extends Dialog {
 						rootSelectCombo.select(0);
 						
 						refreshDateSlider();
-						refreshTree("");
+						resetAndRefreshTree();
 					}
 				}
 			});
@@ -294,29 +365,47 @@ public class HistoryDialog extends Dialog {
 			@Override
 			public void run() {
 				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
-					
-				dateSlider.setData(headers);
-				dateSlider.setMinimum(0);
-				dateSlider.setMaximum(headers.size()-1);
-				dateSlider.setSelection(headers.size()-1);
-				dateSlider.setEnabled(true);	
 				
-				System.out.println(headers);
+				if (headers.size() > 0) {
+					dateSlider.setData(headers);
+					dateSlider.setSelection(headers.size()-1);
+					dateSlider.setMinimum(0);
+					dateSlider.setMaximum(headers.size()-1 + dateSlider.getThumb());
+					dateSlider.setEnabled(true);
+					
+					selectedDate = headers.get(headers.size()-1).getDate();	
+					updateDateLabel(selectedDate);
+				}
+				else {
+					dateSlider.setMinimum(0);
+					dateSlider.setMaximum(0);
+					dateSlider.setEnabled(false);	
+					
+					selectedDate = null;
+				}				
 			}
 		});
 	}
 
+	private void resetAndRefreshTree() {
+		fileBrowserTree.removeAll();
+		refreshTree("");
+	}
+	
 	private void refreshTree(String pathExpression) {
 		// Adjust path expression
 		if (!"".equals(pathExpression)) {
 			pathExpression += "/";
 		}
 		
+		// Date
+		Date browseDate = (selectedDate != null) ? selectedDate : new Date();
+		
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
 		
 		lsOptions.setPathExpression(pathExpression);
-		lsOptions.setDate(new Date());
+		lsOptions.setDate(browseDate);
 		lsOptions.setRecursive(false);
 		lsOptions.setFetchHistories(false);
 		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.FOLDER, FileType.SYMLINK));
