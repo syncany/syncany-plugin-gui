@@ -36,7 +36,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
-import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
 import org.syncany.gui.Dialog;
 import org.syncany.gui.Panel;
@@ -68,8 +67,6 @@ public class PreferencesDialog extends Dialog {
 	
 	private Panel currentPanel;
 
-	private GuiEventBus eventBus;
-
 	public static void main(String[] a) {
 		Logging.init();
 		
@@ -86,8 +83,6 @@ public class PreferencesDialog extends Dialog {
 
 	public PreferencesDialog(Shell trayShell) {
 		this.trayShell = trayShell;
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);
 	}
 
 	public void open() {

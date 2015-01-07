@@ -33,6 +33,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
+import org.syncany.gui.history.HistoryDialog;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
@@ -92,6 +93,7 @@ public abstract class TrayIcon {
 
 	protected Shell trayShell;
 	protected WizardDialog wizard;
+	protected HistoryDialog history;
 	protected PreferencesDialog preferences;
 	
 	protected GuiConfigTO guiConfig;
@@ -131,6 +133,20 @@ public abstract class TrayIcon {
 					wizard.open();
 
 					wizard = null;
+				}
+			}
+		});
+	}
+	
+	protected void showBrowseHistory() {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (history == null) {
+					history = new HistoryDialog(trayShell);
+					history.open();
+
+					history = null;
 				}
 			}
 		});
