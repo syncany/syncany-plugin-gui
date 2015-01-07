@@ -62,7 +62,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private TrayItem trayItem;
 	private Menu menu;
 
-	private MenuItem addFolderMenuItem;
+	private MenuItem browseHistoryMenuItem;
 	
 	private List<File> watches;
 	private Map<String, MenuItem> watchedFolderMenuItems;
@@ -80,7 +80,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		this.trayItem = null;
 		this.menu = null;
 		
-		this.addFolderMenuItem = null;
+		this.browseHistoryMenuItem = null;
 		
 		this.watches = Collections.synchronizedList(new ArrayList<File>());
 		this.watchedFolderMenuItems = Maps.newConcurrentMap();
@@ -171,7 +171,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private void buildAddFolderMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
-		addFolderMenuItem = new MenuItem(menu, SWT.PUSH);
+		MenuItem addFolderMenuItem = new MenuItem(menu, SWT.PUSH);
 		addFolderMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.new"));
 		addFolderMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -180,7 +180,7 @@ public class DefaultTrayIcon extends TrayIcon {
 			}
 		});
 		
-		MenuItem browseHistoryMenuItem = new MenuItem(menu, SWT.PUSH);
+		browseHistoryMenuItem = new MenuItem(menu, SWT.PUSH);
 		browseHistoryMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.browse"));
 		browseHistoryMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -218,8 +218,12 @@ public class DefaultTrayIcon extends TrayIcon {
 	
 	private void buildRecentFileChangesMenuItems() {
 		if (recentFileChanges.size() > 0) {
+			int insertIndex = findBrowseHistoryMenuItemIndex();
+
+			new MenuItem(menu, SWT.SEPARATOR, insertIndex);
+			
 			// Create new 'Recent changes >' item, and submenu 
-			recentFileChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
+			recentFileChangesItem = new MenuItem(menu, SWT.CASCADE, insertIndex+1);
 			recentFileChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
 			
 			Menu recentChangesSubMenu = new Menu(menu);
@@ -243,11 +247,11 @@ public class DefaultTrayIcon extends TrayIcon {
 		}			
 	}	
 	
-	private int findAddFolderMenuItemIndex() {
+	private int findBrowseHistoryMenuItemIndex() {
 		for (int i = 0; i < menu.getItemCount(); i++) {
 			MenuItem menuItem = menu.getItem(i);
 			
-			if (menuItem.equals(addFolderMenuItem)) {
+			if (menuItem.equals(browseHistoryMenuItem)) {
 				return i+1;
 			}			
 		}

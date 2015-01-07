@@ -25,6 +25,7 @@ import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
 import org.syncany.util.EnvironmentUtil;
+import org.syncany.util.FileUtil;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -34,8 +35,6 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class DetailPanel extends Panel {
-	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
-	
 	private static final int COLUMN_INDEX_VERSION = 0;
 	private static final int COLUMN_INDEX_PATH = 1;
 	private static final int COLUMN_INDEX_TYPE = 2;
@@ -168,7 +167,8 @@ public class DetailPanel extends Panel {
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
 		
-		lsOptions.setFileHistoryPrefix(fileHistoryId.toString());
+		lsOptions.setPathExpression(fileHistoryId.toString());
+		lsOptions.setFileHistoryId(true);
 		lsOptions.setRecursive(false);
 		lsOptions.setFetchHistories(true);
 		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.SYMLINK));
@@ -206,7 +206,7 @@ public class DetailPanel extends Panel {
 				tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
 				tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
 				tableItem.setText(COLUMN_INDEX_TYPE, fileVersion.getType().toString());
-				tableItem.setText(COLUMN_INDEX_SIZE, ""+fileVersion.getSize());
+				tableItem.setText(COLUMN_INDEX_SIZE, FileUtil.formatFileSize(fileVersion.getSize()));
 				tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
 				tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
 				tableItem.setText(COLUMN_INDEX_CHECKSUM, fileVersion.getChecksum().toString());

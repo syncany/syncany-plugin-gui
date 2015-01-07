@@ -9,6 +9,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.TreeAdapter;
@@ -55,13 +57,14 @@ public class TreePanel extends Panel {
 	
 	private String selectedRoot;
 	private Date selectedDate;
+	private FileVersion selectedFileVersion;
+	private Set<String> expandedFilePaths;
 	
 	private Combo rootSelectCombo;
 	private Label dateLabel;
 	private Slider dateSlider;
 	private Tree fileTree;
-
-	private Set<String> expandedFilePaths;
+	
 	private Timer dateSliderChangeTimer;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
@@ -76,9 +79,10 @@ public class TreePanel extends Panel {
 		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
 		
 		this.selectedRoot = null;
-		this.selectedDate = null;
-		
+		this.selectedDate = null;		
+		this.selectedFileVersion = null;		
 		this.expandedFilePaths = Sets.newConcurrentHashSet();
+		
 		this.dateSliderChangeTimer = null;
 		
 		this.pendingListWatchesRequest = null;
@@ -100,7 +104,7 @@ public class TreePanel extends Panel {
 		createMainComposite();
 		createRootSelectionCombo();
 		createDateSlider();
-		createFileBrowserTree();
+		createFileTree();
 	}	
 
 	private void createMainComposite() {
@@ -133,6 +137,8 @@ public class TreePanel extends Panel {
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {						
 						selectedRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
 						selectedDate = null;
+						selectedFileVersion = null;
+						expandedFilePaths.clear();
 						
 						refreshDateSlider();
 						resetAndRefreshTree();
@@ -151,7 +157,7 @@ public class TreePanel extends Panel {
 		dateLabel.setLayoutData(dateLabelGridData);
 		
 		// Slider
-		dateSlider = new Slider(this, SWT.HORIZONTAL);
+		dateSlider = new Slider(this, SWT.HORIZONTAL | SWT.BORDER);
 		
 		dateSlider.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		dateSlider.setEnabled(false);
@@ -218,7 +224,7 @@ public class TreePanel extends Panel {
 		}
 	}
 	
-	private void createFileBrowserTree() {
+	private void createFileTree() {
 		fileTree = new Tree(this, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL);
 		
 		fileTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
@@ -228,6 +234,13 @@ public class TreePanel extends Panel {
 			public void handleEvent(Event e) {
 				TreeItem treeItem = (TreeItem) e.item;
 				selectTreeItem(treeItem);
+			}
+		});
+		
+		fileTree.addMouseListener(new MouseAdapter() {			
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				doubleClickTreeItem();
 			}
 		});
 		
@@ -241,19 +254,45 @@ public class TreePanel extends Panel {
 			public void treeCollapsed(TreeEvent e) {
 				TreeItem treeItem = (TreeItem) e.item;
 				collapseTreeItem(treeItem);
-			}
+			}			
 		});
 	}	
+
+	protected void doubleClickTreeItem() {
+		TreeItem[] selectedTreeItems = fileTree.getSelection();
+		
+		if (selectedTreeItems != null && selectedTreeItems.length > 0) {
+			TreeItem selectedItem = selectedTreeItems[0];
+			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(selectedItem.getData());
+			
+			if (!isRetrievingItem) {
+				FileVersion fileVersion = (FileVersion) selectedItem.getData();
+				
+				if (fileVersion.getType() == FileType.FOLDER) {
+					if (selectedItem.getExpanded()) {
+						collapseTreeItem(selectedItem);
+					}
+					else {
+						expandTreeItem(selectedItem);
+					}
+				}
+				else {
+					showDetails(fileVersion);
+				}
+			}
+		}
+	}
+
+	private void showDetails(FileVersion fileVersion) {
+		getParentDialog().showDetails(selectedRoot, fileVersion.getFileHistoryId());
+	}
 
 	private void selectTreeItem(TreeItem treeItem) {
 		boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());
 		
 		if (!isRetrievingItem) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();
-			
-			if (fileVersion.getType() != FileType.FOLDER) {
-				getParentDialog().showDetails(selectedRoot, fileVersion.getFileHistoryId());
-			}
+			selectedFileVersion = fileVersion;			
 		}
 	}
 
@@ -345,10 +384,12 @@ public class TreePanel extends Panel {
 				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
 				
 				if (headers.size() > 0) {
+					int maxValue = headers.size() - 1 + dateSlider.getThumb(); // Weird, but correct!
+					
 					dateSlider.setData(headers);
-					dateSlider.setSelection(headers.size()-1);
 					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(headers.size()-1 + dateSlider.getThumb());
+					dateSlider.setMaximum(maxValue);
+					dateSlider.setSelection(maxValue);
 					dateSlider.setEnabled(true);
 					
 					selectedDate = headers.get(headers.size()-1).getDate();	
@@ -415,7 +456,7 @@ public class TreePanel extends Panel {
 	}
 
 	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
-		Map<String, FileVersion> fileTree = lsResponse.getResult().getFileTree();
+		Map<String, FileVersion> fileVersions = lsResponse.getResult().getFileTree();
 		
 		// Find parent path (where to attach new items)
 		TreeItem parentTreeItem = findTreeItemByPath(lsRequest.getOptions().getPathExpression());
@@ -425,7 +466,7 @@ public class TreePanel extends Panel {
 		}
 		
 		// Create new items
-		for (FileVersion fileVersion : fileTree.values()) {
+		for (FileVersion fileVersion : fileVersions.values()) {
 			if (fileVersion.getType() == FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
@@ -440,15 +481,23 @@ public class TreePanel extends Panel {
 					treeItem.setExpanded(true);
 					refreshTree(fileVersion.getPath());
 				}
+				
+				if (selectedFileVersion != null && selectedFileVersion.getFileHistoryId().equals(fileVersion.getFileHistoryId())) {
+					fileTree.setSelection(treeItem);
+				}
 			}
 		}
 		
-		for (FileVersion fileVersion : fileTree.values()) {
+		for (FileVersion fileVersion : fileVersions.values()) {
 			if (fileVersion.getType() != FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
 				treeItem.setText(fileVersion.getName());			
-				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));				
+				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));
+				
+				if (selectedFileVersion != null && selectedFileVersion.getFileHistoryId().equals(fileVersion.getFileHistoryId())) {
+					fileTree.setSelection(treeItem);
+				}
 			}
 		}
 		
