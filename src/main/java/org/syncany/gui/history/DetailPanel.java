@@ -1,55 +1,31 @@
 package org.syncany.gui.history;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.TreeAdapter;
-import org.eclipse.swt.events.TreeEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Slider;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
-import org.eclipse.swt.widgets.Tree;
-import org.eclipse.swt.widgets.TreeItem;
 import org.syncany.config.GuiEventBus;
-import org.syncany.database.DatabaseVersionHeader;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileType;
+import org.syncany.database.PartialFileHistory;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
-import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.operations.daemon.Watch;
-import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderRequest;
-import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderResponse;
-import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
-import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
-import org.syncany.operations.plugin.ExtendedPluginInfo;
 import org.syncany.util.EnvironmentUtil;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
@@ -59,10 +35,18 @@ import com.google.common.eventbus.Subscribe;
  */
 public class DetailPanel extends Panel {
 	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
-	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
 	
-	private Table historyTable;
+	private static final int COLUMN_INDEX_VERSION = 0;
+	private static final int COLUMN_INDEX_PATH = 1;
+	private static final int COLUMN_INDEX_TYPE = 2;
+	private static final int COLUMN_INDEX_SIZE = 3;
+	private static final int COLUMN_INDEX_POSIX_PERMS = 4;
+	private static final int COLUMN_INDEX_DOS_ATTRS = 5;
+	private static final int COLUMN_INDEX_CHECKSUM = 6;
+	private static final int COLUMN_INDEX_LAST_MODIFIED = 7;
+	private static final int COLUMN_INDEX_UPDATED = 8;
 	
+	private Table historyTable;	
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
 
 	private GuiEventBus eventBus;
@@ -134,29 +118,41 @@ public class DetailPanel extends Panel {
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
 		
-	    TableColumn pluginTableColumnImage = new TableColumn(historyTable, SWT.CENTER);
-	    pluginTableColumnImage.setWidth(30);
-	    pluginTableColumnImage.setResizable(false);
+	    TableColumn columnVersion = new TableColumn(historyTable, SWT.CENTER);
+	    columnVersion.setWidth(30);
+	    columnVersion.setResizable(false);
 
-	    TableColumn pluginTableColumnText = new TableColumn(historyTable, SWT.LEFT | SWT.FILL);
-	    pluginTableColumnText.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.plugin"));
-	    pluginTableColumnText.setWidth(110);	    
+	    TableColumn columnPath = new TableColumn(historyTable, SWT.LEFT | SWT.FILL);
+	    columnPath.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.path"));
+	    columnPath.setWidth(210);	    
 
-	    TableColumn pluginTableColumnLocalVersion = new TableColumn(historyTable, SWT.LEFT);
-	    pluginTableColumnLocalVersion.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.localVersion"));
-	    pluginTableColumnLocalVersion.setWidth(90);	    
+	    TableColumn columnType = new TableColumn(historyTable, SWT.LEFT);
+	    columnType.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.type"));
+	    columnType.setWidth(60);	    
 
-	    TableColumn pluginTableColumnType = new TableColumn(historyTable, SWT.LEFT);
-	    pluginTableColumnType.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.type"));
-	    pluginTableColumnType.setWidth(50);	    
-
-	    TableColumn pluginTableColumnRemoteVersion = new TableColumn(historyTable, SWT.LEFT);
-	    pluginTableColumnRemoteVersion.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.remoteVersion"));
-	    pluginTableColumnRemoteVersion.setWidth(90);
+	    TableColumn columnSize = new TableColumn(historyTable, SWT.LEFT);
+	    columnSize.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.size"));
+	    columnSize.setWidth(70);	    
 	    
-	    TableColumn pluginTableColumnStatus = new TableColumn(historyTable, SWT.LEFT);
-	    pluginTableColumnStatus.setText(I18n.getText("org.syncany.gui.preferences.PluginsPanel.table.status"));
-	    pluginTableColumnStatus.setWidth(60);	    
+	    TableColumn columnPosixPermissions = new TableColumn(historyTable, SWT.LEFT);
+	    columnPosixPermissions.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.posixPermissions"));
+	    columnPosixPermissions.setWidth(70);
+	    
+	    TableColumn columnDosAttributes = new TableColumn(historyTable, SWT.LEFT);
+	    columnDosAttributes.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.dosAttributes"));
+	    columnDosAttributes.setWidth(70);	    
+
+	    TableColumn columnChecksum = new TableColumn(historyTable, SWT.LEFT);
+	    columnChecksum.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.checksum"));
+	    columnChecksum.setWidth(180);
+
+	    TableColumn columnLastModified = new TableColumn(historyTable, SWT.LEFT);
+	    columnLastModified.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.lastModified"));
+	    columnLastModified.setWidth(100);	    
+
+	    TableColumn columnUpdated = new TableColumn(historyTable, SWT.LEFT);
+	    columnUpdated.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.updated"));
+	    columnUpdated.setWidth(100);	    
 	}
 	
 	public void safeDispose() {
@@ -172,8 +168,7 @@ public class DetailPanel extends Panel {
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
 		
-		lsOptions.setPathExpression(fileHistoryId.toString());
-		lsOptions.setDate(new Date());
+		lsOptions.setFileHistoryPrefix(fileHistoryId.toString());
 		lsOptions.setRecursive(false);
 		lsOptions.setFetchHistories(true);
 		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.SYMLINK));
@@ -193,15 +188,32 @@ public class DetailPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				/*fileTree.setEnabled(true);
-				
-				LsFolderRequest lsRequest = pendingLsFolderRequests.get(lsResponse.getRequestId());
+				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
 				
 				if (lsRequest != null) {
-					updateTree(lsRequest, lsResponse);
-				}*/
+					updateTable(lsRequest, lsResponse);
+				}
 			}
 		});		
+	}
+
+	private void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+		historyTable.removeAll();
+		
+		for (PartialFileHistory partialFileHistory : lsResponse.getResult().getFileVersions().values()) {
+			for (FileVersion fileVersion : partialFileHistory.getFileVersions().values()) {
+				TableItem tableItem = new TableItem(historyTable, SWT.NONE);
+				tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
+				tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
+				tableItem.setText(COLUMN_INDEX_TYPE, fileVersion.getType().toString());
+				tableItem.setText(COLUMN_INDEX_SIZE, ""+fileVersion.getSize());
+				tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
+				tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
+				tableItem.setText(COLUMN_INDEX_CHECKSUM, fileVersion.getChecksum().toString());
+				tableItem.setText(COLUMN_INDEX_LAST_MODIFIED, ""+fileVersion.getLastModified());
+				tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());
+			}
+		}
 	}
 
 	@Override
