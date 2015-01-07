@@ -362,7 +362,6 @@ public class PluginsPanel extends Panel {
 		    eventBus.post(new PluginManagementRequest(pluginOperationOptions));
 		}		
 	}
-
 	
 	private void updatePluginActionButtons(ExtendedPluginInfo extPluginInfo) {
 		selectedPlugin = extPluginInfo;
@@ -615,13 +614,12 @@ public class PluginsPanel extends Panel {
 				
 				// Create new items
 				PluginOperationResult pluginResult = pluginResponse.getResult();
-				String guiPluginId = new GuiPlugin().getId();
 				
 				for (ExtendedPluginInfo extPluginInfo : pluginResult.getPluginList()) {						
 					PluginInfo pluginInfo = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo() : extPluginInfo.getRemotePluginInfo();
 
 					// Exclude GUI plugin
-					if (guiPluginId.equals(pluginInfo.getPluginId())) {
+					if (GuiPlugin.ID.equals(pluginInfo.getPluginId())) {
 						continue;
 					}
 										

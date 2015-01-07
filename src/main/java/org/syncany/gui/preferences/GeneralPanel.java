@@ -29,6 +29,9 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Text;
+import org.syncany.Client;
 import org.syncany.config.ConfigException;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
@@ -38,10 +41,16 @@ import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
+import org.syncany.plugins.Plugin;
+import org.syncany.plugins.Plugins;
+import org.syncany.plugins.gui.GuiPlugin;
 import org.syncany.util.EnvironmentUtil;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
+	private static String URL_AUTHOR = "http://www.philippheckel.com/";
+	private static String URL_TEAM = "https://syncany.org/r/team";
+	private static String URL_DONATE = "https://www.syncany.org/donate.html";
 	
 	private Button launchAtStartupButton;
 	private Button displayNotificationsButton;
@@ -113,6 +122,63 @@ public class GeneralPanel extends Panel {
 	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
 	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  	    
 	    displayNotificationsButton.addSelectionListener(commonSelectionListener);	
+	    
+	    // Spacing
+	    new Label(this, SWT.NONE);
+	    
+	    // License title
+	    Label licenseTitleLabel = new Label(this, SWT.WRAP);
+ 		licenseTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.title"));
+
+	 	WidgetDecorator.bold(licenseTitleLabel);
+
+	 	// License text
+	 	final String authorName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.author");
+	 	final String teamName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.team");
+	 	final String donateLinkName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.donate");
+
+	 	Link licenseDescriptionLink = new Link(this, SWT.WRAP);
+	 	licenseDescriptionLink.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+	 	licenseDescriptionLink.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.description", authorName, teamName, donateLinkName));
+	 	licenseDescriptionLink.addSelectionListener(new SelectionAdapter() {
+	 		@Override
+	 		public void widgetSelected(SelectionEvent e) {
+	 			if (authorName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_AUTHOR);
+	 			}
+	 			else if (teamName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_TEAM);
+	 			}
+	 			else if (donateLinkName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_DONATE);
+	 			}
+	 		}
+		});	 
+	 	
+	 	// Spacing
+	    new Label(this, SWT.NONE);
+
+	    
+	    // About title
+ 		Label aboutTitleLabel = new Label(this, SWT.WRAP);
+ 		aboutTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.title"));
+
+	 	WidgetDecorator.bold(aboutTitleLabel);
+	 	
+	 	// About text
+	 	String appVersion = Client.getApplicationVersionFull();
+	 	String appDate = Client.getApplicationDate().toString();
+	 	String appRevision = Client.getApplicationRevision();
+	 	
+	 	Plugin guiPlugin = Plugins.get(GuiPlugin.ID);
+	 	String guiPluginVersion = guiPlugin.getVersion();
+	 	
+	 	Text aboutDescriptionText = new Text(this, SWT.WRAP);
+	 	aboutDescriptionText.setEditable(false);
+	 	aboutDescriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+	 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description", appVersion, appDate, appRevision, guiPluginVersion));
+	 	
+	    
 	}
 
 	private void loadConfig() {
