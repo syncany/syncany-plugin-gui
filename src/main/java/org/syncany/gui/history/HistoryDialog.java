@@ -88,7 +88,7 @@ public class HistoryDialog extends Dialog {
 		windowShell = new Shell(Display.getDefault(), SWT.SHELL_TRIM | SWT.DOUBLE_BUFFERED);
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
-		windowShell.setSize(1024, 560);
+		windowShell.setSize(900, 560);
 		windowShell.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 		windowShell.addListener(SWT.Close, new Listener() {

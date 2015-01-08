@@ -9,12 +9,15 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.TreeAdapter;
 import org.eclipse.swt.events.TreeEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
@@ -25,6 +28,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Scale;
 import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
@@ -282,6 +286,23 @@ public class TreePanel extends Panel {
 				collapseTreeItem(treeItem);
 			}			
 		});
+		
+		final TreeColumn columnFile = new TreeColumn(fileTree, SWT.LEFT);
+	    columnFile.setWidth(400);
+	    
+	    final TreeColumn columnLastModified = new TreeColumn(fileTree, SWT.LEFT);
+	    columnLastModified.setWidth(150);	    
+		
+		fileTree.addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent e) {
+				Rectangle area = fileTree.getClientArea();
+
+				int newFileColumnWidth = area.width - columnLastModified.getWidth() - 20;
+				columnFile.setWidth(newFileColumnWidth);
+			}
+		});
+		
 	}	
 
 	protected void doubleClickTreeItem() {
@@ -520,7 +541,7 @@ public class TreePanel extends Panel {
 			if (fileVersion.getType() != FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
-				treeItem.setText(fileVersion.getName());			
+				treeItem.setText(new String[] { fileVersion.getName(), new PrettyTime().format(fileVersion.getLastModified())});			
 				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));
 				
 				if (selectedFileVersion != null && selectedFileVersion.getFileHistoryId().equals(fileVersion.getFileHistoryId())) {

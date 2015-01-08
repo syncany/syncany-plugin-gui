@@ -239,10 +239,11 @@ public class DetailPanel extends Panel {
 		selectedFileHistory = fileVersions.get(0);
 		
 		for (FileVersion fileVersion : selectedFileHistory.getFileVersions().values()) {
+			String checksumStr = (fileVersion.getChecksum() != null) ? fileVersion.getChecksum().toString() : "";
+			
 			TableItem tableItem = new TableItem(historyTable, SWT.NONE);
 			
-			tableItem.setData(fileVersion);
-			
+			tableItem.setData(fileVersion);			
 			tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
 			tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
 			tableItem.setText(COLUMN_INDEX_STATUS, fileVersion.getStatus().toString());
@@ -250,7 +251,7 @@ public class DetailPanel extends Panel {
 			tableItem.setText(COLUMN_INDEX_SIZE, FileUtil.formatFileSize(fileVersion.getSize()));
 			tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
 			tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
-			tableItem.setText(COLUMN_INDEX_CHECKSUM, fileVersion.getChecksum().toString());
+			tableItem.setText(COLUMN_INDEX_CHECKSUM, checksumStr);
 			tableItem.setText(COLUMN_INDEX_LAST_MODIFIED, ""+fileVersion.getLastModified());
 			tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());
 		}
