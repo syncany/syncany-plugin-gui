@@ -28,6 +28,7 @@ public class HistoryDialog extends Dialog {
 	
 	private TreePanel treePanel;
 	private DetailPanel detailPanel;
+	private LogPanel logPanel;
 	
 	private Panel currentPanel;
 
@@ -55,7 +56,7 @@ public class HistoryDialog extends Dialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(treePanel);
+		setCurrentPanel(logPanel);
 
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
@@ -116,6 +117,7 @@ public class HistoryDialog extends Dialog {
 	private void buildPanels() {
 		treePanel = new TreePanel(this, stackComposite, SWT.NONE);
 		detailPanel = new DetailPanel(this, stackComposite, SWT.NONE);
+		logPanel = new LogPanel(this, stackComposite, SWT.NONE);
 	}
 
 	public Panel getCurrentPanel() {
