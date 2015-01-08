@@ -4,20 +4,12 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.ScrolledComposite;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.syncany.config.GuiEventBus;
-import org.syncany.gui.Panel;
-import org.syncany.gui.util.I18n;
-import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.gui.wizard.PluginSelectComposite;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
@@ -30,34 +22,32 @@ import com.google.common.eventbus.Subscribe;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class LogPanel extends Panel {
+public class LogComposite extends Composite {
+	private MainPanel mainPanel;
+	private MainPanelState state;
+	
 	private Composite mainComposite;
 	
 	private LogFolderRequest pendingLogFolderRequest;
 
 	private GuiEventBus eventBus;
 
-	public LogPanel(HistoryDialog parentDialog, Composite composite, int style) {
-		super(parentDialog, composite, style);
+	public LogComposite(MainPanel mainPanel, MainPanelState state, Composite parent, int style) {
+		super(parent, style);
 
-		this.setBackgroundImage(null);
-		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
-		
+		this.mainPanel = mainPanel;
+		this.state = state;		
+				
 		this.pendingLogFolderRequest = null;
 
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);	
 		
 		this.createContents();
-	}
+	}	
 	
-	protected HistoryDialog getParentDialog() {
-		return (HistoryDialog) parentDialog;
-	}
-
 	private void createContents() {
 		createMainComposite();
-		createButtons();
 		createMainPanel();
 		
 		sendLogRequest();
@@ -115,19 +105,7 @@ public class LogPanel extends Panel {
 
 		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		setLayout(mainCompositeGridLayout);		
-	}
-	
-	private void createButtons() {
-		Button backButton = new Button(this, SWT.NONE);
-		backButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.back"));
-		backButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 3, 1));
-		backButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				getParentDialog().showTree();
-			}
-		});			
-	}
+	}	
 	
 	private void createMainPanel() {
 		mainComposite = new Composite(this, SWT.NONE);	
@@ -139,7 +117,7 @@ public class LogPanel extends Panel {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
-				eventBus.unregister(LogPanel.this);
+				eventBus.unregister(LogComposite.this);
 			}
 		});
 	}			
@@ -173,10 +151,5 @@ public class LogPanel extends Panel {
 		
 		mainComposite.layout();
 		layout();
-	}
-
-	@Override
-	public boolean validatePanel() {
-		return true;
 	}
 }

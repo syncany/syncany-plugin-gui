@@ -26,9 +26,9 @@ public class HistoryDialog extends Dialog {
 	private Composite stackComposite;
 	private StackLayout stackLayout;
 	
-	private TreePanel treePanel;
+	private MainPanel mainPanel;
 	private DetailPanel detailPanel;
-	private LogPanel logPanel;
+	private LogComposite logPanel;
 	
 	private Panel currentPanel;
 
@@ -56,7 +56,7 @@ public class HistoryDialog extends Dialog {
 		createContents();
 		buildPanels();
 		
-		setCurrentPanel(logPanel);
+		setCurrentPanel(mainPanel);
 
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
@@ -115,9 +115,8 @@ public class HistoryDialog extends Dialog {
 	}
 
 	private void buildPanels() {
-		treePanel = new TreePanel(this, stackComposite, SWT.NONE);
+		mainPanel = new MainPanel(this, stackComposite, SWT.NONE);
 		detailPanel = new DetailPanel(this, stackComposite, SWT.NONE);
-		logPanel = new LogPanel(this, stackComposite, SWT.NONE);
 	}
 
 	public Panel getCurrentPanel() {
@@ -150,8 +149,8 @@ public class HistoryDialog extends Dialog {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
-				if (!treePanel.isDisposed()) {
-					treePanel.safeDispose();
+				if (!mainPanel.isDisposed()) {
+					mainPanel.safeDispose();
 				}	
 				
 				if (!detailPanel.isDisposed()) {
@@ -171,6 +170,6 @@ public class HistoryDialog extends Dialog {
 	}
 
 	public void showTree() {
-		setCurrentPanel(treePanel);
+		setCurrentPanel(mainPanel);
 	}	
 }
