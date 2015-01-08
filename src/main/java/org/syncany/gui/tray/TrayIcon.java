@@ -134,6 +134,9 @@ public abstract class TrayIcon {
 
 					wizard = null;
 				}
+				else {
+					DesktopUtil.bringToFront(wizard.getWindowShell());
+				}
 			}
 		});
 	}
@@ -148,6 +151,9 @@ public abstract class TrayIcon {
 
 					history = null;
 				}
+				else {
+					DesktopUtil.bringToFront(history.getWindowShell());
+				}
 			}
 		});
 	}
@@ -161,6 +167,9 @@ public abstract class TrayIcon {
 					preferences.open();
 
 					preferences = null;
+				}
+				else {
+					DesktopUtil.bringToFront(preferences.getWindowShell());
 				}
 			}
 		});
