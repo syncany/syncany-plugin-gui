@@ -25,8 +25,7 @@ import org.syncany.database.FileVersion;
 import com.google.common.collect.Sets;
 
 /**
- * @author pheckel
- *
+ * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class MainPanelState {
 	private String selectedRoot;

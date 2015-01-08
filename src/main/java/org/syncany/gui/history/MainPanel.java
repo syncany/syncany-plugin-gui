@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -53,7 +54,11 @@ public class MainPanel extends Panel {
 	private LogComposite logComposite;
 	
 	private boolean dateLabelPrettyTime;
+	private AtomicInteger dateSliderValue;
 	private Timer dateSliderChangeTimer;
+	
+	private Button toggleTreeButton;
+	private Button toggleLogButton;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
 
@@ -68,6 +73,7 @@ public class MainPanel extends Panel {
 		this.state = new MainPanelState();
 		
 		this.dateLabelPrettyTime = true;
+		this.dateSliderValue = new AtomicInteger(-1);
 		this.dateSliderChangeTimer = null;
 		
 		this.pendingListWatchesRequest = null;
@@ -97,7 +103,6 @@ public class MainPanel extends Panel {
 	}	
 
 	private void createMainComposite() {
-		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(5, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -108,35 +113,43 @@ public class MainPanel extends Panel {
 	}
 	
 	private void createToggleButtons() {
-		final Button toggleTreeButton = new Button(this, SWT.TOGGLE);
+		toggleTreeButton = new Button(this, SWT.TOGGLE);
 		toggleTreeButton.setSelection(true);
 		toggleTreeButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "tree")));
 		
-		final Button toggleLogButton = new Button(this, SWT.TOGGLE);
+		toggleLogButton = new Button(this, SWT.TOGGLE);
 		toggleLogButton.setSelection(false);
 		toggleLogButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "log")));
 		
 		toggleTreeButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				setCurrentControl(fileTreeComposite);
-				
-				toggleTreeButton.setSelection(true);
-				toggleLogButton.setSelection(false);
+				showTree();				
 			}
 		});		
 		
 		toggleLogButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				setCurrentControl(logComposite);
-
-				toggleTreeButton.setSelection(false);
-				toggleLogButton.setSelection(true);
+				showLog();				
 			}
 		});
 	}
 	
+	public void showLog() {
+		setCurrentControl(logComposite);
+
+		toggleTreeButton.setSelection(false);
+		toggleLogButton.setSelection(true);
+	}
+
+	public void showTree() {
+		setCurrentControl(fileTreeComposite);
+		
+		toggleTreeButton.setSelection(true);
+		toggleLogButton.setSelection(false);
+	}
+
 	private void createRootSelectionCombo() {
 		rootSelectCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
 		
@@ -160,7 +173,9 @@ public class MainPanel extends Panel {
 						state.getExpandedFilePaths().clear();
 						
 						refreshDateSlider();
-						fileTreeComposite.resetAndRefreshTree();
+						
+						fileTreeComposite.resetAndRefresh();
+						logComposite.resetAndRefresh();
 					}
 				}
 			}
@@ -194,18 +209,29 @@ public class MainPanel extends Panel {
 		
 		dateSlider.addSelectionListener(new SelectionAdapter() {
 			@Override
-			public void widgetSelected(SelectionEvent e) {
-				// Update label right away
-				updateDateLabel(getDateSliderDate());
-				
-				// Update file tree after a while  
-				synchronized (dateSlider) {		
-					if (dateSliderChangeTimer != null) {
-						dateSliderChangeTimer.cancel();
-					}
+			public void widgetSelected(SelectionEvent e) {				
+				synchronized (dateSlider) {	
+					int newDateSliderValue = dateSlider.getSelection();
+					Date newSliderDate = getDateSliderDate();
+
+					boolean dateSliderValueChanged = dateSliderValue.get() != newDateSliderValue;
 					
-					dateSliderChangeTimer = new Timer();
-					dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
+					if (dateSliderValueChanged) {
+						// Update cached value
+						dateSliderValue.set(newDateSliderValue);
+						
+						// Update label right away
+						updateDateLabel(newSliderDate);
+						logComposite.highlightByDate(newSliderDate);
+
+						// Update file tree after a while  
+						if (dateSliderChangeTimer != null) {
+							dateSliderChangeTimer.cancel();
+						}
+						
+						dateSliderChangeTimer = new Timer();
+						dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
+					}
 				}
 			}
 		});		
@@ -269,13 +295,21 @@ public class MainPanel extends Panel {
 						boolean listUpdateRequired = !newDate.equals(state.getSelectedDate());
 						
 						if (listUpdateRequired) {
-							state.setSelectedDate(newDate);
-							fileTreeComposite.resetAndRefreshTree();
+							updateDate(newDate);							
 						}
-					}
+					}					
 				});
 			}
 		};
+	}
+	
+	public void updateDate(Date newDate) {
+		state.setSelectedDate(newDate);
+		
+		setDateSliderDate(newDate);
+		
+		fileTreeComposite.resetAndRefresh();
+		logComposite.highlightBySelectedDate();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -292,11 +326,27 @@ public class MainPanel extends Panel {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	private void setDateSliderDate(Date newDate) {
+		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
+		
+		for (int i = 0; i < headers.size(); i++) {
+			DatabaseVersionHeader header = headers.get(i);
+			
+			if (header.getDate().equals(newDate)) {
+				dateSlider.setSelection(i);
+			}
+		}
+	}
+	
 	public void showDetails(FileVersion fileVersion) {
 		getParentDialog().showDetails(state.getSelectedRoot(), fileVersion.getFileHistoryId());
 	}
 
 	public void safeDispose() {
+		fileTreeComposite.safeDispose();
+		logComposite.safeDispose();
+		
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
@@ -336,7 +386,8 @@ public class MainPanel extends Panel {
 						rootSelectCombo.select(0);
 						
 						refreshDateSlider();
-						fileTreeComposite.resetAndRefreshTree();
+						fileTreeComposite.resetAndRefresh();
+						logComposite.resetAndRefresh();
 					}
 				}
 			});

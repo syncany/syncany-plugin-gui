@@ -77,6 +77,8 @@ public class FileTreeComposite extends Composite {
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
 		mainCompositeGridLayout.marginRight = 0;
+		mainCompositeGridLayout.verticalSpacing = 0;
+		mainCompositeGridLayout.horizontalSpacing = 0;
 
 		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		setLayout(mainCompositeGridLayout);
@@ -204,7 +206,7 @@ public class FileTreeComposite extends Composite {
 		});
 	}		
 
-	public void resetAndRefreshTree() {
+	public void resetAndRefresh() {
 		fileTree.removeAll();
 		refreshTree("");
 	}

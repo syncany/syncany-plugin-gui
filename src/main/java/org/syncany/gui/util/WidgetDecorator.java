@@ -42,6 +42,7 @@ public class WidgetDecorator {
 	public static final Color BLACK = SWTResourceManager.getColor(SWT.COLOR_BLACK);
 	public static final Color GRAY = SWTResourceManager.getColor(SWT.COLOR_GRAY);
 	public static final Color DARK_GRAY = SWTResourceManager.getColor(SWT.COLOR_DARK_GRAY);
+	public static final Color LIGHT_GRAY = SWTResourceManager.getColor(220, 220, 220);
 	
 	public static final Color COLOR_WIDGET = SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND);
 

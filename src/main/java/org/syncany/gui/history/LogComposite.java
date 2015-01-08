@@ -2,8 +2,10 @@ package org.syncany.gui.history;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
@@ -17,6 +19,7 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 import org.syncany.operations.log.LogOperationOptions;
 import org.syncany.operations.log.LogOperationResult;
 
+import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -26,7 +29,11 @@ public class LogComposite extends Composite {
 	private MainPanel mainPanel;
 	private MainPanelState state;
 	
+	private ScrolledComposite scrollComposite;
 	private Composite mainComposite;
+	
+	private Map<Date, TabComposite> tabComposites;
+	private TabComposite highlightedTabComposite;
 	
 	private LogFolderRequest pendingLogFolderRequest;
 
@@ -39,7 +46,10 @@ public class LogComposite extends Composite {
 		this.state = state;		
 				
 		this.pendingLogFolderRequest = null;
-
+		
+		this.tabComposites = Maps.newConcurrentMap();
+		this.highlightedTabComposite = null;
+		
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);	
 		
@@ -48,9 +58,7 @@ public class LogComposite extends Composite {
 	
 	private void createContents() {
 		createMainComposite();
-		createMainPanel();
-		
-		sendLogRequest();
+		createMainPanel();		
 		
 		ChangeSet c1 = new ChangeSet();
 		c1.getChangedFiles().add("file1.txt");
@@ -73,11 +81,33 @@ public class LogComposite extends Composite {
 		d2.setDate(new Date());
 		d2.setChangeSet(c2);			
 
+		ChangeSet c3 = new ChangeSet();
+		c3.getNewFiles().add("image1.jpsdg");
+		c3.getNewFiles().add("image4.jdpdg");
+		c3.getNewFiles().add("image1.jpsg");
+		c3.getNewFiles().add("image4.jdspg");
+		c3.getNewFiles().add("imagfsde3.jpg");
+		c3.getNewFiles().add("image1.jpgds");
+		c3.getNewFiles().add("image4sfdds.jpg");
+		c3.getNewFiles().add("image3.sdjspg");
+		c3.getNewFiles().add("ifsmageds1.jpg");
+		c3.getNewFiles().add("imaddgde4.jpg");
+		c3.getNewFiles().add("imagfesd3.jpg");
+		c3.getNewFiles().add("imagdde1.jpg");
+		c3.getNewFiles().add("imagde4.jpg");
+		c3.getNewFiles().add("imagedd3.jpg");
+		c3.getNewFiles().add("image3d.jpg");
+		c3.getDeletedFiles().add("deleted1123.txt");
+		
+		LightweightDatabaseVersion d3 = new LightweightDatabaseVersion();
+		d3.setDate(new Date());
+		d3.setChangeSet(c3);			
 		
 		ArrayList<LightweightDatabaseVersion> dbv = new ArrayList<>();
 		
 		dbv.add(d1);
-		dbv.add(d2);		
+		dbv.add(d2);	
+		dbv.add(d3);		
 		
 		LogOperationResult lr = new LogOperationResult();
 		lr.setDatabaseVersions(dbv);
@@ -86,11 +116,21 @@ public class LogComposite extends Composite {
 		ls.setResult(lr);
 		
 		updateTabs(ls);
+		redrawAll();
 	}	
-
-	private void sendLogRequest() {
+	
+	private void resetAndDisposeAll() {
+		for (Control control : mainComposite.getChildren()) {
+			control.dispose();
+		}
+		
+		tabComposites.clear();			
+		highlightedTabComposite = null;
+	}
+	
+	public void resetAndRefresh() {
 		pendingLogFolderRequest = new LogFolderRequest();
-		pendingLogFolderRequest.setRoot("/home/pheckel/Syncany/Syncany Team");
+		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
 		pendingLogFolderRequest.setOptions(new LogOperationOptions());
 		
 		eventBus.post(pendingLogFolderRequest);
@@ -102,15 +142,37 @@ public class LogComposite extends Composite {
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
 		mainCompositeGridLayout.marginRight = 0;
-
+		mainCompositeGridLayout.horizontalSpacing = 0;
+		mainCompositeGridLayout.verticalSpacing = 0;
+		mainCompositeGridLayout.marginHeight = 0;
+		mainCompositeGridLayout.marginWidth = 0;
+		
 		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		setLayout(mainCompositeGridLayout);		
 	}	
 	
 	private void createMainPanel() {
-		mainComposite = new Composite(this, SWT.NONE);	
-		mainComposite.setLayout(new GridLayout());
-		mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
+		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
+		
+		scrollComposite = new ScrolledComposite(this, SWT.V_SCROLL);
+		scrollComposite.setLayout(mainCompositeGridLayout);
+		scrollComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+	   
+		mainComposite = new Composite(scrollComposite, SWT.NONE);	
+		mainComposite.setLayout(mainCompositeGridLayout);
+		mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));		
+		
+	    scrollComposite.setExpandVertical(true);
+	    scrollComposite.setExpandHorizontal(true);
+		scrollComposite.setContent(mainComposite);
+	}
+	
+	private void redrawAll() {
+		mainComposite.layout();
+		layout();
+		
+		scrollComposite.setMinSize(mainComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		scrollComposite.setRedraw(true);
 	}
 	
 	public void safeDispose() {
@@ -134,22 +196,53 @@ public class LogComposite extends Composite {
 		});		
 	}
 
-	private void updateTabs(LogFolderResponse logResponse) {		
-		for (Control control : mainComposite.getChildren()) {
-			control.dispose();
+	private void updateTabs(LogFolderResponse logResponse) {
+		// Clear all
+		resetAndDisposeAll();
+		
+		// And create new ones		
+		for (LightweightDatabaseVersion databaseVersion : logResponse.getResult().getDatabaseVersions()) {
+			TabComposite tabComposite = new TabComposite(mainPanel, mainComposite, databaseVersion);			
+			tabComposites.put(databaseVersion.getDate(), tabComposite);
+		}	
+		
+		// Highlight
+		highlightBySelectedDate();
+				
+		// Then redraw!
+		redrawAll();
+	}
+
+	public void highlightBySelectedDate() {
+		highlightByDate(state.getSelectedDate());
+	}
+	
+	public synchronized void highlightByDate(Date highlightDate) {
+		// De-highlight
+		if (highlightedTabComposite != null) {
+			highlightedTabComposite.setHighlighted(false);
 		}
 		
-		for (LightweightDatabaseVersion databaseVersion : logResponse.getResult().getDatabaseVersions()) {
-			System.out.println(databaseVersion);
-			GridData pluginSelectCompositeGridData = new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1);
-			pluginSelectCompositeGridData.horizontalIndent = 0;
-			pluginSelectCompositeGridData.minimumHeight = 40;
+		// Highlight new tab
+		if (highlightDate != null) {
+			TabComposite tabComposite = tabComposites.get(highlightDate);
 			
-			TabComposite tabComposite = new TabComposite(mainComposite, databaseVersion);
-			tabComposite.setLayoutData(pluginSelectCompositeGridData);			
-		}		
-		
-		mainComposite.layout();
-		layout();
+			if (tabComposite != null) {
+				tabComposite.setHighlighted(true);				
+				centerTabComposite(tabComposite);
+				
+				highlightedTabComposite = tabComposite;
+			}
+		}
 	}
+
+	private void centerTabComposite(TabComposite tabComposite) {		
+		int tabTop = tabComposite.getLocation().y;
+		int tabHeight = tabComposite.getSize().y;
+		int parentHeight = scrollComposite.getClientArea().height;
+				
+		int newTabTop = tabTop - (parentHeight - tabHeight)/2;
+		
+		scrollComposite.setOrigin(0, newTabTop);
+	}	
 }

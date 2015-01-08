@@ -28,7 +28,6 @@ public class HistoryDialog extends Dialog {
 	
 	private MainPanel mainPanel;
 	private DetailPanel detailPanel;
-	private LogComposite logPanel;
 	
 	private Panel currentPanel;
 
