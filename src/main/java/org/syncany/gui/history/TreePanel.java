@@ -23,9 +23,10 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Slider;
+import org.eclipse.swt.widgets.Scale;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
+import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.DatabaseVersionHeader;
 import org.syncany.database.FileVersion;
@@ -62,9 +63,10 @@ public class TreePanel extends Panel {
 	
 	private Combo rootSelectCombo;
 	private Label dateLabel;
-	private Slider dateSlider;
+	private Scale dateSlider;
 	private Tree fileTree;
 	
+	private boolean dateLabelPrettyTime;
 	private Timer dateSliderChangeTimer;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
@@ -83,6 +85,7 @@ public class TreePanel extends Panel {
 		this.selectedFileVersion = null;		
 		this.expandedFilePaths = Sets.newConcurrentHashSet();
 		
+		this.dateLabelPrettyTime = true;
 		this.dateSliderChangeTimer = null;
 		
 		this.pendingListWatchesRequest = null;
@@ -153,11 +156,22 @@ public class TreePanel extends Panel {
 		GridData dateLabelGridData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
 		dateLabelGridData.minimumWidth = 150;
 		
-		dateLabel = new Label(this, SWT.NONE);
+		dateLabel = new Label(this, SWT.CENTER);
 		dateLabel.setLayoutData(dateLabelGridData);
 		
+		dateLabel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseUp(MouseEvent e) {
+				dateLabelPrettyTime = !dateLabelPrettyTime;
+				
+				if (dateLabel.getData() != null) {
+					updateDateLabel((Date) dateLabel.getData());
+				}
+			}
+		});
+		
 		// Slider
-		dateSlider = new Slider(this, SWT.HORIZONTAL | SWT.BORDER);
+		dateSlider = new Scale(this, SWT.HORIZONTAL | SWT.BORDER);
 		
 		dateSlider.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		dateSlider.setEnabled(false);
@@ -184,8 +198,20 @@ public class TreePanel extends Panel {
 	private void updateDateLabel(final Date dateSliderDate) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
-			public void run() {
-				dateLabel.setText(dateSliderDate.toString());
+			public void run() {				
+				String dateStrPretty = new PrettyTime().format(dateSliderDate);
+				String dateStrExact = dateSliderDate.toString();
+				
+				dateLabel.setData(dateSliderDate);
+				
+				if (dateLabelPrettyTime) {
+					dateLabel.setText(dateStrPretty);
+					dateLabel.setToolTipText(dateStrExact);
+				}
+				else {
+					dateLabel.setText(dateStrExact);
+					dateLabel.setToolTipText(dateStrPretty);
+				}
 			}
 		});
 	}
@@ -268,13 +294,15 @@ public class TreePanel extends Panel {
 			if (!isRetrievingItem) {
 				FileVersion fileVersion = (FileVersion) selectedItem.getData();
 				
-				if (fileVersion.getType() == FileType.FOLDER) {
+				if (fileVersion.getType() == FileType.FOLDER) {					
 					if (selectedItem.getExpanded()) {
 						collapseTreeItem(selectedItem);
 					}
 					else {
 						expandTreeItem(selectedItem);
 					}
+					
+					selectedItem.setExpanded(!selectedItem.getExpanded());
 				}
 				else {
 					showDetails(fileVersion);
@@ -384,7 +412,7 @@ public class TreePanel extends Panel {
 				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
 				
 				if (headers.size() > 0) {
-					int maxValue = headers.size() - 1 + dateSlider.getThumb(); // Weird, but correct!
+					int maxValue = headers.size() - 1;
 					
 					dateSlider.setData(headers);
 					dateSlider.setMinimum(0);

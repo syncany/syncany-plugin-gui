@@ -1,5 +1,7 @@
 package org.syncany.gui.history;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.SWT;
@@ -10,6 +12,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
@@ -37,15 +40,19 @@ import com.google.common.eventbus.Subscribe;
 public class DetailPanel extends Panel {
 	private static final int COLUMN_INDEX_VERSION = 0;
 	private static final int COLUMN_INDEX_PATH = 1;
-	private static final int COLUMN_INDEX_TYPE = 2;
-	private static final int COLUMN_INDEX_SIZE = 3;
-	private static final int COLUMN_INDEX_POSIX_PERMS = 4;
-	private static final int COLUMN_INDEX_DOS_ATTRS = 5;
-	private static final int COLUMN_INDEX_CHECKSUM = 6;
-	private static final int COLUMN_INDEX_LAST_MODIFIED = 7;
-	private static final int COLUMN_INDEX_UPDATED = 8;
+	private static final int COLUMN_INDEX_STATUS = 2;
+	private static final int COLUMN_INDEX_TYPE = 3;
+	private static final int COLUMN_INDEX_SIZE = 4;
+	private static final int COLUMN_INDEX_POSIX_PERMS = 5;
+	private static final int COLUMN_INDEX_DOS_ATTRS = 6;
+	private static final int COLUMN_INDEX_CHECKSUM = 7;
+	private static final int COLUMN_INDEX_LAST_MODIFIED = 8;
+	private static final int COLUMN_INDEX_UPDATED = 9;
 	
 	private Table historyTable;	
+	private Button restoreButton;
+	
+	private PartialFileHistory selectedFileHistory;
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
 
 	private GuiEventBus eventBus;
@@ -72,7 +79,7 @@ public class DetailPanel extends Panel {
 
 	private void createContents() {
 		createMainComposite();
-		createBackButton();
+		createButtons();
 		createHistoryTable();
 	}	
 
@@ -87,14 +94,27 @@ public class DetailPanel extends Panel {
 		setLayout(mainCompositeGridLayout);
 	}
 	
-	private void createBackButton() {
+	private void createButtons() {
 		Button backButton = new Button(this, SWT.NONE);
-		backButton.setText("< Back");
-		backButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 3, 1));
+		backButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.back"));
+		backButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1));
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				getParentDialog().showTree();
+			}
+		});
+		
+		new Label(this, SWT.NONE);
+		
+		restoreButton = new Button(this, SWT.NONE);
+		restoreButton.setEnabled(false);
+		restoreButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.restore"));
+		restoreButton.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		restoreButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				// TODO
 			}
 		});
 	}
@@ -104,7 +124,7 @@ public class DetailPanel extends Panel {
 		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
 		pluginTableGridData.verticalIndent = 5;
 		pluginTableGridData.horizontalIndent = 0;
-		pluginTableGridData.horizontalSpan = 2;
+		pluginTableGridData.horizontalSpan = 3;
 		
 	    historyTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		historyTable.setHeaderVisible(true);
@@ -113,17 +133,32 @@ public class DetailPanel extends Panel {
 		if (EnvironmentUtil.isWindows()) {
 			historyTable.setBackground(WidgetDecorator.WHITE);
 		}
+		
+		historyTable.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				TableItem tableItem = (TableItem) e.item;
+				FileVersion fileVersion = (FileVersion) tableItem.getData();
 				
+				boolean isLastVersion = fileVersion.equals(selectedFileHistory.getLastVersion());				
+				restoreButton.setEnabled(!isLastVersion);
+			}
+		});
+		
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
 		
-	    TableColumn columnVersion = new TableColumn(historyTable, SWT.CENTER);
+	    TableColumn columnVersion = new TableColumn(historyTable, SWT.LEFT);
 	    columnVersion.setWidth(30);
 	    columnVersion.setResizable(false);
 
 	    TableColumn columnPath = new TableColumn(historyTable, SWT.LEFT | SWT.FILL);
 	    columnPath.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.path"));
 	    columnPath.setWidth(210);	    
+
+	    TableColumn columnStatus = new TableColumn(historyTable, SWT.LEFT);
+	    columnStatus.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.status"));
+	    columnStatus.setWidth(60);	    
 
 	    TableColumn columnType = new TableColumn(historyTable, SWT.LEFT);
 	    columnType.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.type"));
@@ -200,19 +235,29 @@ public class DetailPanel extends Panel {
 	private void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
 		historyTable.removeAll();
 		
-		for (PartialFileHistory partialFileHistory : lsResponse.getResult().getFileVersions().values()) {
-			for (FileVersion fileVersion : partialFileHistory.getFileVersions().values()) {
-				TableItem tableItem = new TableItem(historyTable, SWT.NONE);
-				tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
-				tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
-				tableItem.setText(COLUMN_INDEX_TYPE, fileVersion.getType().toString());
-				tableItem.setText(COLUMN_INDEX_SIZE, FileUtil.formatFileSize(fileVersion.getSize()));
-				tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
-				tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
-				tableItem.setText(COLUMN_INDEX_CHECKSUM, fileVersion.getChecksum().toString());
-				tableItem.setText(COLUMN_INDEX_LAST_MODIFIED, ""+fileVersion.getLastModified());
-				tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());
-			}
+		List<PartialFileHistory> fileVersions = new ArrayList<>(lsResponse.getResult().getFileVersions().values());
+		selectedFileHistory = fileVersions.get(0);
+		
+		for (FileVersion fileVersion : selectedFileHistory.getFileVersions().values()) {
+			TableItem tableItem = new TableItem(historyTable, SWT.NONE);
+			
+			tableItem.setData(fileVersion);
+			
+			tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
+			tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
+			tableItem.setText(COLUMN_INDEX_STATUS, fileVersion.getStatus().toString());
+			tableItem.setText(COLUMN_INDEX_TYPE, fileVersion.getType().toString());
+			tableItem.setText(COLUMN_INDEX_SIZE, FileUtil.formatFileSize(fileVersion.getSize()));
+			tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
+			tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
+			tableItem.setText(COLUMN_INDEX_CHECKSUM, fileVersion.getChecksum().toString());
+			tableItem.setText(COLUMN_INDEX_LAST_MODIFIED, ""+fileVersion.getLastModified());
+			tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());
+		}
+		
+		if (historyTable.getItemCount() > 0) {
+			restoreButton.setEnabled(false);
+			historyTable.select(historyTable.getItemCount()-1);
 		}
 	}
 
