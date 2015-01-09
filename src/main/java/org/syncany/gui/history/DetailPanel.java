@@ -26,7 +26,11 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
+import org.syncany.operations.daemon.messages.RestoreFolderRequest;
+import org.syncany.operations.daemon.messages.RestoreFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
+import org.syncany.operations.restore.RestoreOperationOptions;
+import org.syncany.operations.restore.RestoreOperationResult.RestoreResultCode;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
 
@@ -52,6 +56,7 @@ public class DetailPanel extends Panel {
 	private Table historyTable;	
 	private Button restoreButton;
 	
+	private String selectedRoot;
 	private PartialFileHistory selectedFileHistory;
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
 
@@ -64,7 +69,10 @@ public class DetailPanel extends Panel {
 		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
 		
 		this.historyTable = null;
+		this.restoreButton = null;
 		
+		this.selectedRoot = null;
+		this.selectedFileHistory = null;		
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
 
 		this.eventBus = GuiEventBus.getInstance();
@@ -114,11 +122,11 @@ public class DetailPanel extends Panel {
 		restoreButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				// TODO
+				restoreSelectedFile();
 			}
 		});
 	}
-	
+
 	private void createHistoryTable() {
 		// Plugin list
 		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
@@ -198,7 +206,9 @@ public class DetailPanel extends Panel {
 		});
 	}		
 	
-	public void showDetails(String root, FileHistoryId fileHistoryId) {	
+	public void showDetails(String root, FileHistoryId fileHistoryId) {
+		selectedRoot = root;
+		
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
 		
@@ -260,6 +270,30 @@ public class DetailPanel extends Panel {
 			restoreButton.setEnabled(false);
 			historyTable.select(historyTable.getItemCount()-1);
 		}
+	}
+	
+	private void restoreSelectedFile() {
+		TableItem[] selectedItems = historyTable.getSelection();
+		
+		if (selectedItems.length > 0) {
+			TableItem tableItem = selectedItems[0];
+			FileVersion fileVersion = (FileVersion) tableItem.getData();
+			
+			RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
+			restoreOptions.setFileHistoryId(fileVersion.getFileHistoryId());
+			restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
+			
+			RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
+			restoreRequest.setRoot(selectedRoot);
+			restoreRequest.setOptions(restoreOptions);
+			
+			eventBus.post(restoreRequest);
+		}		
+	}
+	
+	@Subscribe
+	public void onRestoreResponseReceived(RestoreFolderResponse restoreResponse) {
+		System.out.println("restored to " + restoreResponse.getResult().getTargetFile());
 	}
 
 	@Override

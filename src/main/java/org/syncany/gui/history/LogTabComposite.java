@@ -30,6 +30,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.ocpsoft.prettytime.PrettyTime;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.log.LightweightDatabaseVersion;
@@ -103,6 +104,15 @@ public class LogTabComposite extends Composite {
 
 		for (String file : databaseVersion.getChangeSet().getDeletedFiles()) {
 			createEntryLabel(file, "delete");	
+		}
+		
+		// Add 'more ...' entry if max. number reached
+		int totalEntryCount = databaseVersion.getChangeSet().getNewFiles().size()
+				+ databaseVersion.getChangeSet().getChangedFiles().size()
+				+ databaseVersion.getChangeSet().getDeletedFiles().size();
+		
+		if (totalEntryCount == LogComposite.LOG_REQUEST_FILE_COUNT) {
+			createEntryLabel(I18n.getText("org.syncany.gui.history.LogTabComposite.more"), "more");	
 		}
 		
 		Label spacingLabel2 = new Label(this, SWT.NONE);

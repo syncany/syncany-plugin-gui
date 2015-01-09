@@ -1,7 +1,7 @@
 package org.syncany.gui.history;
 
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.SWT;
@@ -17,14 +17,14 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.log.LightweightDatabaseVersion;
 import org.syncany.operations.log.LogOperationOptions;
-import org.syncany.operations.log.LogOperationResult;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
@@ -32,6 +32,9 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogComposite extends Composite {
+	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
+	public static final int LOG_REQUEST_FILE_COUNT = 10;
+	
 	private MainPanel mainPanel;
 	private MainPanelState state;
 	
@@ -40,6 +43,7 @@ public class LogComposite extends Composite {
 	
 	private Map<Date, LogTabComposite> tabComposites;
 	private LogTabComposite highlightedTabComposite;
+	private List<Composite> loadingTabComposites;
 	
 	private LogFolderRequest pendingLogFolderRequest;
 
@@ -55,6 +59,7 @@ public class LogComposite extends Composite {
 		
 		this.tabComposites = Maps.newConcurrentMap();
 		this.highlightedTabComposite = null;
+		this.loadingTabComposites = Lists.newArrayList();
 		
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);	
@@ -67,63 +72,6 @@ public class LogComposite extends Composite {
 		createMainPanel();		
 		
 		replaceScrollEventHandling();
-		
-		ChangeSet c1 = new ChangeSet();
-		c1.getChangedFiles().add("file1.txt");
-		c1.getChangedFiles().add("file2.txt");
-		c1.getChangedFiles().add("file3.txt");
-		c1.getDeletedFiles().add("deleted1.txt");
-		c1.getDeletedFiles().add("deleted2.txt");
-		
-		LightweightDatabaseVersion d1 = new LightweightDatabaseVersion();
-		d1.setDate(new Date());
-		d1.setChangeSet(c1);		
-		
-		ChangeSet c2 = new ChangeSet();
-		c2.getNewFiles().add("image1.jpg");
-		c2.getNewFiles().add("image4.jpg");
-		c2.getNewFiles().add("image3.jpg");
-		c2.getDeletedFiles().add("deleted1123.txt");
-		
-		LightweightDatabaseVersion d2 = new LightweightDatabaseVersion();
-		d2.setDate(new Date());
-		d2.setChangeSet(c2);			
-
-		ChangeSet c3 = new ChangeSet();
-		c3.getNewFiles().add("image1.jpsdg");
-		c3.getNewFiles().add("image4.jdpdg");
-		c3.getNewFiles().add("image1.jpsg");
-		c3.getNewFiles().add("image4.jdspg");
-		c3.getNewFiles().add("imagfsde3.jpg");
-		c3.getNewFiles().add("image1.jpgds");
-		c3.getNewFiles().add("image4sfdds.jpg");
-		c3.getNewFiles().add("image3.sdjspg");
-		c3.getNewFiles().add("ifsmageds1.jpg");
-		c3.getNewFiles().add("imaddgde4.jpg");
-		c3.getNewFiles().add("imagfesd3.jpg");
-		c3.getNewFiles().add("imagdde1.jpg");
-		c3.getNewFiles().add("imagde4.jpg");
-		c3.getNewFiles().add("imagedd3.jpg");
-		c3.getNewFiles().add("image3d.jpg");
-		c3.getDeletedFiles().add("deleted1123.txt");
-		
-		LightweightDatabaseVersion d3 = new LightweightDatabaseVersion();
-		d3.setDate(new Date());
-		d3.setChangeSet(c3);			
-		
-		ArrayList<LightweightDatabaseVersion> dbv = new ArrayList<>();
-		
-		dbv.add(d1);
-		dbv.add(d2);	
-		dbv.add(d3);		
-		
-		LogOperationResult lr = new LogOperationResult();
-		lr.setDatabaseVersions(dbv);
-		
-		LogFolderResponse ls = new LogFolderResponse();
-		ls.setResult(lr);
-		
-		updateTabs(ls);
 		redrawAll();
 	}	
 
@@ -137,9 +85,14 @@ public class LogComposite extends Composite {
 	}
 	
 	public void resetAndRefresh() {
+		resetAndRefresh(0);
+	}
+	
+	public void resetAndRefresh(int startIndex) {
 		LogOperationOptions logOptions = new LogOperationOptions();
-		logOptions.setMaxDatabaseVersionCount(10);
-		logOptions.setMaxFileHistoryCount(10);
+		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
+		logOptions.setStartDatabaseVersionIndex(startIndex);
+		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
 		
 		pendingLogFolderRequest = new LogFolderRequest();
 		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
@@ -218,25 +171,40 @@ public class LogComposite extends Composite {
 			@Override
 			public void run() {
 				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
-					updateTabs(logResponse);
+					updateTabs(pendingLogFolderRequest, logResponse);
 					pendingLogFolderRequest = null;
 				}				
 			}
 		});		
 	}
 
-	private void updateTabs(LogFolderResponse logResponse) {
-		// Clear all
-		resetAndDisposeAll();
+	private void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
+		// Dispose all existing tabs (if this is the first request)
+		boolean firstRequest = logRequest.getOptions().getStartDatabaseVersionIndex() == 0;
 		
-		// And create new ones		
-		for (LightweightDatabaseVersion databaseVersion : logResponse.getResult().getDatabaseVersions()) {
-			LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, databaseVersion);			
-			tabComposites.put(databaseVersion.getDate(), tabComposite);			
+		if (firstRequest) {
+			resetAndDisposeAll();
 		}
 		
-		// Add 'Loading ...' panel 
-		createLoadingComposite();
+		// Dispose all loading tabs
+		while (loadingTabComposites.size() > 0) {
+			loadingTabComposites.remove(0).dispose();
+		}
+		
+		// And create new tabs		
+		List<LightweightDatabaseVersion> newDatabaseVersions = logResponse.getResult().getDatabaseVersions();
+
+		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
+			if (databaseVersion.getChangeSet().hasChanges()) {			
+				LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, databaseVersion);			
+				tabComposites.put(databaseVersion.getDate(), tabComposite);
+			}
+		}
+		
+		// Add 'Loading ...' panel (if potentially more databases there)
+		if (newDatabaseVersions.size() == LOG_REQUEST_DATABASE_COUNT) {
+			createLoadingComposite();
+		}		
 		
 		// Highlight
 		highlightBySelectedDate();
@@ -288,16 +256,18 @@ public class LogComposite extends Composite {
 		loadingComposite.setBackground(WidgetDecorator.WHITE);	
 		
 		Label loadMoreLabel = new Label(loadingComposite, SWT.CENTER);
-		loadMoreLabel.setText("Loading ...");
+		loadMoreLabel.setText(I18n.getText("org.syncany.gui.history.LogComposite.loading"));
 		
 		loadingComposite.addPaintListener(new PaintListener() {			
 			@Override
 			public void paintControl(PaintEvent e) {
 				if (pendingLogFolderRequest == null) {
-					System.out.println("go get new ones.");
-					resetAndRefresh();
+					int newStartDatabaseIndex = tabComposites.size();
+					resetAndRefresh(newStartDatabaseIndex);
 				}
 			}
 		});
+		
+		loadingTabComposites.add(loadingComposite);
 	}
 }
