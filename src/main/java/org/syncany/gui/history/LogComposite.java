@@ -11,6 +11,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.syncany.config.GuiEventBus;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
@@ -30,7 +32,7 @@ public class LogComposite extends Composite {
 	private MainPanelState state;
 	
 	private ScrolledComposite scrollComposite;
-	private Composite mainComposite;
+	private Composite logContentComposite;
 	
 	private Map<Date, TabComposite> tabComposites;
 	private TabComposite highlightedTabComposite;
@@ -59,6 +61,8 @@ public class LogComposite extends Composite {
 	private void createContents() {
 		createMainComposite();
 		createMainPanel();		
+		
+		replaceScrollEventHandling();
 		
 		ChangeSet c1 = new ChangeSet();
 		c1.getChangedFiles().add("file1.txt");
@@ -118,9 +122,9 @@ public class LogComposite extends Composite {
 		updateTabs(ls);
 		redrawAll();
 	}	
-	
+
 	private void resetAndDisposeAll() {
-		for (Control control : mainComposite.getChildren()) {
+		for (Control control : logContentComposite.getChildren()) {
 			control.dispose();
 		}
 		
@@ -158,20 +162,37 @@ public class LogComposite extends Composite {
 		scrollComposite.setLayout(mainCompositeGridLayout);
 		scrollComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 	   
-		mainComposite = new Composite(scrollComposite, SWT.NONE);	
-		mainComposite.setLayout(mainCompositeGridLayout);
-		mainComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));		
+		logContentComposite = new Composite(scrollComposite, SWT.NONE);	
+		logContentComposite.setLayout(mainCompositeGridLayout);
+		logContentComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));		
 		
 	    scrollComposite.setExpandVertical(true);
 	    scrollComposite.setExpandHorizontal(true);
-		scrollComposite.setContent(mainComposite);
+		scrollComposite.setContent(logContentComposite);
+		scrollComposite.setShowFocusedControl(true);		
+	}
+	
+
+	private void replaceScrollEventHandling() {
+		// Disables the default scrolling functionality of the ScrolledComposite
+		// and replaces it by manually scrolling.
+		
+		Display.getDefault().addFilter(SWT.MouseWheel, new Listener() {
+			@Override
+			public void handleEvent(Event e) {
+				if (e.widget.equals(logContentComposite)) {
+					e.doit = false;
+					scrollBy(e.count);
+				}
+			}
+		});
 	}
 	
 	private void redrawAll() {
-		mainComposite.layout();
+		logContentComposite.layout();
 		layout();
 		
-		scrollComposite.setMinSize(mainComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		scrollComposite.setMinSize(logContentComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		scrollComposite.setRedraw(true);
 	}
 	
@@ -202,7 +223,7 @@ public class LogComposite extends Composite {
 		
 		// And create new ones		
 		for (LightweightDatabaseVersion databaseVersion : logResponse.getResult().getDatabaseVersions()) {
-			TabComposite tabComposite = new TabComposite(mainPanel, mainComposite, databaseVersion);			
+			TabComposite tabComposite = new TabComposite(mainPanel, this, logContentComposite, databaseVersion);			
 			tabComposites.put(databaseVersion.getDate(), tabComposite);
 		}	
 		
@@ -229,20 +250,15 @@ public class LogComposite extends Composite {
 			
 			if (tabComposite != null) {
 				tabComposite.setHighlighted(true);				
-				centerTabComposite(tabComposite);
+				tabComposite.setFocus(); // The scroll composite will scroll to it.
 				
 				highlightedTabComposite = tabComposite;
 			}
 		}
 	}
 
-	private void centerTabComposite(TabComposite tabComposite) {		
-		int tabTop = tabComposite.getLocation().y;
-		int tabHeight = tabComposite.getSize().y;
-		int parentHeight = scrollComposite.getClientArea().height;
-				
-		int newTabTop = tabTop - (parentHeight - tabHeight)/2;
-		
-		scrollComposite.setOrigin(0, newTabTop);
+	public void scrollBy(int count) {		
+		int increment = scrollComposite.getVerticalBar().getIncrement();
+		scrollComposite.setOrigin(0, scrollComposite.getOrigin().y - increment*count);		
 	}	
 }

@@ -20,13 +20,16 @@ package org.syncany.gui.history;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.MouseTrackAdapter;
-import org.eclipse.swt.events.MouseTrackListener;
+import org.eclipse.swt.events.MouseWheelListener;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.log.LightweightDatabaseVersion;
@@ -38,51 +41,28 @@ public class TabComposite extends Composite {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private MainPanel mainPanel;
+	private LogComposite logComposite;
 	
 	private LightweightDatabaseVersion databaseVersion;
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public TabComposite(MainPanel mainPanel, Composite parent, LightweightDatabaseVersion databaseVersion) {
-		super(parent, SWT.BORDER);	
+	public TabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, LightweightDatabaseVersion databaseVersion) {
+		super(logMainComposite, SWT.BORDER);	
 		
 		this.mainPanel = mainPanel;
+		this.logComposite = logComposite;
 		
 		this.databaseVersion = databaseVersion;
 		this.highlighted = false;
 		this.mouseOver = false;
 		
 		this.createControls();
+		this.addMouseListeners();
 	}
 				
 	private void createControls() {		
-		MouseTrackListener mouseTrackListener = new MouseTrackAdapter() {
-			@Override
-			public void mouseEnter(MouseEvent e) {
-				mouseOver = true;
-				updateHighlighted();
-			}
-			
-			@Override
-			public void mouseExit(MouseEvent e) {
-				mouseOver = false;
-				updateHighlighted();
-			}
-		};
-		
-		MouseListener mouseListener = new MouseAdapter() {
-			@Override
-			public void mouseUp(MouseEvent e) {
-				mainPanel.updateDate(databaseVersion.getDate());
-			}
-			
-			@Override
-			public void mouseDoubleClick(MouseEvent e) {
-				mainPanel.showTree();
-			}
-		};
-		
-		GridLayout mainCompositeGridLayout = new GridLayout(2, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
 		mainCompositeGridLayout.marginRight = 0;
@@ -90,45 +70,46 @@ public class TabComposite extends Composite {
 		mainCompositeGridLayout.horizontalSpacing = 0;
 		mainCompositeGridLayout.verticalSpacing = 0;
 
-		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));		
+		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));		
 		setLayout(mainCompositeGridLayout);		
 		setBackground(WidgetDecorator.WHITE);	
-		
-		addMouseTrackListener(mouseTrackListener);
-		addMouseListener(mouseListener);
-		
+				
 		Label dateLabel = new Label(this, SWT.NONE);
-		dateLabel.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1));		
 		dateLabel.setText(databaseVersion.getDate().toString());		
-		dateLabel.addMouseTrackListener(mouseTrackListener);
-		dateLabel.addMouseListener(mouseListener);
+		dateLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 2, 1));		
 		
 		WidgetDecorator.bold(dateLabel);
 		
+		GridData prettyDateLabelGriData = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		prettyDateLabelGriData.horizontalIndent = 10;
+		
+		Label prettyDateLabel = new Label(this, SWT.NONE);
+		prettyDateLabel.setLayoutData(prettyDateLabelGriData);		
+		prettyDateLabel.setText(new PrettyTime().format(databaseVersion.getDate()));		
+		prettyDateLabel.setForeground(WidgetDecorator.DARK_GRAY);
+		
+		WidgetDecorator.smaller(prettyDateLabel);
+				
 		Label spacingLabel1 = new Label(this, SWT.NONE);
-		spacingLabel1.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1));		
-		spacingLabel1.addMouseTrackListener(mouseTrackListener);
-		spacingLabel1.addMouseListener(mouseListener);
+		spacingLabel1.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));		
 		
 		for (String file : databaseVersion.getChangeSet().getNewFiles()) {
-			createEntryLabel(file, mouseTrackListener, mouseListener, "add");			
+			createEntryLabel(file, "add");			
 		}
 
 		for (String file : databaseVersion.getChangeSet().getChangedFiles()) {
-			createEntryLabel(file, mouseTrackListener, mouseListener, "edit");	
+			createEntryLabel(file, "edit");	
 		}
 
 		for (String file : databaseVersion.getChangeSet().getDeletedFiles()) {
-			createEntryLabel(file, mouseTrackListener, mouseListener, "delete");	
+			createEntryLabel(file, "delete");	
 		}
 		
 		Label spacingLabel2 = new Label(this, SWT.NONE);
-		spacingLabel2.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1));
-		spacingLabel2.addMouseTrackListener(mouseTrackListener);
-		spacingLabel2.addMouseListener(mouseListener);
+		spacingLabel2.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));
 	}
 
-	private void createEntryLabel(String file, MouseTrackListener mouseTrackListener, MouseListener mouseListener, String imageResourceName) {
+	private void createEntryLabel(String file, String imageResourceName) {
 		GridData imageLabelGridData = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
 		imageLabelGridData.horizontalIndent = 20;
 		imageLabelGridData.verticalIndent = 2;
@@ -136,18 +117,34 @@ public class TabComposite extends Composite {
 		Label imageLabel = new Label(this, SWT.NONE);
 		imageLabel.setLayoutData(imageLabelGridData);		
 		imageLabel.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, imageResourceName)));
-		imageLabel.addMouseTrackListener(mouseTrackListener);
-		imageLabel.addMouseListener(mouseListener);
 		
-		GridData fileLabelGridData = new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1);
+		GridData fileLabelGridData = new GridData(SWT.LEFT, SWT.TOP, true, false, 2, 1);
 		fileLabelGridData.horizontalIndent = 10;
 		fileLabelGridData.verticalIndent = 2;
 
-		Label fileLabel = new Label(this, SWT.NONE);
+		final Label fileLabel = new Label(this, SWT.NONE);
 		fileLabel.setLayoutData(fileLabelGridData);		
 		fileLabel.setText(file);
-		fileLabel.addMouseTrackListener(mouseTrackListener);
-		fileLabel.addMouseListener(mouseListener);
+		fileLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
+		
+		fileLabel.addMouseTrackListener(new MouseTrackAdapter() {
+			@Override
+			public void mouseEnter(MouseEvent e) {
+				fileLabel.setForeground(WidgetDecorator.BLUE_LINK);
+			}
+			
+			@Override
+			public void mouseExit(MouseEvent e) {
+				fileLabel.setForeground(WidgetDecorator.BLACK);
+			}
+		});
+		
+		fileLabel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseUp(MouseEvent e) {
+				// mainPanel.showDetails( ... 
+			}
+		});
 	}
 	
 	public LightweightDatabaseVersion getDatabaseVersion() {
@@ -170,5 +167,49 @@ public class TabComposite extends Composite {
 				setBackground(WidgetDecorator.WHITE);
 			}
 		}		
+	}
+	
+	private void addMouseListeners() {
+		addMouseListeners(this);
+		
+		for (Control control : getChildren()) {
+			addMouseListeners(control);
+		}
+	}
+	
+	private void addMouseListeners(Control control) {
+		control.addMouseTrackListener(new MouseTrackAdapter() {
+			@Override
+			public void mouseEnter(MouseEvent e) {
+				mouseOver = true;
+				updateHighlighted();
+			}
+			
+			@Override
+			public void mouseExit(MouseEvent e) {
+				mouseOver = false;
+				updateHighlighted();
+			}
+		});
+		
+		control.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseUp(MouseEvent e) {
+				mainPanel.updateDate(databaseVersion.getDate());
+			}
+			
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				mainPanel.showTree();
+			}
+		});
+		
+		control.addMouseWheelListener(new MouseWheelListener() {			
+			@Override
+			public void mouseScrolled(MouseEvent e) {
+				// Pass on mouse events to parent control. 				
+				logComposite.scrollBy(e.count);
+			}
+		});
 	}
 }

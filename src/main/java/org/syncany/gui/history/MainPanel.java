@@ -196,7 +196,7 @@ public class MainPanel extends Panel {
 				dateLabelPrettyTime = !dateLabelPrettyTime;
 				
 				if (dateLabel.getData() != null) {
-					updateDateLabel((Date) dateLabel.getData());
+					setDateLabel((Date) dateLabel.getData());
 				}
 			}
 		});
@@ -221,7 +221,7 @@ public class MainPanel extends Panel {
 						dateSliderValue.set(newDateSliderValue);
 						
 						// Update label right away
-						updateDateLabel(newSliderDate);
+						setDateLabel(newSliderDate);
 						logComposite.highlightByDate(newSliderDate);
 
 						// Update file tree after a while  
@@ -263,7 +263,7 @@ public class MainPanel extends Panel {
 		stackComposite.layout();	
 	}
 	
-	private void updateDateLabel(final Date dateSliderDate) {
+	private void setDateLabel(final Date dateSliderDate) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {				
@@ -306,7 +306,8 @@ public class MainPanel extends Panel {
 	public void updateDate(Date newDate) {
 		state.setSelectedDate(newDate);
 		
-		setDateSliderDate(newDate);
+		setDateSlider(newDate);
+		setDateLabel(newDate);
 		
 		fileTreeComposite.resetAndRefresh();
 		logComposite.highlightBySelectedDate();
@@ -327,7 +328,7 @@ public class MainPanel extends Panel {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void setDateSliderDate(Date newDate) {
+	private void setDateSlider(Date newDate) {
 		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
 		
 		for (int i = 0; i < headers.size(); i++) {
@@ -419,7 +420,7 @@ public class MainPanel extends Panel {
 					dateSlider.setEnabled(true);
 					
 					state.setSelectedDate(newSelectedDate);	
-					updateDateLabel(newSelectedDate);
+					setDateLabel(newSelectedDate);
 				}
 				else {
 					dateSlider.setMinimum(0);
