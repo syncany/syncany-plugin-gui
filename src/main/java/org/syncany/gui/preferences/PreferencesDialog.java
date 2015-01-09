@@ -150,7 +150,7 @@ public class PreferencesDialog extends Dialog {
 		GridData navTableGridData = new GridData(SWT.LEFT, SWT.FILL, true, true);
 		navTableGridData.verticalIndent = 0;
 		navTableGridData.horizontalIndent = 0;
-		navTableGridData.minimumWidth = 100;
+		navTableGridData.minimumWidth = 120;
 		
 	    navTable = new Table(windowShell, SWT.SINGLE | SWT.FULL_SELECTION);
 		navTable.setHeaderVisible(false);
