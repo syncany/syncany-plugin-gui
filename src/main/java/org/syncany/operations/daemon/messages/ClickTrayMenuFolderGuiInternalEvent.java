@@ -20,8 +20,15 @@ package org.syncany.operations.daemon.messages;
 import org.simpleframework.xml.Element;
 
 public class ClickTrayMenuFolderGuiInternalEvent extends GuiInternalEvent {
+	public enum ClickAction {
+		OPEN, COPY_LINK, REMOVE
+	}
+	
 	@Element(name = "folder")
 	private String folder;
+	
+	@Element(name = "action")
+	private ClickAction action;
 
 	public ClickTrayMenuFolderGuiInternalEvent() {
 		// Nothing
@@ -33,5 +40,13 @@ public class ClickTrayMenuFolderGuiInternalEvent extends GuiInternalEvent {
 
 	public String getFolder() {
 		return folder;
+	}
+
+	public ClickAction getAction() {
+		return action;
+	}
+
+	public void setAction(ClickAction action) {
+		this.action = action;
 	}
 }

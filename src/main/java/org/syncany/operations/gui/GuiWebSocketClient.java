@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,10 +79,14 @@ public class GuiWebSocketClient {
 
 	private Thread clientThread;
 	private AtomicBoolean clientThreadRunning;
+	
+	private Queue<Message> failedOutgoingMessages;
 
 	public GuiWebSocketClient() {
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
+		
+		this.failedOutgoingMessages = new LinkedList<>();
 		
 		initClientThread();
 	}
@@ -131,6 +137,7 @@ public class GuiWebSocketClient {
 		
 		connect(daemonConfig, firstDaemonUser);	
 		
+		sendFailedOutgoingMessages();
 		sendListWatchesRequest();
 		
 		while (clientThreadRunning.get()) {
@@ -138,6 +145,12 @@ public class GuiWebSocketClient {
 		}
 	}
 	
+	private void sendFailedOutgoingMessages() {
+		while (failedOutgoingMessages.size() > 0) {
+			postMessage(failedOutgoingMessages.poll(), false);
+		}
+	}
+
 	private void sendListWatchesRequest() {
 		onRequest(new ListWatchesManagementRequest());
 	}
@@ -225,7 +238,7 @@ public class GuiWebSocketClient {
 	protected void waitAndReconnect() {
 		try {
 			logger.log(Level.WARNING, "Web socket cannot connect. Waiting, then retrying ...");
-			Thread.sleep(4000);
+			Thread.sleep(2000);
 						
 			connectAndWait();
 		}		
@@ -236,37 +249,52 @@ public class GuiWebSocketClient {
 
 	@Subscribe
 	public void onRequest(Request request) {
-		try {
-			postMessage(MessageFactory.toXml(request));
-		}
-		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to transform request to XML", e);
-		}
+		postMessage(request, true);
 	}
 	
 	@Subscribe
 	public void onEventResponse(ExternalEventResponse eventResponse) {
+		postMessage(eventResponse, true);
+	}
+	
+	private void postMessage(final Message message, final boolean retryOnFailure) {		
+		// Parse message
+		String messageStr = null;
+		
 		try {
-			postMessage(MessageFactory.toXml(eventResponse));
+			messageStr = MessageFactory.toXml(message);						
 		}
 		catch (Exception e) {
-			logger.log(Level.WARNING, "Unable to transform event response to XML", e);
+			logger.log(Level.WARNING, "Unable to transform message to XML. Throwing message away!", e);
+			return;
 		}
-	}
-
-	private void postMessage(String message) {
-		logger.log(Level.INFO, "Sending WS message to daemon: " + message);
 		
-		WebSockets.sendText(message, webSocketChannel, new WebSocketCallback<Void>() {
-			@Override
-			public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
-				logger.log(Level.SEVERE, "WS Error", throwable);
-			}
+		// Send to websocket
+		if (webSocketChannel != null) {
+			logger.log(Level.INFO, "Sending WS message to daemon: " + messageStr);
 
-			@Override
-			public void complete(WebSocketChannel channel, Void context) {
-				logger.log(Level.INFO, "WS message sent");
+			WebSockets.sendText(messageStr, webSocketChannel, new WebSocketCallback<Void>() {
+				@Override
+				public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
+					logger.log(Level.SEVERE, "WS Error", throwable);
+					
+					if (retryOnFailure) {
+						failedOutgoingMessages.add(message);
+					}
+				}
+	
+				@Override
+				public void complete(WebSocketChannel channel, Void context) {
+					logger.log(Level.INFO, "WS message sent");
+				}
+			});
+		}
+		else {
+			logger.log(Level.INFO, "Failed to send WS message to daemon. Not (yet) connected; " + messageStr);
+			
+			if (retryOnFailure) {
+				failedOutgoingMessages.add(message);
 			}
-		});
+		}
 	}
 }

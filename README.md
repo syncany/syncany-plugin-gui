@@ -13,8 +13,8 @@ Launch Syncany GUI
         cd /home/user/workplace
         git clone http://github.com/syncany/syncany-plugin-gui
         cd syncany-plugin-gui
-	./gradlew clean pluginjar -Pos=linux -P=arch=x86_64
-	sy plugin install build/libs/*.jar
+        ./gradlew clean pluginjar -Pos=linux -Parch=x86_64
+        sy plugin install build/libs/*.jar
 		
 2. Start Syncany GUI client
 

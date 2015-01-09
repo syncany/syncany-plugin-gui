@@ -1,7 +1,5 @@
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -11,7 +9,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -44,13 +45,13 @@ public class EnterPasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.EnterPasswordPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.description"));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.EnterPasswordPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -61,7 +62,7 @@ public class EnterPasswordPanel extends Panel {
 
 		Label passwordLabel = new Label(this, SWT.WRAP);
 		passwordLabel.setLayoutData(passwordLabelGridData);
-		passwordLabel.setText(_("org.syncany.gui.wizard.EnterPasswordPanel.passwordLabel"));
+		passwordLabel.setText(I18n.getText("org.syncany.gui.wizard.EnterPasswordPanel.passwordLabel"));
 		
 		// Textfield "Password"
 		GridData passwordTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -107,7 +108,7 @@ public class EnterPasswordPanel extends Panel {
 		
 		if (!validPassword) {
 			WidgetDecorator.markAsInvalid(passwordText);
-			showWarning(_("org.syncany.gui.wizard.EnterPasswordPanel.errorTooShort"));
+			showWarning(I18n.getText("org.syncany.gui.wizard.EnterPasswordPanel.errorTooShort"));
 			
 			return false;			
 		}

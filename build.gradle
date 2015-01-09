@@ -22,10 +22,10 @@ repositories {
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.4.0-alpha"	
+	pluginVersion = "0.4.1-alpha"	
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
-	pluginAppMinVersion = "0.4.0-alpha"
+	pluginAppMinVersion = "0.4.1-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
 	

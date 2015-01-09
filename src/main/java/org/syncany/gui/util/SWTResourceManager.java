@@ -20,7 +20,6 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
-import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.RGB;
@@ -150,31 +149,6 @@ public class SWTResourceManager {
 			}
 		}
 		return image;
-	}
-
-	public static Image getImage(String path, boolean resize) {
-		if (resize) {
-			return getResizedImage(path, 16, 16);
-		}
-		else {
-			return getImage(path);
-		}
-	}
-
-	public static Image getResizedImage(String path, int width, int height) {
-		Image scaled = m_imageMap.get(path + "_" + width);
-		if (scaled == null) {
-			Image image = getImage(path);
-			scaled = new Image(Display.getDefault(), width, height);
-			GC gc = new GC(scaled);
-			gc.setAntialias(SWT.ON);
-			gc.setInterpolation(SWT.HIGH);
-			gc.drawImage(image, 0, 0,
-					image.getBounds().width, image.getBounds().height, 0, 0, width, height);
-			gc.dispose();
-			m_imageMap.put(path + "_" + width, scaled);
-		}
-		return scaled;
 	}
 
 	/**

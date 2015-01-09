@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.wizard;
+package org.syncany.gui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
@@ -27,24 +27,24 @@ import org.syncany.gui.util.SWTResourceManager;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class Panel extends Composite {
-	private WizardDialog parentDialog;
+	private Dialog parentDialog;
 
 	protected Panel(Composite parent, int style) {
 		super(parent, style);
 		
-		String backImageResource = "/" + WizardDialog.class.getPackage().getName().replace(".", "/") + "/wizard-back.png";
+		String backImageResource = "/" + Dialog.class.getPackage().getName().replace(".", "/") + "/dialog-back.png";
 		Image backImage = SWTResourceManager.getImage(backImageResource);
 
 		setBackgroundImage(backImage);
 		setBackgroundMode(SWT.INHERIT_FORCE);
 	}
 
-	public Panel(WizardDialog parentDialog, Composite parent, int style) {
+	public Panel(Dialog parentDialog, Composite parent, int style) {
 		this(parent, style);
 		this.parentDialog = parentDialog;
 	}
 
-	public WizardDialog getParentWizardDialog() {
+	public Dialog getParentWizardDialog() {
 		return parentDialog;
 	}
 	

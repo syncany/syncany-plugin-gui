@@ -17,14 +17,15 @@
  */
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -54,13 +55,13 @@ public class StartPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.StartPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1));
-		descriptionLabel.setText(_("org.syncany.gui.wizard.StartPanel.description"));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.description"));
 		
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -73,7 +74,7 @@ public class StartPanel extends Panel {
 		createStorageRadio = new Button(this, SWT.RADIO);
 		createStorageRadio.setLayoutData(createStorageRadioGridData);
 		createStorageRadio.setBounds(0, 0, 90, 16);
-		createStorageRadio.setText(_("org.syncany.gui.wizard.StartPanel.init.title"));
+		createStorageRadio.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.init.title"));
 		createStorageRadio.setSelection(true);
 		
 		WidgetDecorator.bigger(createStorageRadio);
@@ -83,7 +84,7 @@ public class StartPanel extends Panel {
 
 		Label createStorageText = new Label(this, SWT.WRAP);
 		createStorageText.setLayoutData(createStorageTextGridData);
-		createStorageText.setText(_("org.syncany.gui.wizard.StartPanel.init.description"));
+		createStorageText.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.init.description"));
 
 		WidgetDecorator.normal(createStorageText);
 
@@ -96,7 +97,7 @@ public class StartPanel extends Panel {
 		connectStorageRadio = new Button(this, SWT.RADIO);
 		connectStorageRadio.setLayoutData(connectStorageRadioGridData);
 		connectStorageRadio.setBounds(0, 0, 90, 16);
-		connectStorageRadio.setText(_("org.syncany.gui.wizard.StartPanel.connect.title"));
+		connectStorageRadio.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.connect.title"));
 		
 		WidgetDecorator.bigger(connectStorageRadio);
 
@@ -105,7 +106,7 @@ public class StartPanel extends Panel {
 
 		Label connectStorageText = new Label(this, SWT.WRAP);
 		connectStorageText.setLayoutData(connectStorageTextGridData);
-		connectStorageText.setText(_("org.syncany.gui.wizard.StartPanel.connect.description"));
+		connectStorageText.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.connect.description"));
 
 		WidgetDecorator.normal(connectStorageText);
 
@@ -118,7 +119,7 @@ public class StartPanel extends Panel {
 		addWatchStorageRadio = new Button(this, SWT.RADIO);
 		addWatchStorageRadio.setLayoutData(addWatchStorageRadioGridData);
 		addWatchStorageRadio.setBounds(0, 0, 90, 16);
-		addWatchStorageRadio.setText(_("org.syncany.gui.wizard.StartPanel.add.title"));
+		addWatchStorageRadio.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.add.title"));
 		
 		WidgetDecorator.bigger(addWatchStorageRadio);
 
@@ -127,7 +128,7 @@ public class StartPanel extends Panel {
 
 		Label addWatchText = new Label(this, SWT.WRAP);
 		addWatchText.setLayoutData(addWatchTextGridData);
-		addWatchText.setText(_("org.syncany.gui.wizard.StartPanel.add.description"));
+		addWatchText.setText(I18n.getText("org.syncany.gui.wizard.StartPanel.add.description"));
 
 		WidgetDecorator.normal(addWatchText);
 	}

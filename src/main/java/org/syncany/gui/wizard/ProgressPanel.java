@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -31,6 +29,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.WidgetDecorator;
 
 /**
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -89,7 +90,7 @@ public class ProgressPanel extends Panel {
 		logCheckGridData.horizontalSpan = 2;
 		
 		progressLogCheckButton = new Button(this, SWT.CHECK);
-		progressLogCheckButton.setText(_("org.syncany.gui.wizard.ProgressPanel.showDetails"));
+		progressLogCheckButton.setText(I18n.getText("org.syncany.gui.wizard.ProgressPanel.showDetails"));
 		progressLogCheckButton.setLayoutData(logCheckGridData);
 		
 		progressLogCheckButton.addSelectionListener(new SelectionAdapter() {			
@@ -204,6 +205,12 @@ public class ProgressPanel extends Panel {
 		});
 	}
 
+	@Override
+	public void dispose() {
+		eventBus.unregister(this);
+		super.dispose();
+	}
+	
 	@Override
 	public boolean validatePanel() {
 		return true;

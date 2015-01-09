@@ -17,7 +17,7 @@
  */
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
+import org.syncany.gui.util.I18n;
 import org.syncany.plugins.transfer.StorageTestResult;
 
 /**
@@ -30,15 +30,15 @@ public abstract class AbstractInitPanelController extends ReloadDaemonPanelContr
 
 	protected String toYesNo(boolean value) {
 		if (value) {
-			return _("org.syncany.gui.wizard.AbstractInitPanelController.yes");
+			return I18n.getText("org.syncany.gui.wizard.AbstractInitPanelController.yes");
 		}
 		else {
-			return _("org.syncany.gui.wizard.AbstractInitPanelController.no");
+			return I18n.getText("org.syncany.gui.wizard.AbstractInitPanelController.no");
 		}
 	}
 	
 	protected String formatTestResultMessage(StorageTestResult testResult) {
-		String errorMessage = _("org.syncany.gui.wizard.AbstractInitPanelController.testResult", 
+		String errorMessage = I18n.getText("org.syncany.gui.wizard.AbstractInitPanelController.testResult", 
 			toYesNo(testResult.isTargetCanConnect()),
 			toYesNo(testResult.isTargetCanCreate()),
 			toYesNo(testResult.isTargetCanWrite()),
@@ -46,7 +46,7 @@ public abstract class AbstractInitPanelController extends ReloadDaemonPanelContr
 		) + "\n";
 				
 		if (testResult.getErrorMessage() != null) {
-			errorMessage += "\n" + _("org.syncany.gui.wizard.AbstractInitPanelController.testResultErrorMessage", testResult.getErrorMessage());
+			errorMessage += "\n" + I18n.getText("org.syncany.gui.wizard.AbstractInitPanelController.testResultErrorMessage", testResult.getErrorMessage());
 		}
 		
 		return errorMessage;

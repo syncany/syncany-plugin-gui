@@ -35,9 +35,12 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.Logging;
+import org.syncany.gui.Dialog;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.gui.wizard.StartPanel.StartPanelSelection;
 
 import com.google.common.collect.Lists;
@@ -46,11 +49,11 @@ import com.google.common.collect.Lists;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class WizardDialog {
+public class WizardDialog extends Dialog {
 	public enum Action {
 		PREVIOUS, NEXT, FINISH
 	};
-
+	
 	private Shell trayShell;
 	private Shell windowShell;
 	private Composite stackComposite;
@@ -135,7 +138,7 @@ public class WizardDialog {
 		windowShell.setToolTipText("");
 		windowShell.setBackground(WidgetDecorator.COLOR_WIDGET);
 		windowShell.setSize(640, 480);
-		windowShell.setText(I18n._("org.syncany.gui.wizard.WizardDialog.title"));
+		windowShell.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.title"));
 		windowShell.setLayout(shellGridLayout);		
 
 		// Row 1, Column 1: Image
@@ -180,7 +183,7 @@ public class WizardDialog {
 		// Buttons
 		previousButton = new Button(buttonComposite, SWT.NONE);
 		previousButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		previousButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.previous"));
+		previousButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.previous"));
 		previousButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -190,7 +193,7 @@ public class WizardDialog {
 
 		nextButton = new Button(buttonComposite, SWT.NONE);
 		nextButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		nextButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.next"));
+		nextButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.next"));
 		nextButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -203,7 +206,7 @@ public class WizardDialog {
 
 		cancelButton = new Button(buttonComposite, SWT.NONE);
 		cancelButton.setLayoutData(new RowData(WidgetDecorator.DEFAULT_BUTTON_WIDTH, WidgetDecorator.DEFAULT_BUTTON_HEIGHT));
-		cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
+		cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 		cancelButton.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -212,6 +215,11 @@ public class WizardDialog {
 		});
 
 		windowShell.setDefaultButton(nextButton);
+		windowShell.addListener(SWT.Close, new Listener() {
+			public void handleEvent(Event event) {
+				safeDispose();
+			}
+		});
 
 		WidgetDecorator.normal(nextButton, previousButton, cancelButton);
 	}
@@ -308,12 +316,12 @@ public class WizardDialog {
 					}
 					
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.finish"));
+						cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.finish"));
 					}
 				}
 				else {
 					if (!cancelButton.isDisposed()) {
-						cancelButton.setText(I18n._("org.syncany.gui.wizard.WizardDialog.button.cancel"));
+						cancelButton.setText(I18n.getText("org.syncany.gui.wizard.WizardDialog.button.cancel"));
 					}
 				}
 			}
@@ -333,7 +341,7 @@ public class WizardDialog {
 	}
 
 	public void safeDispose() {
-		Display.getDefault().asyncExec(new Runnable() {
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
 				if (panelController != null) {

@@ -41,9 +41,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.operations.daemon.messages.ClickRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
 import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
@@ -73,7 +75,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
-	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; i18n = '%s'; exec urllib2.urlopen('%s').read()";
+	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
 
 	private Undertow webServer;
 	private Process pythonProcess;
@@ -105,7 +107,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private void startTray() {
 		try {
 			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
-					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, messages.toString(), WEBSERVER_URL_SCRIPT });
+					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
 
 			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -164,6 +166,11 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	}
 
 	@Override
+	protected void setRecentChanges(List<File> recentFiles) {
+		sendWebSocketMessage(new UpdateRecentChangesGuiInternalEvent(new ArrayList<>(recentFiles)));
+	}
+
+	@Override
 	protected void displayNotification(String subject, String message) {
 		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
 	}
@@ -190,7 +197,27 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 			if (message instanceof ClickTrayMenuFolderGuiInternalEvent) {
 				ClickTrayMenuFolderGuiInternalEvent folderClickEvent = (ClickTrayMenuFolderGuiInternalEvent) message;
-				showFolder(new File(folderClickEvent.getFolder()));
+				File folder = new File(folderClickEvent.getFolder());
+				
+				switch (folderClickEvent.getAction()) {
+				case OPEN:
+					showFolder(folder);
+					break;
+					
+				case COPY_LINK:
+					copyLink(folder);
+					break;
+					
+				case REMOVE:
+					removeFolder(folder);
+					break;
+				}				
+			}
+			else if (message instanceof ClickRecentChangesGuiInternalEvent) {
+				ClickRecentChangesGuiInternalEvent folderClickEvent = (ClickRecentChangesGuiInternalEvent) message;
+				File file = new File(folderClickEvent.getFile());
+				
+				showRecentFile(file);
 			}
 			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;
@@ -198,6 +225,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				switch (clickEvent.getAction()) {
 				case NEW:
 					showNew();
+					break;
+					
+				case PREFERENCES:
+					showPreferences();
 					break;
 
 				case REPORT_ISSUE:
