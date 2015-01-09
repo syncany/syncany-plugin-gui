@@ -17,6 +17,9 @@
  */
 package org.syncany.operations.ls;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.simpleframework.xml.ElementMap;
@@ -26,23 +29,23 @@ import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.operations.OperationResult;
 
 public class LsOperationResult implements OperationResult {
-	@ElementMap(required = false, key = "filePath", value = "fileVersion")
-	private Map<String, FileVersion> fileTree;
+	@ElementMap(name = "fileList", required = false, key = "filePath", value = "fileVersion")
+	private ArrayList<FileVersion> fileList;
 	
-	@ElementMap(required = false, key = "fileHistoryId", value = "partialFileHistory")
-	private Map<FileHistoryId, PartialFileHistory> fileVersions;
+	@ElementMap(name = "fileVersions", required = false, key = "fileHistoryId", value = "partialFileHistory")
+	private HashMap<FileHistoryId, PartialFileHistory> fileVersions;
 	
 	public LsOperationResult() {
 		// Nothing
 	}
 	
-	public LsOperationResult(Map<String, FileVersion> fileTree, Map<FileHistoryId, PartialFileHistory> fileVersions) {
-		this.fileTree = fileTree;
-		this.fileVersions = fileVersions;
+	public LsOperationResult(List<FileVersion> fileList, Map<FileHistoryId, PartialFileHistory> fileVersions) {
+		this.fileList = (fileList != null) ? new ArrayList<>(fileList) : null;
+		this.fileVersions = (fileVersions != null) ? new HashMap<>(fileVersions) : null;
 	}
 
-	public Map<String, FileVersion> getFileTree() {
-		return fileTree;
+	public List<FileVersion> getFileList() {
+		return fileList;
 	}
 
 	public Map<FileHistoryId, PartialFileHistory> getFileVersions() {
