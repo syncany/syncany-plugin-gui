@@ -1,7 +1,13 @@
 Change Log
 ==========
 
-### Syncany GUI Plugin 0.4.0-alpha (Date: Tbd.)
+### Syncany GUI Plugin 0.4.1-alpha (Date: 10 Jan 2015)
+- New 'Preferences' dialog with ability to remove/add plugins, 
+  enable/disable notifications, and change the proxy settings #334/#321
+- New 'Remove folder' feature in tray menu #330
+- New 'Copy link' feature in tray menu #336
+
+### Syncany GUI Plugin 0.4.0-alpha (Date: 28 Dec 2014)
 - Major revamp; for details see #297
   + Completely new init/connect wizard screens with dynamic screens for
     plugins, OAuth-based plugin support, file/folder selection for
