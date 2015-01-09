@@ -17,31 +17,47 @@
  */
 package org.syncany.gui.preferences;
 
-import static org.syncany.gui.util.I18n._;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Text;
+import org.syncany.Client;
 import org.syncany.config.ConfigException;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
+import org.syncany.plugins.Plugin;
+import org.syncany.plugins.Plugins;
+import org.syncany.plugins.gui.GuiPlugin;
+import org.syncany.plugins.local.LocalTransferPlugin;
+import org.syncany.util.EnvironmentUtil;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
-
-	private Button displayNotificationsButton;	
+	private static String URL_AUTHOR = "http://www.philippheckel.com/";
+	private static String URL_TEAM = "https://www.syncany.org/r/team";
+	private static String URL_DONATE = "https://www.syncany.org/r/donate";
+	
+	private Button launchAtStartupButton;
+	private Button displayNotificationsButton;
+	
 	private GuiConfigTO guiConfig;
 	
 	private GuiEventBus eventBus;
@@ -52,7 +68,13 @@ public class GeneralPanel extends Panel {
 		initEventBus();
 		loadConfig();
 		
-		createContents();			    
+		createContents();			
+
+		// Persist changes loaded from gui.xml to the operating 
+		// system. The gui.xml is the master config file. This
+		// makes sure that the OS settings are consistent with it.
+		
+		writeOrDeleteStartupScriptFile();
 	}
 
 	private void initEventBus() {
@@ -72,34 +94,124 @@ public class GeneralPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		titleLabel.setText(_("org.syncany.gui.preferences.GeneralPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
-		// Startup
-	    /*Button launchOnStartupButton = new Button(this, SWT.CHECK);
-	    launchOnStartupButton.setText(_("org.syncany.gui.preferences.GeneralPanel.launchOnStartup"));*/
-	    
-	    // Notifications
-	    displayNotificationsButton = new Button(this, SWT.CHECK);
-	    displayNotificationsButton.setText(_("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
-	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  
-	    
-	    displayNotificationsButton.addSelectionListener(new SelectionAdapter() {
+		// Common selection listener
+		SelectionListener commonSelectionListener = new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				saveConfig();
 			}
-		});	
+		};
+		
+		// Startup
+	    launchAtStartupButton = new Button(this, SWT.CHECK);
+	    
+	    if (EnvironmentUtil.isUnixLikeOperatingSystem() || EnvironmentUtil.isWindows()) {
+		    launchAtStartupButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
+		    launchAtStartupButton.setSelection(guiConfig.isStartup());
+		    launchAtStartupButton.addSelectionListener(commonSelectionListener);
+	    }
+	    else {
+		    launchAtStartupButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.launchAtStartupNotSupported"));
+		    launchAtStartupButton.setSelection(false);
+		    launchAtStartupButton.setEnabled(false);
+	    }
+	    
+	    // Notifications
+	    displayNotificationsButton = new Button(this, SWT.CHECK);
+	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
+	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  	    
+	    displayNotificationsButton.addSelectionListener(commonSelectionListener);	
+	    
+	    // Spacing
+	    new Label(this, SWT.NONE);
+	    
+	    // License title
+	    Label licenseTitleLabel = new Label(this, SWT.WRAP);
+ 		licenseTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.title"));
+
+	 	WidgetDecorator.bold(licenseTitleLabel);
+
+	 	// License text
+	 	final String authorName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.author");
+	 	final String teamName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.team");
+	 	final String donateLinkName = I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.donate");
+
+	 	Link licenseDescriptionLink = new Link(this, SWT.WRAP);
+	 	licenseDescriptionLink.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+	 	licenseDescriptionLink.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.about.description", authorName, teamName, donateLinkName));
+	 	licenseDescriptionLink.addSelectionListener(new SelectionAdapter() {
+	 		@Override
+	 		public void widgetSelected(SelectionEvent e) {
+	 			if (authorName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_AUTHOR);
+	 			}
+	 			else if (teamName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_TEAM);
+	 			}
+	 			else if (donateLinkName.equals(e.text)) {
+	 				DesktopUtil.launch(URL_DONATE);
+	 			}
+	 		}
+		});	 
+	 	
+	 	// Spacing
+	    new Label(this, SWT.NONE);
+	    
+	    // About title
+ 		Label aboutTitleLabel = new Label(this, SWT.WRAP);
+ 		aboutTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.title"));
+
+	 	WidgetDecorator.bold(aboutTitleLabel);
+	 	
+	 	// About text
+	 	final AtomicBoolean fullDescriptionVisible = new AtomicBoolean(false);
+	 	final String appVersion = Client.getApplicationVersionFull();	 	
+	 	final String guiPluginVersion = Plugins.get(GuiPlugin.ID).getVersion();	 	
+	 		 	
+	 	final Text aboutDescriptionText = new Text(this, SWT.WRAP);
+		aboutDescriptionText.setEditable(false);	
+		aboutDescriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 1, 1));
+		aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.short", appVersion, guiPluginVersion));
+		aboutDescriptionText.addFocusListener(new FocusAdapter() {
+			public void focusGained(org.eclipse.swt.events.FocusEvent e) {
+				if (!fullDescriptionVisible.get()) {
+					String pluginVersions = "";
+				 	
+				 	for (Plugin plugin : Plugins.list()) {
+				 		if (!LocalTransferPlugin.ID.equals(plugin.getId())) {
+				 			pluginVersions += I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.plugin", plugin.getName(), plugin.getVersion()) + "\n";
+				 		}
+				 	}
+				 	
+				 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.full", appVersion, pluginVersions));
+				 	
+				 	fullDescriptionVisible.set(true);
+				}				
+			}
+		});
 	}
 
 	private void loadConfig() {
-		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
+		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();		
 	}
 
 	private void saveConfig() {
+		guiConfig.setStartup(launchAtStartupButton.getSelection());
 		guiConfig.setNotifications(displayNotificationsButton.getSelection());
 		
+		writeOrDeleteStartupScriptFile();
+		saveGuiConfigFile();		
+	}
+
+	private void writeOrDeleteStartupScriptFile() {
+		DesktopUtil.writeAutostart(launchAtStartupButton.getSelection());
+	}
+
+	private void saveGuiConfigFile() {
 		try {
 			GuiConfigHelper.saveGuiConfig(guiConfig);
 			eventBus.post(new GuiConfigChangedGuiInternalEvent(guiConfig));

@@ -20,7 +20,6 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.gui.util.SWTResourceManager;
-import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.Plugin;
 import org.syncany.plugins.Plugins;
 import org.syncany.plugins.transfer.StorageException;
@@ -67,9 +66,8 @@ public class PluginSelectComposite extends Composite {
 		pluginTableGridData.verticalIndent = 0;
 		pluginTableGridData.horizontalIndent = 0;
 		
-	    pluginTable = new Table(this, SWT.BORDER |  SWT.V_SCROLL);
+	    pluginTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
 		pluginTable.setHeaderVisible(false);
-		pluginTable.setBackground(WidgetDecorator.WHITE);
 		pluginTable.setLayoutData(pluginTableGridData);
 		
 		pluginTable.addSelectionListener(new SelectionAdapter() {

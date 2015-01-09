@@ -34,11 +34,15 @@ public class GuiConfigTO {
 	@Element(name = "theme", required = false)
 	private TrayIconTheme theme;
 
+	@Element(name = "startup", required = false)
+	private boolean startup;
+
 	@Element(name = "notifications", required = false)
 	private boolean notifications;
 
 	public GuiConfigTO() {
 		this.tray = null;
+		this.startup = true;
 		this.notifications = true;
 	}
 
@@ -82,5 +86,13 @@ public class GuiConfigTO {
 
 	public void setNotifications(boolean notifications) {
 		this.notifications = notifications;
+	}
+
+	public boolean isStartup() {
+		return startup;
+	}
+
+	public void setStartup(boolean startup) {
+		this.startup = startup;
 	}
 }

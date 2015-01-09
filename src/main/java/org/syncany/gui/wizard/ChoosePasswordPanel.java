@@ -1,7 +1,5 @@
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -12,6 +10,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 
@@ -47,13 +46,13 @@ public class ChoosePasswordPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.title"));
 		
 		WidgetDecorator.title(titleLabel);
 
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-		descriptionLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.description"));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.description"));
 
 		WidgetDecorator.normal(descriptionLabel);
 
@@ -64,7 +63,7 @@ public class ChoosePasswordPanel extends Panel {
 
 		Label passwordLabel = new Label(this, SWT.WRAP);
 		passwordLabel.setLayoutData(passwordLabelGridData);
-		passwordLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.passwordLabel"));
+		passwordLabel.setText(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.passwordLabel"));
 		
 		// Textfield "Password"
 		GridData passwordTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -93,7 +92,7 @@ public class ChoosePasswordPanel extends Panel {
 
 		Label confirmLabel = new Label(this, SWT.WRAP);
 		confirmLabel.setLayoutData(confirmLabelGridData);
-		confirmLabel.setText(_("org.syncany.gui.wizard.ChoosePasswordPanel.confirmLabel"));
+		confirmLabel.setText(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.confirmLabel"));
 		
 		// Textfield "Confirm"
 		GridData confirmTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -142,7 +141,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsInvalid(passwordText);
 			WidgetDecorator.markAsInvalid(confirmText);
 
-			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShortAndNoMatch"));
+			showWarning(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShortAndNoMatch"));
 			
 			return false;			
 		}
@@ -150,7 +149,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsInvalid(passwordText);
 			WidgetDecorator.markAsValid(confirmText);
 
-			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShort"));
+			showWarning(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.errorTooShort"));
 			
 			return false;
 		}
@@ -158,7 +157,7 @@ public class ChoosePasswordPanel extends Panel {
 			WidgetDecorator.markAsValid(passwordText);
 			WidgetDecorator.markAsInvalid(confirmText);
 
-			showWarning(_("org.syncany.gui.wizard.ChoosePasswordPanel.errorNoMatch"));
+			showWarning(I18n.getText("org.syncany.gui.wizard.ChoosePasswordPanel.errorNoMatch"));
 
 			return false;
 		}

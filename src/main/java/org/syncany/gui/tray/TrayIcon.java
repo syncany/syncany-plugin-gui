@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.tray;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,10 +32,11 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.preferences.PreferencesDialog;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.WizardDialog;
 import org.syncany.operations.ChangeSet;
-import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.ControlServer.ControlCommand;
+import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.Watch.SyncStatus;
 import org.syncany.operations.daemon.messages.CleanupEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.CleanupStartCleaningSyncExternalEvent;
@@ -82,9 +81,9 @@ import com.google.common.eventbus.Subscribe;
 public abstract class TrayIcon {
 	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
-	private static int REFRESH_TIME = 500;
+	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
-	private static String URL_DONATE = "https://www.syncany.org/donate.html";
+	private static String URL_DONATE = "https://www.syncany.org/r/donate";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	protected Shell trayShell;
@@ -190,8 +189,8 @@ public abstract class TrayIcon {
 		DesktopUtil.copyToClipboard(genlinkResponse.getResult().getShareLink());
 		
 		if (guiConfig.isNotifications()) {
-			String subject = _("org.syncany.gui.tray.TrayIcon.notify.copied.subject");
-			String message = _("org.syncany.gui.tray.TrayIcon.notify.copied.message");
+			String subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.subject");
+			String message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.message");
 			
 			displayNotification(subject, message);
 		}
@@ -254,26 +253,26 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.start"));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.start"));
 	}
 
 	@Subscribe
 	public void onIndexStartEventReceived(UpIndexStartSyncExternalEvent syncEvent) {
 		if (syncEvent.getFileCount() > 0) {
-			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));
+			setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.indexStartWithFileCount", syncEvent.getFileCount()));
 		}
 		else {
-			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.indexStartWithoutFileCount"));
+			setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.indexStartWithoutFileCount"));
 		}
 	}
 
 	@Subscribe
 	public void onUploadFileEventReceived(UpUploadFileSyncExternalEvent syncEvent) {
 		if (syncEvent.getFilename() != null) {
-			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.uploadWithFilename", syncEvent.getFilename()));
+			setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.uploadWithFilename", syncEvent.getFilename()));
 		}
 		else {
-			setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.up.uploadWithoutFilename"));
+			setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.uploadWithoutFilename"));
 		}
 	}
 
@@ -288,7 +287,7 @@ public abstract class TrayIcon {
 		String uploadedTotalStr = FileUtil.formatFileSize(currentClientUploadFileSize);
 		int uploadedPercent = (int) Math.round((double) currentClientUploadFileSize / syncEvent.getTotalFileSize() * 100);
 
-		String statusText = _("org.syncany.gui.tray.TrayIcon.up.uploadFileInTransaction", syncEvent.getCurrentFileIndex(),
+		String statusText = I18n.getText("org.syncany.gui.tray.TrayIcon.up.uploadFileInTransaction", syncEvent.getCurrentFileIndex(),
 				syncEvent.getTotalFileCount(), uploadedTotalStr, uploadedPercent);
 		setStatusText(syncEvent.getRoot(), statusText);
 
@@ -298,7 +297,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.insync"));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 
 	@Subscribe
@@ -307,12 +306,12 @@ public abstract class TrayIcon {
 		int currentFileIndex = syncEvent.getCurrentFileIndex();
 		int maxFileCount = syncEvent.getMaxFileCount();
 
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.down.downloadFile", fileDescription, currentFileIndex, maxFileCount));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.down.downloadFile", fileDescription, currentFileIndex, maxFileCount));
 	}
 
 	@Subscribe
 	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.down.start"));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.down.start"));
 	}
 
 	@Subscribe
@@ -330,18 +329,18 @@ public abstract class TrayIcon {
 
 			if (totalChangedFiles == 1) {
 				if (changeSet.getNewFiles().size() == 1) {
-					subject = _("org.syncany.gui.tray.TrayIcon.notify.added.subject", changeSet.getNewFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.added.message", changeSet.getNewFiles().first(), rootName);
+					subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.added.subject", changeSet.getNewFiles().first());
+					message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.added.message", changeSet.getNewFiles().first(), rootName);
 				}
 
 				if (changeSet.getChangedFiles().size() == 1) {
-					subject = _("org.syncany.gui.tray.TrayIcon.notify.changed.subject", changeSet.getChangedFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.changed.message", changeSet.getChangedFiles().first(), rootName);
+					subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.changed.subject", changeSet.getChangedFiles().first());
+					message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.changed.message", changeSet.getChangedFiles().first(), rootName);
 				}
 
 				if (changeSet.getDeletedFiles().size() == 1) {
-					subject = _("org.syncany.gui.tray.TrayIcon.notify.deleted.subject", changeSet.getDeletedFiles().first());
-					message = _("org.syncany.gui.tray.TrayIcon.notify.deleted.message", changeSet.getDeletedFiles().first(), rootName);
+					subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.deleted.subject", changeSet.getDeletedFiles().first());
+					message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.deleted.message", changeSet.getDeletedFiles().first(), rootName);
 				}
 			}
 			else {
@@ -349,33 +348,33 @@ public abstract class TrayIcon {
 
 				if (changeSet.getNewFiles().size() > 0) {
 					if (changeSet.getNewFiles().size() == 1) {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.added.one"));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.added.one"));
 					}
 					else {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.added.many", changeSet.getNewFiles().size()));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.added.many", changeSet.getNewFiles().size()));
 					}
 				}
 
 				if (changeSet.getChangedFiles().size() > 0) {
 					if (changeSet.getChangedFiles().size() == 1) {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.changed.one"));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.changed.one"));
 					}
 					else {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.changed.many", changeSet.getChangedFiles().size()));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.changed.many", changeSet.getChangedFiles().size()));
 					}
 				}
 
 				if (changeSet.getDeletedFiles().size() > 0) {
 					if (changeSet.getDeletedFiles().size() == 1) {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.deleted.one"));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.deleted.one"));
 					}
 					else {
-						messageParts.add(_("org.syncany.gui.tray.TrayIcon.notify.deleted.many", changeSet.getDeletedFiles().size()));
+						messageParts.add(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.deleted.many", changeSet.getDeletedFiles().size()));
 					}
 				}
 
-				subject = _("org.syncany.gui.tray.TrayIcon.notify.synced.subject", rootName);
-				message = _("org.syncany.gui.tray.TrayIcon.notify.synced.message", StringUtil.join(messageParts, ", "), rootName);
+				subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.synced.subject", rootName);
+				message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.synced.message", StringUtil.join(messageParts, ", "), rootName);
 			}
 
 			displayNotification(subject, message);
@@ -384,12 +383,12 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onCleanupStartCleaningEventReceived(CleanupStartCleaningSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.cleanup.startcleaning"));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.cleanup.startcleaning"));
 	}
 
 	@Subscribe
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), _("org.syncany.gui.tray.TrayIcon.insync"));
+		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 	
 	@Subscribe
@@ -429,7 +428,7 @@ public abstract class TrayIcon {
 					}
 
 					setTrayImage(TrayIconImage.TRAY_IN_SYNC);
-					setStatusText(null, _("org.syncany.gui.tray.TrayIcon.insync"));
+					setStatusText(null, I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 
 					logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_IN_SYNC);
 				}

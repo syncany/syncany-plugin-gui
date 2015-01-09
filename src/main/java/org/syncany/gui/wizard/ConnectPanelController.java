@@ -17,14 +17,13 @@
  */
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Display;
 import org.syncany.config.to.ConfigTO;
 import org.syncany.crypto.CipherUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.ConnectTypeSelectPanel.ConnectPanelSelection;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
@@ -98,7 +97,7 @@ public class ConnectPanelController extends AbstractInitPanelController {
 	private void handleFlowStartPanel(Action clickAction) {
 		if (clickAction == Action.NEXT) {
 			folderSelectPanel.reset(SelectFolderValidationMethod.NO_APP_FOLDER);
-			folderSelectPanel.setDescriptionText(_("org.syncany.gui.wizard.FolderSelectPanel.connect.description"));
+			folderSelectPanel.setDescriptionText(I18n.getText("org.syncany.gui.wizard.FolderSelectPanel.connect.description"));
 
 			wizardDialog.validateAndSetCurrentPanel(folderSelectPanel, Action.PREVIOUS, Action.NEXT);
 		}
@@ -219,8 +218,8 @@ public class ConnectPanelController extends AbstractInitPanelController {
 	}
 
 	private void initProgressPanelLabels() {
-		progressPanel.setTitleText(_("org.syncany.gui.wizard.ProgressPanel.connect.title"));
-		progressPanel.setDescriptionText(_("org.syncany.gui.wizard.ProgressPanel.connect.description"));
+		progressPanel.setTitleText(I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.title"));
+		progressPanel.setDescriptionText(I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.description"));
 	}
 
 	private void sendConnectRequest() {
@@ -251,7 +250,7 @@ public class ConnectPanelController extends AbstractInitPanelController {
 			ConnectManagementRequest connectManagementRequest = new ConnectManagementRequest(connectOptions);
 			
 			progressPanel.resetPanel(3);
-			progressPanel.appendLog(_("org.syncany.gui.wizard.ProgressPanel.connect.connectingToRepo", folderSelectPanel.getFolder()));
+			progressPanel.appendLog(I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.connectingToRepo", folderSelectPanel.getFolder()));
 	
 			eventBus.post(connectManagementRequest);
 		}
@@ -289,8 +288,8 @@ public class ConnectPanelController extends AbstractInitPanelController {
 	}
 	
 	private String formatErrorMessage(ConnectManagementResponse response) {
-		String errorMessage = _("org.syncany.gui.wizard.ProgressPanel.error") + "\n\n"
-				+ _("org.syncany.gui.wizard.ProgressPanel.connect.unableToConnect", response.getCode()) + "\n";
+		String errorMessage = I18n.getText("org.syncany.gui.wizard.ProgressPanel.error") + "\n\n"
+				+ I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.unableToConnect", response.getCode()) + "\n";
 		
 		switch (response.getCode()) {
 		case ConnectManagementResponse.NOK_FAILED_TEST:
@@ -298,11 +297,11 @@ public class ConnectPanelController extends AbstractInitPanelController {
 			break;
 		
 		case ConnectManagementResponse.NOK_FAILED_UNKNOWN:
-			errorMessage += _("org.syncany.gui.wizard.ProgressPanel.connect.failedWithUnknownError");				
+			errorMessage += I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.failedWithUnknownError");				
 			break;
 			
 		case ConnectManagementResponse.NOK_OPERATION_FAILED:
-			errorMessage += _("org.syncany.gui.wizard.ProgressPanel.connect.failedWithException");				
+			errorMessage += I18n.getText("org.syncany.gui.wizard.ProgressPanel.connect.failedWithException");				
 			break;
 
 		default: 

@@ -17,8 +17,6 @@
  */
 package org.syncany.gui.preferences;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,6 +39,7 @@ import org.syncany.config.ConfigException;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.UserConfigTO;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 
 /**
@@ -86,7 +85,7 @@ public class NetworkPanel extends Panel {
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 5, 1));
-		titleLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.title"));
+		titleLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
 
@@ -109,11 +108,11 @@ public class NetworkPanel extends Panel {
 		
 		// Proxy settings
 		Label proxySettingsLabel = new Label(this, SWT.NONE);
-		proxySettingsLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxySettings"));
+		proxySettingsLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxySettings"));
 		
 	    noProxyButton = new Button(this, SWT.RADIO);
 	    noProxyButton.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 4, 1));
-	    noProxyButton.setText(_("org.syncany.gui.preferences.NetworkPanel.noProxy"));	    
+	    noProxyButton.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.noProxy"));	    
 	    noProxyButton.addSelectionListener(commonSelectionListener);
 	    
 		Label fillerBelowProxySettingsLabel = new Label(this, SWT.NONE);
@@ -121,17 +120,17 @@ public class NetworkPanel extends Panel {
 	    
 	    useSystemProxyButton = new Button(this, SWT.RADIO);
 	    useSystemProxyButton.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 4, 1));
-	    useSystemProxyButton.setText(_("org.syncany.gui.preferences.NetworkPanel.useSystemProxy"));
+	    useSystemProxyButton.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.useSystemProxy"));
 	    useSystemProxyButton.addSelectionListener(commonSelectionListener);
 	    
 	    manualProxyButton = new Button(this, SWT.RADIO);
 	    manualProxyButton.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 4, 1));
-	    manualProxyButton.setText(_("org.syncany.gui.preferences.NetworkPanel.manualProxy"));
+	    manualProxyButton.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.manualProxy"));
 	    manualProxyButton.addSelectionListener(commonSelectionListener);
 	    
 	    // Proxy type
 		Label proxyTypeLabel = new Label(this, SWT.NONE);
-		proxyTypeLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyType"));
+		proxyTypeLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyType"));
 
 	    proxyTypeCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
 	    proxyTypeCombo.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
@@ -142,14 +141,17 @@ public class NetworkPanel extends Panel {
 	    proxyTypeCombo.select(0);
 	    
 		Label proxyServerLabel = new Label(this, SWT.NONE);
-		proxyServerLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyServer"));
+		proxyServerLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyServer"));
 
 		GridData proxyServerHostTextGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false, 2, 1);
 		proxyServerHostTextGridData.widthHint = 180;
 		
 		proxyServerHostText = new Text(this, SWT.BORDER);
+		proxyServerHostText.setBackground(WidgetDecorator.WHITE);
 		proxyServerHostText.setLayoutData(proxyServerHostTextGridData);
 		proxyServerHostText.addModifyListener(commonModifyListener);
+		
+		WidgetDecorator.normal(proxyServerHostText);
 		
 		Label proxyPortColonLabel = new Label(this, SWT.NONE);
 		proxyPortColonLabel.setText(":");
@@ -158,6 +160,7 @@ public class NetworkPanel extends Panel {
 		proxyServerPortTextGridData.widthHint = 50;
 		
 		proxyServerPortText = new Text(this, SWT.BORDER);
+		proxyServerPortText.setBackground(WidgetDecorator.WHITE);
 		proxyServerPortText.setLayoutData(proxyServerPortTextGridData);
 		proxyServerPortText.addModifyListener(commonModifyListener);		
 		proxyServerPortText.addVerifyListener(new VerifyListener() {
@@ -185,31 +188,39 @@ public class NetworkPanel extends Panel {
 	        }
 	    });		
 	    
+		WidgetDecorator.normal(proxyServerPortText);
+		
 		Label fillerBelowServerLabel = new Label(this, SWT.NONE);
 		fillerBelowServerLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 3));
 
 	    proxyNeedsAuthCheckButton = new Button(this, SWT.CHECK);
 	    proxyNeedsAuthCheckButton.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 4, 1));
-	    proxyNeedsAuthCheckButton.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyNeedsAuth"));
+	    proxyNeedsAuthCheckButton.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyNeedsAuth"));
 	    proxyNeedsAuthCheckButton.addSelectionListener(commonSelectionListener);	    
 
 		proxyAuthUserLabel = new Label(this, SWT.NONE);
-		proxyAuthUserLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyAuthUser"));
+		proxyAuthUserLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyAuthUser"));
 
 		GridData proxyAuthFieldGridData = new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1);
 		proxyAuthFieldGridData.widthHint = 110;
 		proxyAuthFieldGridData.grabExcessHorizontalSpace = true;
 		
 		proxyAuthUserText = new Text(this, SWT.BORDER);		
+		proxyAuthUserText.setBackground(WidgetDecorator.WHITE);
 		proxyAuthUserText.setLayoutData(proxyAuthFieldGridData);
 		proxyAuthUserText.addModifyListener(commonModifyListener);
 
+		WidgetDecorator.normal(proxyAuthUserText);
+		
 		proxyAuthPassLabel = new Label(this, SWT.NONE);
-		proxyAuthPassLabel.setText(_("org.syncany.gui.preferences.NetworkPanel.proxyAuthPass"));
+		proxyAuthPassLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyAuthPass"));
 
 		proxyAuthPassText = new Text(this, SWT.BORDER | SWT.PASSWORD);		
+		proxyAuthPassText.setBackground(WidgetDecorator.WHITE);
 		proxyAuthPassText.setLayoutData(proxyAuthFieldGridData);
-		proxyAuthPassText.addModifyListener(commonModifyListener);		
+		proxyAuthPassText.addModifyListener(commonModifyListener);	
+		
+		WidgetDecorator.normal(proxyAuthPassText);
 	}
 
 	private void updateControls() {
@@ -322,11 +333,15 @@ public class NetworkPanel extends Panel {
 		if (enable) {
 			boolean needsAuth = proxyNeedsAuthCheckButton.getSelection();
 			
+			proxyAuthUserLabel.setEnabled(needsAuth);
 			proxyAuthUserText.setEnabled(needsAuth);
+			proxyAuthPassLabel.setEnabled(needsAuth);
 			proxyAuthPassText.setEnabled(needsAuth);
 		}
 		else {
+			proxyAuthUserLabel.setEnabled(false);
 			proxyAuthUserText.setEnabled(false);
+			proxyAuthPassLabel.setEnabled(false);
 			proxyAuthPassText.setEnabled(false);			
 		}
 	}

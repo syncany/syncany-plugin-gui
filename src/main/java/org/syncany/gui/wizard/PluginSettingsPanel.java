@@ -1,7 +1,5 @@
 package org.syncany.gui.wizard;
 
-import static org.syncany.gui.util.I18n._;
-
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -34,6 +32,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
+import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.transfer.FileType;
@@ -113,7 +112,7 @@ public class PluginSettingsPanel extends Panel {
 		// Title and description
 		Label titleLabel = new Label(this, SWT.WRAP);
 		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
-		titleLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.title", plugin.getName()));
+		titleLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.title", plugin.getName()));
 		
 		WidgetDecorator.title(titleLabel);
 		
@@ -160,7 +159,7 @@ public class PluginSettingsPanel extends Panel {
 			// OAuth help text
 			Label descriptionLabel = new Label(this, SWT.WRAP);
 			descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-			descriptionLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.description"));
+			descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.description"));
 			
 			WidgetDecorator.normal(descriptionLabel);
 			
@@ -171,7 +170,7 @@ public class PluginSettingsPanel extends Panel {
 
 			Label oAuthTokenLabel = new Label(this, SWT.WRAP);
 			oAuthTokenLabel.setLayoutData(oAuthTokenLabelGridData);
-			oAuthTokenLabel.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.token"));
+			oAuthTokenLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.token"));
 			
 			// Textfield "Token"		
 			GridData oAuthTokenTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
@@ -188,7 +187,7 @@ public class PluginSettingsPanel extends Panel {
 
 			// Add 'Authorize ..' button for 'File' fields
 			oAuthAuthorizeButton = new Button(this, SWT.NONE);
-			oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting"));
+			oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting"));
 			oAuthAuthorizeButton.setEnabled(false);
 			
 			oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
@@ -214,7 +213,7 @@ public class PluginSettingsPanel extends Panel {
 					Display.getDefault().asyncExec(new Runnable() {			
 						@Override
 						public void run() {
-							oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
+							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
 							oAuthAuthorizeButton.setEnabled(true);
 						}
 					});
@@ -223,10 +222,10 @@ public class PluginSettingsPanel extends Panel {
 					Display.getDefault().asyncExec(new Runnable() {			
 						@Override
 						public void run() {
-							showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.errorCannotRetrieveOAuthURL", e.getMessage()));
+							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.errorCannotRetrieveOAuthURL", e.getMessage()));
 							logger.log(Level.WARNING, "Cannot retrieve OAuth URL.", e);
 							
-							oAuthAuthorizeButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.error"));
+							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.error"));
 						}
 					});
 				}
@@ -247,11 +246,11 @@ public class PluginSettingsPanel extends Panel {
 		
 		if (pluginOption.isSensitive()) {
 			pluginOptionLabelText += " " + ((pluginOption.isRequired()) 
-					? _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayed")
-					: _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayedOptional"));
+					? I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayed")
+					: I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.notDisplayedOptional"));
 		}
 		else {
-			pluginOptionLabelText += (pluginOption.isRequired()) ? "" : " " + _("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.optional");
+			pluginOptionLabelText += (pluginOption.isRequired()) ? "" : " " + I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.pluginOptionLabelExt.optional");
 		}
 
 		Label pluginOptionLabel = new Label(this, SWT.WRAP);
@@ -280,7 +279,7 @@ public class PluginSettingsPanel extends Panel {
 		// Add 'Select ..' button for 'File' fields
 		if (pluginField.getType() == File.class) {
 			Button pluginOptionFileSelectButton = new Button(this, SWT.NONE);
-			pluginOptionFileSelectButton.setText(_("org.syncany.gui.wizard.PluginSettingsPanel.selectFile"));
+			pluginOptionFileSelectButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.selectFile"));
 			
 			setPluginOptionFileSelectListener(pluginOption, pluginOptionValueText, pluginOptionFileSelectButton);			
 		}
@@ -442,7 +441,7 @@ public class PluginSettingsPanel extends Panel {
 			return true;
 		}
 		else {
-			showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorFieldValidation"));
+			showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorFieldValidation"));
 			return false;
 		}
 	}
@@ -467,7 +466,7 @@ public class PluginSettingsPanel extends Panel {
 	private boolean validateOAuthToken() {
 		if (oAuthGenerator != null) {
 			if (oAuthTokenText.getText().isEmpty()) {
-				showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorNoOAuthToken"));
+				showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorNoOAuthToken"));
 				WidgetDecorator.markAsInvalid(oAuthTokenText);
 				
 				logger.log(Level.INFO, "OAuth token is empty.");
@@ -484,7 +483,7 @@ public class PluginSettingsPanel extends Panel {
 					return true;
 				}
 				catch (Exception e) {
-					showWarning(_("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
+					showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
 					WidgetDecorator.markAsInvalid(oAuthTokenText);
 					
 					logger.log(Level.INFO, "OAuth token check failed. ", e);

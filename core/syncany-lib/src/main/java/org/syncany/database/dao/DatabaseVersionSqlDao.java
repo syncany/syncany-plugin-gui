@@ -327,14 +327,40 @@ public class DatabaseVersionSqlDao extends AbstractSqlDao {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public Iterator<DatabaseVersion> getLastDatabaseVersions(int maxDatabaseVersionCount, int maxFileHistoryCount) {
+		try (PreparedStatement preparedStatement = getStatement("databaseversion.select.master.getLastDatabaseVersions.sql")) {
+			if (maxDatabaseVersionCount > 0) {
+				preparedStatement.setMaxRows(maxDatabaseVersionCount);
+			}
+
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				return new DatabaseVersionIterator(preparedStatement.executeQuery(), true, maxFileHistoryCount);
+			}
+		}
+		catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 
 	private class DatabaseVersionIterator implements Iterator<DatabaseVersion> {
 		private ResultSet resultSet;
+		private boolean excludeChunkData;
+		private int fileHistoryMaxCount;
+
 		private boolean hasNext;
 
 		public DatabaseVersionIterator(ResultSet resultSet) throws SQLException {
+			this(resultSet, false, -1);
+		}
+
+		public DatabaseVersionIterator(ResultSet resultSet, boolean excludeChunkData, int fileHistoryMaxCount) throws SQLException {
 			this.resultSet = resultSet;
-			this.hasNext = resultSet.next();
+			this.excludeChunkData = excludeChunkData;
+			this.fileHistoryMaxCount = fileHistoryMaxCount;
+					
+			this.hasNext = resultSet.next();					
 		}
 
 		@Override
@@ -346,7 +372,7 @@ public class DatabaseVersionSqlDao extends AbstractSqlDao {
 		public DatabaseVersion next() {
 			if (hasNext) {
 				try {
-					DatabaseVersion databaseVersion = createDatabaseVersionFromRow(resultSet);
+					DatabaseVersion databaseVersion = createDatabaseVersionFromRow(resultSet, excludeChunkData, fileHistoryMaxCount);
 					hasNext = resultSet.next();
 
 					return databaseVersion;
@@ -367,32 +393,34 @@ public class DatabaseVersionSqlDao extends AbstractSqlDao {
 
 	}
 
-	protected DatabaseVersion createDatabaseVersionFromRow(ResultSet resultSet) throws SQLException {
+	protected DatabaseVersion createDatabaseVersionFromRow(ResultSet resultSet, boolean excludeChunkData, int fileHistoryMaxCount) throws SQLException {
 		DatabaseVersionHeader databaseVersionHeader = createDatabaseVersionHeaderFromRow(resultSet);
-		return createDatabaseVersionFromRowDefault(databaseVersionHeader, resultSet);		
-	}
 
-	private DatabaseVersion createDatabaseVersionFromRowDefault(DatabaseVersionHeader databaseVersionHeader, ResultSet resultSet) {
 		DatabaseVersion databaseVersion = new DatabaseVersion();
 		databaseVersion.setHeader(databaseVersionHeader);
 
-		Map<ChunkChecksum, ChunkEntry> chunks = chunkDao.getChunks(databaseVersionHeader.getVectorClock());
-		Map<MultiChunkId, MultiChunkEntry> multiChunks = multiChunkDao.getMultiChunks(databaseVersionHeader.getVectorClock());
-		Map<FileChecksum, FileContent> fileContents = fileContentDao.getFileContents(databaseVersionHeader.getVectorClock());
+		// Add chunk/multichunk/filecontent data
+		if (!excludeChunkData) {
+			Map<ChunkChecksum, ChunkEntry> chunks = chunkDao.getChunks(databaseVersionHeader.getVectorClock());
+			Map<MultiChunkId, MultiChunkEntry> multiChunks = multiChunkDao.getMultiChunks(databaseVersionHeader.getVectorClock());
+			Map<FileChecksum, FileContent> fileContents = fileContentDao.getFileContents(databaseVersionHeader.getVectorClock());
+			
+			for (ChunkEntry chunk : chunks.values()) {
+				databaseVersion.addChunk(chunk);
+			}
+
+			for (MultiChunkEntry multiChunk : multiChunks.values()) {
+				databaseVersion.addMultiChunk(multiChunk);
+			}
+
+			for (FileContent fileContent : fileContents.values()) {
+				databaseVersion.addFileContent(fileContent);
+			}
+		}
+		
+		// Add file histories
 		Map<FileHistoryId, PartialFileHistory> fileHistories = fileHistoryDao
-				.getFileHistoriesWithFileVersions(databaseVersionHeader.getVectorClock());
-
-		for (ChunkEntry chunk : chunks.values()) {
-			databaseVersion.addChunk(chunk);
-		}
-
-		for (MultiChunkEntry multiChunk : multiChunks.values()) {
-			databaseVersion.addMultiChunk(multiChunk);
-		}
-
-		for (FileContent fileContent : fileContents.values()) {
-			databaseVersion.addFileContent(fileContent);
-		}
+				.getFileHistoriesWithFileVersions(databaseVersionHeader.getVectorClock(), fileHistoryMaxCount);
 
 		for (PartialFileHistory fileHistory : fileHistories.values()) {
 			databaseVersion.addFileHistory(fileHistory);
@@ -418,7 +446,7 @@ public class DatabaseVersionSqlDao extends AbstractSqlDao {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private DatabaseVersionHeader createDatabaseVersionHeaderFromRow(ResultSet resultSet) throws SQLException {
 		DatabaseVersionHeader databaseVersionHeader = new DatabaseVersionHeader();
 

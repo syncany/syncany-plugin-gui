@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Syncany
+GenericName=Syncany
+Comment=Securely sync files to the cloud
+Exec=sy gui
+Terminal=false
+Type=Application
+Icon=syncany
+Categories=Network;FileTransfer;
+StartupNotify=false
