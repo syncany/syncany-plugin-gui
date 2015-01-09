@@ -37,7 +37,7 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class TabComposite extends Composite {
+public class LogTabComposite extends Composite {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private MainPanel mainPanel;
@@ -47,7 +47,7 @@ public class TabComposite extends Composite {
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public TabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, LightweightDatabaseVersion databaseVersion) {
+	public LogTabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, LightweightDatabaseVersion databaseVersion) {
 		super(logMainComposite, SWT.BORDER);	
 		
 		this.mainPanel = mainPanel;
@@ -195,7 +195,7 @@ public class TabComposite extends Composite {
 		control.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {
-				mainPanel.updateDate(databaseVersion.getDate());
+				mainPanel.setSelectedDate(databaseVersion.getDate());
 			}
 			
 			@Override

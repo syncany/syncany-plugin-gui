@@ -99,7 +99,7 @@ public class MainPanel extends Panel {
 		createFileTreeComposite();
 		createLogComposite();
 		
-		setCurrentControl(fileTreeComposite);
+		showLog();
 	}	
 
 	private void createMainComposite() {
@@ -112,21 +112,14 @@ public class MainPanel extends Panel {
 		setLayout(mainCompositeGridLayout);
 	}
 	
-	private void createToggleButtons() {
-		toggleTreeButton = new Button(this, SWT.TOGGLE);
-		toggleTreeButton.setSelection(true);
-		toggleTreeButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "tree")));
-		
+	private void createToggleButtons() {	
 		toggleLogButton = new Button(this, SWT.TOGGLE);
-		toggleLogButton.setSelection(false);
+		toggleLogButton.setSelection(true);
 		toggleLogButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "log")));
 		
-		toggleTreeButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				showTree();				
-			}
-		});		
+		toggleTreeButton = new Button(this, SWT.TOGGLE);
+		toggleTreeButton.setSelection(false);
+		toggleTreeButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "tree")));
 		
 		toggleLogButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -134,6 +127,13 @@ public class MainPanel extends Panel {
 				showLog();				
 			}
 		});
+		
+		toggleTreeButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showTree();				
+			}
+		});				
 	}
 	
 	public void showLog() {
@@ -295,7 +295,7 @@ public class MainPanel extends Panel {
 						boolean listUpdateRequired = !newDate.equals(state.getSelectedDate());
 						
 						if (listUpdateRequired) {
-							updateDate(newDate);							
+							setSelectedDate(newDate);							
 						}
 					}					
 				});
@@ -303,7 +303,7 @@ public class MainPanel extends Panel {
 		};
 	}
 	
-	public void updateDate(Date newDate) {
+	public void setSelectedDate(Date newDate) {
 		state.setSelectedDate(newDate);
 		
 		setDateSlider(newDate);

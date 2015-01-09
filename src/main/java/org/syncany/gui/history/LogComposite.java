@@ -6,14 +6,18 @@ import java.util.Map;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.events.PaintEvent;
+import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.ChangeSet;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
@@ -34,8 +38,8 @@ public class LogComposite extends Composite {
 	private ScrolledComposite scrollComposite;
 	private Composite logContentComposite;
 	
-	private Map<Date, TabComposite> tabComposites;
-	private TabComposite highlightedTabComposite;
+	private Map<Date, LogTabComposite> tabComposites;
+	private LogTabComposite highlightedTabComposite;
 	
 	private LogFolderRequest pendingLogFolderRequest;
 
@@ -133,9 +137,13 @@ public class LogComposite extends Composite {
 	}
 	
 	public void resetAndRefresh() {
+		LogOperationOptions logOptions = new LogOperationOptions();
+		logOptions.setMaxDatabaseVersionCount(10);
+		logOptions.setMaxFileHistoryCount(10);
+		
 		pendingLogFolderRequest = new LogFolderRequest();
 		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
-		pendingLogFolderRequest.setOptions(new LogOperationOptions());
+		pendingLogFolderRequest.setOptions(logOptions);
 		
 		eventBus.post(pendingLogFolderRequest);
 	}
@@ -170,8 +178,7 @@ public class LogComposite extends Composite {
 	    scrollComposite.setExpandHorizontal(true);
 		scrollComposite.setContent(logContentComposite);
 		scrollComposite.setShowFocusedControl(true);		
-	}
-	
+	}	
 
 	private void replaceScrollEventHandling() {
 		// Disables the default scrolling functionality of the ScrolledComposite
@@ -212,6 +219,7 @@ public class LogComposite extends Composite {
 			public void run() {
 				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
 					updateTabs(logResponse);
+					pendingLogFolderRequest = null;
 				}				
 			}
 		});		
@@ -223,9 +231,12 @@ public class LogComposite extends Composite {
 		
 		// And create new ones		
 		for (LightweightDatabaseVersion databaseVersion : logResponse.getResult().getDatabaseVersions()) {
-			TabComposite tabComposite = new TabComposite(mainPanel, this, logContentComposite, databaseVersion);			
-			tabComposites.put(databaseVersion.getDate(), tabComposite);
-		}	
+			LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, databaseVersion);			
+			tabComposites.put(databaseVersion.getDate(), tabComposite);			
+		}
+		
+		// Add 'Loading ...' panel 
+		createLoadingComposite();
 		
 		// Highlight
 		highlightBySelectedDate();
@@ -246,7 +257,7 @@ public class LogComposite extends Composite {
 		
 		// Highlight new tab
 		if (highlightDate != null) {
-			TabComposite tabComposite = tabComposites.get(highlightDate);
+			LogTabComposite tabComposite = tabComposites.get(highlightDate);
 			
 			if (tabComposite != null) {
 				tabComposite.setHighlighted(true);				
@@ -261,4 +272,32 @@ public class LogComposite extends Composite {
 		int increment = scrollComposite.getVerticalBar().getIncrement();
 		scrollComposite.setOrigin(0, scrollComposite.getOrigin().y - increment*count);		
 	}	
+	
+	private void createLoadingComposite() {
+		GridLayout loadingCompositeGridLayout = new GridLayout(1, false);
+		loadingCompositeGridLayout.marginTop = 0;
+		loadingCompositeGridLayout.marginLeft = 0;
+		loadingCompositeGridLayout.marginRight = 0;
+		loadingCompositeGridLayout.marginBottom = 0;
+		loadingCompositeGridLayout.horizontalSpacing = 0;
+		loadingCompositeGridLayout.verticalSpacing = 0;
+
+		Composite loadingComposite = new Composite(logContentComposite, SWT.BORDER);
+		loadingComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 1, 1));		
+		loadingComposite.setLayout(loadingCompositeGridLayout);		
+		loadingComposite.setBackground(WidgetDecorator.WHITE);	
+		
+		Label loadMoreLabel = new Label(loadingComposite, SWT.CENTER);
+		loadMoreLabel.setText("Loading ...");
+		
+		loadingComposite.addPaintListener(new PaintListener() {			
+			@Override
+			public void paintControl(PaintEvent e) {
+				if (pendingLogFolderRequest == null) {
+					System.out.println("go get new ones.");
+					resetAndRefresh();
+				}
+			}
+		});
+	}
 }
