@@ -5,17 +5,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import com.google.common.collect.Sets;
-import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.exception.ZipException;
 
 /**
  * In contrast to see {@link org.syncany.gui.tray.DefaultTrayIcon}, this tray icon uses the mavericks+ notification
@@ -30,7 +31,7 @@ import net.lingala.zip4j.exception.ZipException;
 public class OSXTrayIcon extends DefaultTrayIcon {
 	private static final Logger logger = Logger.getLogger(OSXTrayIcon.class.getSimpleName());
 
-	private final static String TERMINAL_NOTIFIER_PACKAGE = "/org/syncany/gui/helper/osx-notifier.app.zip";
+	private final static String TERMINAL_NOTIFIER_PACKAGE = "/org/syncany/gui/helper/osx-notifier.zip";
 	private final static String TERMINAL_NOTIFIER_BINARY = "/Syncany.app/Contents/MacOS/Syncany";
 
 	private File terminalNotifierExtractedBinary;
@@ -61,7 +62,8 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 
 				try {
 					Runtime.getRuntime().exec(command.toArray(new String[command.size()]));
-				} catch (IOException e) {
+				}
+				catch (IOException e) {
 					throw new RuntimeException("Unable to notify using " + terminalNotifierExtractedBinary, e);
 				}
 			}
@@ -83,7 +85,7 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 			// extract the compressed notifier
 			File temporaryZipFile = File.createTempFile("syncany-notifier", ".zip");
 			FileUtils.copyInputStreamToFile(getClass().getResourceAsStream(TERMINAL_NOTIFIER_PACKAGE), temporaryZipFile);
-			new ZipFile(temporaryZipFile).extractAll(terminalNotifierExtracted.toString());
+			extractZip(temporaryZipFile, terminalNotifierExtracted);
 
 			// make it executable
 			terminalNotifierExtractedBinary = new File(terminalNotifierExtracted, TERMINAL_NOTIFIER_BINARY);
@@ -95,7 +97,7 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 
 			logger.log(Level.INFO, "Done Extracting helper tools");
 		}
-		catch(NullPointerException | IOException | ZipException e) {
+		catch (NullPointerException | IOException e) {
 			logger.log(Level.SEVERE, "Unable to extract required helpers", e);
 		}
 	}
@@ -105,7 +107,34 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 
 		if (useFallbackNotificationSystem) {
 			logger.log(Level.INFO, "Unable to notify using the native helper utility ({0}), using generic swt fallback", new Object[]{terminalNotifierExtractedBinary});
+			displayNotification("Error while loading notifier", "Unable to notify using the native helper utility and therefore using the generic swt fallback.");
 		}
+	}
+
+	private void extractZip(File zipFilePath, File targetFolder) throws IOException {
+		ZipFile zipFile = new ZipFile(zipFilePath);
+		Enumeration<?> enu = zipFile.entries();
+
+		while (enu.hasMoreElements()) {
+			ZipEntry zipEntry = (ZipEntry) enu.nextElement();
+			String name = zipEntry.getName();
+			File file = new File(targetFolder, name);
+
+			if (name.endsWith("/")) {
+				file.mkdirs();
+			}
+			else {
+				File parent = file.getParentFile();
+
+				if (parent != null) {
+					parent.mkdirs();
+				}
+
+				FileUtils.copyInputStreamToFile(zipFile.getInputStream(zipEntry), file);
+			}
+
+		}
+		zipFile.close();
 	}
 
 }
