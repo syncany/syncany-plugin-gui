@@ -54,12 +54,10 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 			public void run() {
 				List<String> command = new ArrayList<>();
 				command.add(terminalNotifierExtractedBinary.getAbsolutePath());
-				command.add("-subject");
+				command.add("-title");
 				command.add(subject);
 				command.add("-message");
 				command.add(message);
-				command.add("-folder");
-				command.add("");
 
 				try {
 					Runtime.getRuntime().exec(command.toArray(new String[command.size()]));
