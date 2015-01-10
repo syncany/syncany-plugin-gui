@@ -196,7 +196,7 @@ public class LogComposite extends Composite {
 
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
 			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, databaseVersion);			
+				LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, state.getSelectedRoot(), databaseVersion);			
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
 		}
@@ -254,6 +254,7 @@ public class LogComposite extends Composite {
 		loadingComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 1, 1));		
 		loadingComposite.setLayout(loadingCompositeGridLayout);		
 		loadingComposite.setBackground(WidgetDecorator.WHITE);	
+		loadingComposite.setBackgroundMode(SWT.INHERIT_FORCE);
 		
 		Label loadMoreLabel = new Label(loadingComposite, SWT.CENTER);
 		loadMoreLabel.setText(I18n.getText("org.syncany.gui.history.LogComposite.loading"));

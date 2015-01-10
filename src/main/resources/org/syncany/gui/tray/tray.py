@@ -166,9 +166,6 @@ def do_update_menu(request):
 	menu.append(menu_item_new_folder)		
 	
 	if recent_changes:
-		# ---
-		menu.append(gtk.SeparatorMenuItem())
-	
 		# Create submenu
 		sub_menu_recent_changes = gtk.Menu()
 

@@ -17,11 +17,15 @@
  */
 package org.syncany.gui.history;
 
+import java.io.File;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.MouseWheelListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -29,7 +33,11 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.MessageBox;
 import org.ocpsoft.prettytime.PrettyTime;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
@@ -44,16 +52,18 @@ public class LogTabComposite extends Composite {
 	private MainPanel mainPanel;
 	private LogComposite logComposite;
 	
+	private String root;
 	private LightweightDatabaseVersion databaseVersion;
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public LogTabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, LightweightDatabaseVersion databaseVersion) {
+	public LogTabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion) {
 		super(logMainComposite, SWT.BORDER);	
 		
 		this.mainPanel = mainPanel;
 		this.logComposite = logComposite;
 		
+		this.root = root;
 		this.databaseVersion = databaseVersion;
 		this.highlighted = false;
 		this.mouseOver = false;
@@ -74,6 +84,7 @@ public class LogTabComposite extends Composite {
 		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));		
 		setLayout(mainCompositeGridLayout);		
 		setBackground(WidgetDecorator.WHITE);	
+		setBackgroundMode(SWT.INHERIT_FORCE);
 				
 		Label dateLabel = new Label(this, SWT.NONE);
 		dateLabel.setText(databaseVersion.getDate().toString());		
@@ -119,7 +130,7 @@ public class LogTabComposite extends Composite {
 		spacingLabel2.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));
 	}
 
-	private void createEntryLabel(String file, String imageResourceName) {
+	private void createEntryLabel(String file, String imageResourceName) {		
 		GridData imageLabelGridData = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
 		imageLabelGridData.horizontalIndent = 20;
 		imageLabelGridData.verticalIndent = 2;
@@ -132,11 +143,89 @@ public class LogTabComposite extends Composite {
 		fileLabelGridData.horizontalIndent = 10;
 		fileLabelGridData.verticalIndent = 2;
 
-		final Label fileLabel = new Label(this, SWT.NONE);
+		Label fileLabel = new Label(this, SWT.NONE);
 		fileLabel.setLayoutData(fileLabelGridData);		
 		fileLabel.setText(file);
 		fileLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
 		
+		addFileMenu(fileLabel, file);	
+		addFileMouseListeners(fileLabel);			
+	}
+
+	private void addFileMenu(Label fileLabel, final String relativeFilePath) {
+		final Menu fileMenu = new Menu(fileLabel);
+		final File file = new File(root, relativeFilePath); 
+		
+		MenuItem jumpToDetailViewMenuItem = new MenuItem(fileMenu, SWT.NONE);
+		jumpToDetailViewMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.jumpToDetail"));
+		jumpToDetailViewMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				// mainPanel.showDetails(relativeFilePath);
+			}
+		});
+		
+		MenuItem jumpToTreeMenuItem = new MenuItem(fileMenu, SWT.NONE);
+		jumpToTreeMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.jumpToTree"));
+		jumpToTreeMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				mainPanel.showTree();
+
+				mainPanel.setSelectedDate(databaseVersion.getDate());
+				mainPanel.refreshTree(relativeFilePath);
+			}
+		});
+		
+		new MenuItem(fileMenu, SWT.SEPARATOR);
+		
+		MenuItem openFileMenuItem = new MenuItem(fileMenu, SWT.NONE);
+		openFileMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.openFile"));
+		openFileMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				launchOrDisplayError(file);
+			}
+		});
+		
+		MenuItem openFolderMenuItem = new MenuItem(fileMenu, SWT.NONE);
+		openFolderMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.openContainingFolder"));				
+		openFolderMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				launchOrDisplayError(file.getParentFile());
+			}
+		});
+		
+		new MenuItem(fileMenu, SWT.SEPARATOR);
+		
+		MenuItem copyPathMenuItem = new MenuItem(fileMenu, SWT.NONE);
+		copyPathMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.copyPath"));		
+		copyPathMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				DesktopUtil.copyToClipboard(file.getAbsolutePath());
+			}
+		});
+		
+		fileMenu.setDefaultItem(jumpToDetailViewMenuItem);	
+		fileLabel.setMenu(fileMenu);
+	}
+	
+	private void launchOrDisplayError(File file) {
+		if (file.exists()) {
+			DesktopUtil.launch(file.getAbsolutePath());	
+		}
+		else {
+			MessageBox messageBox = new MessageBox(getShell(), SWT.ICON_WARNING | SWT.OK);	        
+	        messageBox.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.title"));
+	        messageBox.setMessage(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.description", file.getAbsolutePath()));
+	        
+	        messageBox.open();
+		}
+	}
+
+	private void addFileMouseListeners(final Label fileLabel) {
 		fileLabel.addMouseTrackListener(new MouseTrackAdapter() {
 			@Override
 			public void mouseEnter(MouseEvent e) {
@@ -151,12 +240,12 @@ public class LogTabComposite extends Composite {
 		
 		fileLabel.addMouseListener(new MouseAdapter() {
 			@Override
-			public void mouseUp(MouseEvent e) {
-				// mainPanel.showDetails( ... 
+			public void mouseUp(MouseEvent e) {				
+				// mainPanel.showDetails( ...			
 			}
 		});
 	}
-	
+
 	public LightweightDatabaseVersion getDatabaseVersion() {
 		return databaseVersion;
 	}

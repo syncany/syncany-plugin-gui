@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -18,11 +21,13 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
+import org.syncany.database.FileVersion.FileStatus;
 import org.syncany.database.FileVersion.FileType;
 import org.syncany.database.PartialFileHistory;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
+import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
@@ -41,9 +46,11 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class DetailPanel extends Panel {
-	private static final int COLUMN_INDEX_VERSION = 0;
+	private static final String IMAGE_RESOURCE_FORMAT = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
+
+	private static final int COLUMN_INDEX_STATUS = 0;
 	private static final int COLUMN_INDEX_PATH = 1;
-	private static final int COLUMN_INDEX_STATUS = 2;
+	private static final int COLUMN_INDEX_VERSION = 2;
 	private static final int COLUMN_INDEX_TYPE = 3;
 	private static final int COLUMN_INDEX_SIZE = 4;
 	private static final int COLUMN_INDEX_POSIX_PERMS = 5;
@@ -133,7 +140,7 @@ public class DetailPanel extends Panel {
 		pluginTableGridData.horizontalIndent = 0;
 		pluginTableGridData.horizontalSpan = 3;
 		
-	    historyTable = new Table(this, SWT.BORDER | SWT.V_SCROLL | SWT.FULL_SELECTION);
+	    historyTable = new Table(this, SWT.BORDER | SWT.FULL_SELECTION);
 		historyTable.setHeaderVisible(true);
 		historyTable.setLayoutData(pluginTableGridData);
 		
@@ -152,48 +159,54 @@ public class DetailPanel extends Panel {
 			}
 		});
 		
+		historyTable.addControlListener(new ControlAdapter() {			
+			@Override
+			public void controlResized(ControlEvent e) {
+				resizeColumns();
+			}			
+		});
+		
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
-		
-	    TableColumn columnVersion = new TableColumn(historyTable, SWT.LEFT);
-	    columnVersion.setWidth(30);
-	    columnVersion.setResizable(false);
 
-	    TableColumn columnPath = new TableColumn(historyTable, SWT.LEFT | SWT.FILL);
-	    columnPath.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.path"));
-	    columnPath.setWidth(210);	    
+		TableColumn columnStatus = new TableColumn(historyTable, SWT.LEFT);
+		columnStatus.setWidth(30);
 
-	    TableColumn columnStatus = new TableColumn(historyTable, SWT.LEFT);
-	    columnStatus.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.status"));
-	    columnStatus.setWidth(60);	    
+		TableColumn columnPath = new TableColumn(historyTable, SWT.NONE);
+		columnPath.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.path"));
+		columnPath.setWidth(210);
 
-	    TableColumn columnType = new TableColumn(historyTable, SWT.LEFT);
-	    columnType.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.type"));
-	    columnType.setWidth(60);	    
+		TableColumn columnVersion = new TableColumn(historyTable, SWT.NONE);
+		columnVersion.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.version"));
+		columnVersion.setWidth(30);
 
-	    TableColumn columnSize = new TableColumn(historyTable, SWT.LEFT);
-	    columnSize.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.size"));
-	    columnSize.setWidth(70);	    
-	    
-	    TableColumn columnPosixPermissions = new TableColumn(historyTable, SWT.LEFT);
-	    columnPosixPermissions.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.posixPermissions"));
-	    columnPosixPermissions.setWidth(70);
-	    
-	    TableColumn columnDosAttributes = new TableColumn(historyTable, SWT.LEFT);
-	    columnDosAttributes.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.dosAttributes"));
-	    columnDosAttributes.setWidth(70);	    
+		TableColumn columnType = new TableColumn(historyTable, SWT.LEFT);
+		columnType.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.type"));
+		columnType.setWidth(60);
 
-	    TableColumn columnChecksum = new TableColumn(historyTable, SWT.LEFT);
-	    columnChecksum.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.checksum"));
-	    columnChecksum.setWidth(180);
+		TableColumn columnSize = new TableColumn(historyTable, SWT.LEFT);
+		columnSize.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.size"));
+		columnSize.setWidth(70);
 
-	    TableColumn columnLastModified = new TableColumn(historyTable, SWT.LEFT);
-	    columnLastModified.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.lastModified"));
-	    columnLastModified.setWidth(100);	    
+		TableColumn columnPosixPermissions = new TableColumn(historyTable, SWT.LEFT);
+		columnPosixPermissions.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.posixPermissions"));
+		columnPosixPermissions.setWidth(70);
 
-	    TableColumn columnUpdated = new TableColumn(historyTable, SWT.LEFT);
-	    columnUpdated.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.updated"));
-	    columnUpdated.setWidth(100);	    
+		TableColumn columnDosAttributes = new TableColumn(historyTable, SWT.LEFT);
+		columnDosAttributes.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.dosAttributes"));
+		columnDosAttributes.setWidth(70);
+
+		TableColumn columnChecksum = new TableColumn(historyTable, SWT.LEFT);
+		columnChecksum.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.checksum"));
+		columnChecksum.setWidth(200);
+
+		TableColumn columnLastModified = new TableColumn(historyTable, SWT.LEFT);
+		columnLastModified.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.lastModified"));
+		columnLastModified.setWidth(130);
+
+		TableColumn columnUpdated = new TableColumn(historyTable, SWT.LEFT);
+		columnUpdated.setText(I18n.getText("org.syncany.gui.history.DetailPanel.table.updated"));
+		columnUpdated.setWidth(130);
 	}
 	
 	public void safeDispose() {
@@ -254,24 +267,51 @@ public class DetailPanel extends Panel {
 			TableItem tableItem = new TableItem(historyTable, SWT.NONE);
 			
 			tableItem.setData(fileVersion);			
-			tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
+			tableItem.setImage(COLUMN_INDEX_STATUS, getStatusImage(fileVersion.getStatus()));
 			tableItem.setText(COLUMN_INDEX_PATH, fileVersion.getPath());
-			tableItem.setText(COLUMN_INDEX_STATUS, fileVersion.getStatus().toString());
+			tableItem.setText(COLUMN_INDEX_VERSION, Long.toString(fileVersion.getVersion()));
 			tableItem.setText(COLUMN_INDEX_TYPE, fileVersion.getType().toString());
 			tableItem.setText(COLUMN_INDEX_SIZE, FileUtil.formatFileSize(fileVersion.getSize()));
 			tableItem.setText(COLUMN_INDEX_POSIX_PERMS, fileVersion.getPosixPermissions());
 			tableItem.setText(COLUMN_INDEX_DOS_ATTRS, fileVersion.getDosAttributes());
 			tableItem.setText(COLUMN_INDEX_CHECKSUM, checksumStr);
 			tableItem.setText(COLUMN_INDEX_LAST_MODIFIED, ""+fileVersion.getLastModified());
-			tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());
+			tableItem.setText(COLUMN_INDEX_UPDATED, ""+fileVersion.getUpdated());		
 		}
 		
 		if (historyTable.getItemCount() > 0) {
 			restoreButton.setEnabled(false);
 			historyTable.select(historyTable.getItemCount()-1);
 		}
+		
+		resizeColumns();		
 	}
 	
+	private void resizeColumns() {
+		for (TableColumn tableColumn : historyTable.getColumns()) {
+			tableColumn.pack();
+		}
+		
+		historyTable.layout();
+	}
+	
+	private Image getStatusImage(FileStatus status) {
+		switch (status) {
+		case NEW:
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "add"));
+			
+		case CHANGED:
+		case RENAMED:
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "edit"));
+
+		case DELETED:
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "delete"));
+
+		default:
+			return null;				
+		}
+	}
+
 	private void restoreSelectedFile() {
 		TableItem[] selectedItems = historyTable.getSelection();
 		

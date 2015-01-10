@@ -1,8 +1,11 @@
 package org.syncany.gui.history;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
@@ -41,6 +44,8 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class FileTreeComposite extends Composite {
+	private static final Logger logger = Logger.getLogger(FileTreeComposite.class.getSimpleName());		
+
 	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + FileTreeComposite.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
 	
@@ -48,7 +53,8 @@ public class FileTreeComposite extends Composite {
 	private MainPanelState state;
 	
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
-
+	private String selectAfterLoadFilePath;
+	
 	private Tree fileTree;
 	
 	private GuiEventBus eventBus;
@@ -60,7 +66,8 @@ public class FileTreeComposite extends Composite {
 		this.state = state;		
 				
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-
+		this.selectAfterLoadFilePath = null;
+		
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);	
 		
@@ -132,8 +139,7 @@ public class FileTreeComposite extends Composite {
 				int newFileColumnWidth = area.width - columnLastModified.getWidth() - 20;
 				columnFile.setWidth(newFileColumnWidth);
 			}
-		});
-		
+		});		
 	}	
 
 	protected void doubleClickTreeItem() {
@@ -209,15 +215,55 @@ public class FileTreeComposite extends Composite {
 
 	public void resetAndRefresh() {
 		fileTree.removeAll();
-		refreshTree("");
+		refreshRoot();
 	}
 	
 	public void refreshTree(String pathExpression) {
-		// Adjust path expression
-		if (!"".equals(pathExpression)) {
-			pathExpression += "/";
+		if ("".equals(pathExpression)) {
+			throw new IllegalArgumentException();
 		}
 		
+		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
+		
+		// Find all sub-paths, a/b/c/ -> [a, a/b, a/b/c]
+		List<String> allPaths = getPaths(pathExpression + "/");
+		List<String> notLoadedPaths = new ArrayList<>();
+		
+		for (String path : allPaths) {
+			TreeItem treeItem = findTreeItemByPath(path);
+			
+			if (!notLoadedPaths.isEmpty()) {
+				notLoadedPaths.add(path);
+				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
+			}
+			else if (treeItem != null) {
+				boolean hasRetrievingChildItem = treeItem.getItemCount() == 1 && RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getItems()[0].getData());
+			
+				if (hasRetrievingChildItem) {
+					notLoadedPaths.add(path);
+					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
+				}
+			}
+		}
+		
+		// If items unloaded: set 'select after load' item, and send load requests
+		if (!notLoadedPaths.isEmpty()) {
+			selectAfterLoadFilePath = pathExpression;
+						
+			for (String path : notLoadedPaths) {
+				sendLsRequest(path + "/");
+			}			
+		}
+		else {
+			selectItemByPath(pathExpression);
+		}
+	}
+	
+	private void refreshRoot() {
+		sendLsRequest("");
+	}
+	
+	private void sendLsRequest(String pathExpression) {
 		// Date
 		Date browseDate = (state.getSelectedDate() != null) ? state.getSelectedDate() : new Date();
 		
@@ -237,9 +283,20 @@ public class FileTreeComposite extends Composite {
 		
 		// Send request
 		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
-		eventBus.post(lsRequest);
+		eventBus.post(lsRequest);		
 	}
 	
+	private List<String> getPaths(String pathExpression) {
+		List<String> paths = new ArrayList<>();
+		int previousIndexOf = -1;
+		
+		while (-1 != (previousIndexOf = pathExpression.indexOf('/', previousIndexOf + 1))) {
+			paths.add(pathExpression.substring(0, previousIndexOf));
+		}
+		
+		return paths;
+	}	
+
 	@Subscribe
 	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
 		Display.getDefault().syncExec(new Runnable() {
@@ -267,6 +324,19 @@ public class FileTreeComposite extends Composite {
 		}
 		
 		// Create new items
+		createFolderItems(parentTreeItem, fileVersions);
+		createFileItems(parentTreeItem, fileVersions);				
+		
+		// Expand parent path
+		if (parentTreeItem != null) {
+			parentTreeItem.setExpanded(true);
+		}
+		
+		// Select item
+		selectAfterLoadItem();
+	}
+
+	private void createFolderItems(TreeItem parentTreeItem, List<FileVersion> fileVersions) {
 		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() == FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
@@ -288,7 +358,9 @@ public class FileTreeComposite extends Composite {
 				}
 			}
 		}
-		
+	}
+	
+	private void createFileItems(TreeItem parentTreeItem, List<FileVersion> fileVersions) {
 		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() != FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
@@ -301,9 +373,19 @@ public class FileTreeComposite extends Composite {
 				}
 			}
 		}
+	}	
+
+	private void selectAfterLoadItem() {
+		if (selectAfterLoadFilePath != null) {
+			selectItemByPath(selectAfterLoadFilePath);
+		}
+	}
+	
+	private void selectItemByPath(String searchPath) {
+		TreeItem treeItem = findTreeItemByPath(searchPath);
 		
-		if (parentTreeItem != null) {
-			parentTreeItem.setExpanded(true);
+		if (treeItem != null) {
+			fileTree.setSelection(treeItem);
 		}
 	}
 
@@ -316,14 +398,16 @@ public class FileTreeComposite extends Composite {
 		}
 	}
 
-	private TreeItem findTreeItemByPath(String pathExpression) {
-		if ("".equals(pathExpression)) {
+	private TreeItem findTreeItemByPath(String searchPath) {				
+		if ("".equals(searchPath)) {
 			return null;
 		}
 		else {
-			TreeItem[] treeItems = fileTree.getItems();
-			String searchPath = pathExpression.substring(0, pathExpression.length()-1);
+			if (searchPath.endsWith("/")) {
+				searchPath = searchPath.substring(0, searchPath.length() - 1);
+			}
 			
+			TreeItem[] treeItems = fileTree.getItems();
 			return findTreeItem(searchPath, treeItems);			
 		}		
 	}

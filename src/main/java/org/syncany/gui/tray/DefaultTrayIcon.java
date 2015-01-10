@@ -220,8 +220,6 @@ public class DefaultTrayIcon extends TrayIcon {
 		if (recentFileChanges.size() > 0) {
 			int insertIndex = findBrowseHistoryMenuItemIndex();
 
-			new MenuItem(menu, SWT.SEPARATOR, insertIndex);
-			
 			// Create new 'Recent changes >' item, and submenu 
 			recentFileChangesItem = new MenuItem(menu, SWT.CASCADE, insertIndex+1);
 			recentFileChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));

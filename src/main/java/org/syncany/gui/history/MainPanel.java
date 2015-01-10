@@ -149,6 +149,10 @@ public class MainPanel extends Panel {
 		toggleTreeButton.setSelection(true);
 		toggleLogButton.setSelection(false);
 	}
+	
+	public void refreshTree(String file) {
+		fileTreeComposite.refreshTree(file);
+	}	
 
 	private void createRootSelectionCombo() {
 		rootSelectCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
@@ -304,13 +308,15 @@ public class MainPanel extends Panel {
 	}
 	
 	public void setSelectedDate(Date newDate) {
-		state.setSelectedDate(newDate);
-		
-		setDateSlider(newDate);
-		setDateLabel(newDate);
-		
-		fileTreeComposite.resetAndRefresh();
-		logComposite.highlightBySelectedDate();
+		if (!newDate.equals(state.getSelectedDate())) {
+			state.setSelectedDate(newDate);
+			
+			setDateSlider(newDate);
+			setDateLabel(newDate);
+			
+			fileTreeComposite.resetAndRefresh();
+			logComposite.highlightBySelectedDate();
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -436,5 +442,5 @@ public class MainPanel extends Panel {
 	@Override
 	public boolean validatePanel() {
 		return true;
-	}		
+	}	
 }
