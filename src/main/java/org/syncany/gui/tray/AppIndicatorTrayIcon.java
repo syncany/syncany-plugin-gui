@@ -41,9 +41,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.operations.daemon.messages.ClickRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
 import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
+import org.syncany.operations.daemon.messages.UpdateRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
@@ -73,7 +75,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
-	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; baseUrl = '%s'; wsUrl = '%s'; exec urllib2.urlopen('%s').read()";
+	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
 
 	private Undertow webServer;
 	private Process pythonProcess;
@@ -164,6 +166,11 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	}
 
 	@Override
+	protected void setRecentChanges(List<File> recentFiles) {
+		sendWebSocketMessage(new UpdateRecentChangesGuiInternalEvent(new ArrayList<>(recentFiles)));
+	}
+
+	@Override
 	protected void displayNotification(String subject, String message) {
 		sendWebSocketMessage(new DisplayNotificationGuiInternalEvent(subject, message));
 	}
@@ -205,6 +212,12 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 					removeFolder(folder);
 					break;
 				}				
+			}
+			else if (message instanceof ClickRecentChangesGuiInternalEvent) {
+				ClickRecentChangesGuiInternalEvent folderClickEvent = (ClickRecentChangesGuiInternalEvent) message;
+				File file = new File(folderClickEvent.getFile());
+				
+				showRecentFile(file);
 			}
 			else if (message instanceof ClickTrayMenuGuiInternalEvent) {
 				ClickTrayMenuGuiInternalEvent clickEvent = (ClickTrayMenuGuiInternalEvent) message;

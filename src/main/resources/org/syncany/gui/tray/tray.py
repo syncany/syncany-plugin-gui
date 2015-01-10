@@ -28,10 +28,7 @@ import sys
 import time
 import gtk
 import pynotify
-import socket
 import threading
-import Queue
-import subprocess
 import websocket
 import appindicator
 import urllib
@@ -40,17 +37,20 @@ import re
 
 from lxml import etree
 
-def fetch_image(relativeUrl):
-	global baseUrl, images_map
+def fetch_image(relative_url):
+	global base_url, images_map
 	
-	#caching images in dictionary
-	if not relativeUrl in images_map:
-		tf = tempfile.NamedTemporaryFile(delete=True)
-		fname,x = urllib.urlretrieve(baseUrl + relativeUrl, tf.name +".png")
-		do_print("Caching image '" + relativeUrl + "' to '" + fname + "'")
-		images_map[relativeUrl] = fname
+	# Caching images
+	if not relative_url in images_map:
+		temp_image_file = tempfile.NamedTemporaryFile(prefix='syncanytray', suffix='.png', delete=False)
+		filename, headers = urllib.urlretrieve(base_url + relative_url, temp_image_file.name)
+		
+		do_print("Caching image '" + relative_url + "' to '" + filename + "'")
+		images_map[relative_url] = filename
+		
+		temp_image_file.close()
 	
-	return images_map[relativeUrl]
+	return images_map[relative_url]
 
 def do_notify(request):
 	do_print("Creating notification ...")
@@ -67,7 +67,7 @@ def do_notify(request):
 		gtk.gdk.threads_leave()
 	except:
 		do_print(sys.exc_info())
-		do_print("Displaying notifcation via pynotify failed; trying notify-send ...")
+		do_print("Displaying notification via pynotify failed; trying notify-send ...")
 
 		os.system("notify-send -t 2000 -i '{0}' '{1}' '{2}'".format(image, request["summary"], request["body"]))
 		
@@ -96,10 +96,28 @@ def do_update_text(request):
 	# Rebuild menu
 	do_update_menu(watches_last_request)	
 	
+	return None	
+	
+def do_update_recent_changes(request):
+	global recent_changes, watches_last_request
+
+	# File entries
+	files = request.xpath("//file")
+
+	# Delete all entries, and add new ones
+	del recent_changes[:]
+	
+	for afile in files:
+		recent_changes.append(afile.text)
+					
+	# Rebuild menu
+	do_update_menu(watches_last_request)	
+	
 	return None			
+			
 	
 def do_update_menu(request):
-	global menu, status_texts, status_text_default, watches_last_request
+	global menu, status_texts, status_text_default, recent_changes, watches_last_request
 
 	gtk.gdk.threads_enter()
 	
@@ -136,11 +154,29 @@ def do_update_menu(request):
 	menu.append(gtk.SeparatorMenuItem())	
 
 	# New ...
-	menu_item_donate = gtk.MenuItem("New folder ...")
-	menu_item_donate.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
+	menu_item_new_folder = gtk.MenuItem("Add folder ...")
+	menu_item_new_folder.connect("activate", menu_item_clicked,  "<clickTrayMenuGuiInternalEvent><action>NEW</action></clickTrayMenuGuiInternalEvent>")
 	
-	menu.append(menu_item_donate)	
+	menu.append(menu_item_new_folder)	
+	
+	if recent_changes:
+		# Create submenu
+		sub_menu_recent_changes = gtk.Menu()
 
+		# Create submenu entries
+		for afile in recent_changes:
+			menu_item_recent_changes_file = gtk.MenuItem(os.path.basename(afile))
+			menu_item_recent_changes_file.connect("activate", menu_item_recent_changes_file_clicked, afile)
+			menu_item_recent_changes_file.set_tooltip_text(afile)
+		
+			sub_menu_recent_changes.append(menu_item_recent_changes_file)		
+			
+		# Create folder menu item
+		menu_item_recent_changes = gtk.MenuItem("Recent changes")
+		menu_item_recent_changes.set_submenu(sub_menu_recent_changes)
+	
+		menu.append(menu_item_recent_changes)			
+	
 	# ---
 	menu.append(gtk.SeparatorMenuItem())	
 
@@ -207,7 +243,7 @@ def do_update_menu(request):
 
 	# Quit
 	menu_item_quit = gtk.MenuItem("Exit")
-	menu_item_quit.connect("activate", menu_item_clicked, "<clickTrayMenuGuiInternalEvent><action>EXIT</action></clickTrayMenuGuiInternalEvent>")
+	menu_item_quit.connect("activate", menu_item_exit_clicked)
 		
 	menu.append(menu_item_quit)	
 	
@@ -239,10 +275,20 @@ def init_tray_icon():
 def menu_item_clicked(widget, message):
 	do_print("Menu item '" + message + "' clicked.")
 	ws.send(message)
+
+def menu_item_exit_clicked(widget):
+	message = "<clickTrayMenuGuiInternalEvent><action>EXIT</action></clickTrayMenuGuiInternalEvent>"
+
+	do_print("Menu item EXIT clicked (Sending '" + message + "')")
+	ws.send(message)
 	
-	if message == "<exitGuiInternalEvent></exitGuiInternalEvent>":
-		time.sleep(2)
-		sys.exit(0)
+	delete_images()
+	time.sleep(2)
+	sys.exit(0)
+
+def menu_item_recent_changes_file_clicked(widget, afile):
+	do_print("Opening file/folder '" + afile + "' ...")
+	ws.send("<clickRecentChangesGuiInternalEvent><file>" + afile + "</file></clickRecentChangesGuiInternalEvent>")
 
 def menu_item_folder_open_clicked(widget, folder):
 	do_print("Opening folder '" + folder + "' ...")
@@ -294,6 +340,9 @@ def on_ws_message(ws, message):
 		
 		elif messageType == "updateStatusTextGuiInternalEvent":
 			response = do_update_text(request)
+
+		elif messageType == "updateRecentChangesGuiInternalEvent":
+			response = do_update_recent_changes(request)
 			
 		else:
 			do_print("UNKNOWN MESSAGE. IGNORING.")			
@@ -317,11 +366,11 @@ def on_ws_open(ws):
 	do_print("WS open")
 
 def ws_start_client():
-	global ws, wsUrl
+	global ws, ws_url
 
-	do_print("Connecting to Web Socket " + wsUrl)
+	do_print("Connecting to Web Socket " + ws_url)
 	
-	ws = websocket.WebSocketApp(wsUrl,
+	ws = websocket.WebSocketApp(ws_url,
 		on_message = on_ws_message,
 		on_error = on_ws_error,
 		on_close = on_ws_close,
@@ -330,9 +379,17 @@ def ws_start_client():
 	ws.on_open = on_ws_open
 
 	ws.run_forever()
+	
+def delete_images():
+	global images_map
+	
+	for relative_url, temp_file in images_map.iteritems():
+		try:
+			os.remove(temp_file)
+		except:
+			pass
 
 def main():
-	# Init application and menu'''
 	init_tray_icon()
 	init_menu()	
 	
@@ -342,15 +399,14 @@ def main():
 
 	gtk.gdk.threads_init()
 	gtk.gdk.threads_enter()
-	gtk.main()
-		
-	#gtk.gdk.threads_leave()
+	gtk.main()	
 
 if __name__ == "__main__":
 	# Global variables
 	images_map = dict()
 	status_text_default = "All files in sync"
 	status_texts = dict()
+	recent_changes = []
 	watches_last_request = None
 	
 	indicator = None

@@ -46,7 +46,9 @@ public class PluginSelectPanel extends Panel {
 
 		WidgetDecorator.normal(descriptionLabel);
 
-		pluginSelectComposite = new PluginSelectComposite(this, SWT.NONE);		
+		// Plugin composite
+		pluginSelectComposite = new PluginSelectComposite(this, SWT.NONE);	
+		pluginSelectComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 	}
 
 	public TransferPlugin getSelectedPlugin() {

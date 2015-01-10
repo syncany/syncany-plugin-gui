@@ -19,8 +19,11 @@ package org.syncany.gui.tray;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,23 +48,24 @@ import org.syncany.operations.daemon.messages.DaemonReloadedExternalEvent;
 import org.syncany.operations.daemon.messages.DownChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownDownloadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.DownEndSyncExternalEvent;
-import org.syncany.operations.daemon.messages.DownStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.ExitGuiInternalEvent;
 import org.syncany.operations.daemon.messages.GenlinkFolderRequest;
 import org.syncany.operations.daemon.messages.GenlinkFolderResponse;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
+import org.syncany.operations.daemon.messages.LogFolderRequest;
+import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
-import org.syncany.operations.daemon.messages.UpStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
 import org.syncany.operations.init.GenlinkOperationOptions;
+import org.syncany.operations.log.LogOperationOptions;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -79,7 +83,7 @@ import com.google.common.eventbus.Subscribe;
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
 public abstract class TrayIcon {
-	private static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
+	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
 	private static int REFRESH_TIME = 800;
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
@@ -90,27 +94,31 @@ public abstract class TrayIcon {
 	private final TrayIconTheme theme;
 	protected WizardDialog wizard;
 	protected PreferencesDialog preferences;
-	
+
 	protected GuiConfigTO guiConfig;
 	protected GuiEventBus eventBus;
 
-	private Thread systemTrayAnimationThread;
+	private Thread animationThread;
 	private AtomicBoolean syncing;
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
+	protected RecentFileChanges recentFileChanges;
+
 
 	public TrayIcon(Shell shell, TrayIconTheme theme) {
 		this.trayShell = shell;
 		this.theme = theme;
 
 		this.guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
-		
+
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 
 		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
+
+		this.recentFileChanges = new RecentFileChanges(this);
 
 		initAnimationThread();
 		initTrayImage();
@@ -129,7 +137,7 @@ public abstract class TrayIcon {
 			}
 		});
 	}
-	
+
 	protected void showPreferences() {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
@@ -146,6 +154,10 @@ public abstract class TrayIcon {
 
 	protected void showFolder(File folder) {
 		DesktopUtil.launch(folder.getAbsolutePath());
+	}
+
+	protected void showRecentFile(File file) {
+		DesktopUtil.launch(file.getAbsolutePath());
 	}
 
 	protected void showReportIssue() {
@@ -172,26 +184,26 @@ public abstract class TrayIcon {
 	protected void removeFolder(File folder) {
 		eventBus.post(new RemoveWatchManagementRequest(folder));
 	}
-	
+
 	protected void copyLink(File folder) {
 		GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
 		genlinkOptions.setShortUrl(true);
-		
+
 		GenlinkFolderRequest genlinkRequest = new GenlinkFolderRequest();
 		genlinkRequest.setRoot(folder.getAbsolutePath());
 		genlinkRequest.setOptions(genlinkOptions);
-		
+
 		eventBus.post(genlinkRequest);
 	}
-	
+
 	@Subscribe
-	public void onGenlinkResponseReceived(GenlinkFolderResponse genlinkResponse) {		
+	public void onGenlinkResponseReceived(GenlinkFolderResponse genlinkResponse) {
 		DesktopUtil.copyToClipboard(genlinkResponse.getResult().getShareLink());
-		
+
 		if (guiConfig.isNotifications()) {
 			String subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.subject");
 			String message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.message");
-			
+
 			displayNotification(subject, message);
 		}
 	}
@@ -234,6 +246,33 @@ public abstract class TrayIcon {
 			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
 		}
+
+		// Get recent changes
+		recentFileChanges.clear();
+		sendLogRequests(listWatchesResponse.getWatches());
+	}
+
+	private void sendLogRequests(final ArrayList<Watch> watchedFolders) {
+		if (watchedFolders.size() > 0) {
+			Timer logRequestTimer = new Timer();
+
+			logRequestTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					for (Watch watch : watchedFolders) {
+						LogOperationOptions logOptions = new LogOperationOptions();
+						logOptions.setMaxDatabaseVersionCount(RecentFileChanges.RECENT_CHANGES_COUNT);
+						logOptions.setMaxFileHistoryCount(RecentFileChanges.RECENT_CHANGES_COUNT);
+
+						LogFolderRequest logRequest = new LogFolderRequest();
+						logRequest.setRoot(watch.getFolder().getAbsolutePath());
+						logRequest.setOptions(logOptions);
+
+						eventBus.post(logRequest);
+					}
+				}
+			}, 2000);
+		}
 	}
 
 	@Subscribe
@@ -249,11 +288,6 @@ public abstract class TrayIcon {
 	@Subscribe
 	public void onWatchEndEventReceived(WatchEndSyncExternalEvent watchEndEvent) {
 		updateSyncStatus(watchEndEvent.getRoot(), false);
-	}
-
-	@Subscribe
-	public void onUpStartEventReceived(UpStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.up.start"));
 	}
 
 	@Subscribe
@@ -297,6 +331,7 @@ public abstract class TrayIcon {
 
 	@Subscribe
 	public void onUpEndEventReceived(UpEndSyncExternalEvent syncEvent) {
+		recentFileChanges.updateRecentFiles(syncEvent.getRoot(), new Date(), syncEvent.getResult());
 		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
 
@@ -310,18 +345,16 @@ public abstract class TrayIcon {
 	}
 
 	@Subscribe
-	public void onDownStartEventReceived(DownStartSyncExternalEvent syncEvent) {
-		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.down.start"));
-	}
-
-	@Subscribe
 	public void onDownEndEventReceived(DownEndSyncExternalEvent downEndSyncEvent) {
-		// Display notification
-		boolean notificationsEnabled = guiConfig.isNotifications();
+		String root = downEndSyncEvent.getRoot();
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
-		if (notificationsEnabled && changeSet.hasChanges()) {
-			String rootName = new File(downEndSyncEvent.getRoot()).getName();
+		// Update recent changes entries
+		recentFileChanges.updateRecentFiles(root, new Date(), changeSet);
+
+		// Display notification (if enabled)
+		if (guiConfig.isNotifications() && changeSet.hasChanges()) {
+			String rootName = new File(root).getName();
 			int totalChangedFiles = changeSet.getNewFiles().size() + changeSet.getChangedFiles().size() + changeSet.getDeletedFiles().size();
 
 			String subject = "";
@@ -390,14 +423,19 @@ public abstract class TrayIcon {
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
-	
+
 	@Subscribe
 	public void onGuiConfigChanged(GuiConfigChangedGuiInternalEvent guiConfigChangedEvent) {
-		this.guiConfig = guiConfigChangedEvent.getNewGuiConfig();
+		guiConfig = guiConfigChangedEvent.getNewGuiConfig();
+	}
+
+	@Subscribe
+	public void onLogResponse(LogFolderResponse logResponse) {
+		recentFileChanges.updateRecentFiles(logResponse.getRoot(), logResponse.getResult().getDatabaseVersions());
 	}
 
 	private void initAnimationThread() {
-		systemTrayAnimationThread = new Thread(new Runnable() {
+		animationThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while (true) {
@@ -435,7 +473,7 @@ public abstract class TrayIcon {
 			}
 		});
 
-		systemTrayAnimationThread.start();
+		animationThread.start();
 	}
 
 	private void initTrayImage() {
@@ -463,6 +501,7 @@ public abstract class TrayIcon {
 		syncing.set(syncingFolders.size() > 0);
 	}
 
+
 	// Abstract methods
 
 	protected abstract void setTrayImage(TrayIconImage image);
@@ -470,6 +509,8 @@ public abstract class TrayIcon {
 	protected abstract void setWatchedFolders(List<File> folders);
 
 	protected abstract void setStatusText(String root, String statusText);
+
+	protected abstract void setRecentChanges(List<File> recentFiles);
 
 	protected abstract void displayNotification(String subject, String message);
 

@@ -130,6 +130,7 @@ _sy() {
 
 	LOG_OPTIONS="\
 		-n --database-count\
+		-s --database-start\		
 		-f --file-count\
 		-x --exclude-empty"
 		
@@ -138,8 +139,10 @@ _sy() {
 		-t --types\
 		-D --date\
 		-r --recursive\
+		-q --deleted\
 		-f --full-checksums\
-		-g --group"
+		-g --group\
+		-H --file-history"
 
 	LS_TYPES="\
 		t\
