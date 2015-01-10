@@ -30,7 +30,6 @@ import org.syncany.operations.daemon.messages.RestoreFolderRequest;
 import org.syncany.operations.daemon.messages.RestoreFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
 import org.syncany.operations.restore.RestoreOperationOptions;
-import org.syncany.operations.restore.RestoreOperationResult.RestoreResultCode;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
 

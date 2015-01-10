@@ -1,6 +1,7 @@
 package org.syncany.gui.history;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.SWT;
@@ -256,7 +257,7 @@ public class FileTreeComposite extends Composite {
 	}
 
 	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
-		Map<String, FileVersion> fileVersions = lsResponse.getResult().getFileTree();
+		List<FileVersion> fileVersions = lsResponse.getResult().getFileList();
 		
 		// Find parent path (where to attach new items)
 		TreeItem parentTreeItem = findTreeItemByPath(lsRequest.getOptions().getPathExpression());
@@ -266,7 +267,7 @@ public class FileTreeComposite extends Composite {
 		}
 		
 		// Create new items
-		for (FileVersion fileVersion : fileVersions.values()) {
+		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() == FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
@@ -288,7 +289,7 @@ public class FileTreeComposite extends Composite {
 			}
 		}
 		
-		for (FileVersion fileVersion : fileVersions.values()) {
+		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() != FileType.FOLDER) {
 				TreeItem treeItem = createTreeItem(parentTreeItem);
 				treeItem.setData(fileVersion);
