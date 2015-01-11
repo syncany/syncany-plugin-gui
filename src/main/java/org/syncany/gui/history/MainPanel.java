@@ -173,7 +173,7 @@ public class MainPanel extends Panel {
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {
 						state.setSelectedRoot(watches.get(selectionIndex).getFolder().getAbsolutePath());
 						state.setSelectedDate(null);
-						state.setSelectedFileVersion(null);
+						state.setSelectedFileHistoryId(null);
 						state.getExpandedFilePaths().clear();
 						
 						refreshDateSlider();
@@ -442,5 +442,9 @@ public class MainPanel extends Panel {
 	@Override
 	public boolean validatePanel() {
 		return true;
+	}
+
+	public MainPanelState getState() {
+		return state;
 	}	
 }

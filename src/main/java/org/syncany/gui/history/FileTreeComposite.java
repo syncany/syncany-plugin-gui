@@ -53,7 +53,6 @@ public class FileTreeComposite extends Composite {
 	private MainPanelState state;
 	
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
-	private String selectAfterLoadFilePath;
 	
 	private Tree fileTree;
 	
@@ -66,7 +65,6 @@ public class FileTreeComposite extends Composite {
 		this.state = state;		
 				
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-		this.selectAfterLoadFilePath = null;
 		
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);	
@@ -101,14 +99,14 @@ public class FileTreeComposite extends Composite {
 		fileTree.addListener(SWT.Selection, new Listener() {
 			public void handleEvent(Event e) {
 				TreeItem treeItem = (TreeItem) e.item;
-				selectTreeItem(treeItem);
+				selectItem(treeItem);
 			}
 		});
 		
 		fileTree.addMouseListener(new MouseAdapter() {			
 			@Override
 			public void mouseDoubleClick(MouseEvent e) {
-				doubleClickTreeItem();
+				doubleClickSelectedItem();
 			}
 		});
 		
@@ -142,14 +140,13 @@ public class FileTreeComposite extends Composite {
 		});		
 	}	
 
-	protected void doubleClickTreeItem() {
+	protected void doubleClickSelectedItem() {
 		TreeItem[] selectedTreeItems = fileTree.getSelection();
 		
 		if (selectedTreeItems != null && selectedTreeItems.length > 0) {
 			TreeItem selectedItem = selectedTreeItems[0];
-			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(selectedItem.getData());
-			
-			if (!isRetrievingItem) {
+
+			if (!isRetrievingItem(selectedItem)) {
 				FileVersion fileVersion = (FileVersion) selectedItem.getData();
 				
 				if (fileVersion.getType() == FileType.FOLDER) {					
@@ -169,26 +166,17 @@ public class FileTreeComposite extends Composite {
 		}
 	}
 
-	private void selectTreeItem(TreeItem treeItem) {
-		boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());
-		
-		if (!isRetrievingItem) {
+	private void selectItem(TreeItem treeItem) {
+		if (!isRetrievingItem(treeItem)) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();
-			state.setSelectedFileVersion(fileVersion);			
+			state.setSelectedFileHistoryId(fileVersion.getFileHistoryId());			
 		}
 	}
 
 	private void expandTreeItem(TreeItem treeItem) {
-		if (treeItem.getItemCount() > 0) {
-			TreeItem firstChildItem = treeItem.getItem(0);
-			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(firstChildItem.getData());
-			
-			if (isRetrievingItem) {
-				FileVersion fileVersion = (FileVersion) treeItem.getData();
-				
-				state.getExpandedFilePaths().add(fileVersion.getPath());
-				refreshTree(fileVersion.getPath());
-			}
+		if (hasRetrievingChildItem(treeItem)) {
+			FileVersion fileVersion = (FileVersion) treeItem.getData();							
+			refreshTree(fileVersion.getPath());
 		}
 	}
 	
@@ -222,24 +210,25 @@ public class FileTreeComposite extends Composite {
 		if ("".equals(pathExpression)) {
 			throw new IllegalArgumentException();
 		}
-		
+				
 		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
+		
+		// Remember this as expanded path
+		state.getExpandedFilePaths().add(pathExpression);
 		
 		// Find all sub-paths, a/b/c/ -> [a, a/b, a/b/c]
 		List<String> allPaths = getPaths(pathExpression + "/");
 		List<String> notLoadedPaths = new ArrayList<>();
 		
 		for (String path : allPaths) {
-			TreeItem treeItem = findTreeItemByPath(path);
+			TreeItem treeItem = findItemByPath(path);
 			
 			if (!notLoadedPaths.isEmpty()) {
 				notLoadedPaths.add(path);
 				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
 			}
-			else if (treeItem != null) {
-				boolean hasRetrievingChildItem = treeItem.getItemCount() == 1 && RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getItems()[0].getData());
-			
-				if (hasRetrievingChildItem) {
+			else if (treeItem != null) {			
+				if (hasRetrievingChildItem(treeItem)) {
 					notLoadedPaths.add(path);
 					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
 				}
@@ -248,8 +237,6 @@ public class FileTreeComposite extends Composite {
 		
 		// If items unloaded: set 'select after load' item, and send load requests
 		if (!notLoadedPaths.isEmpty()) {
-			selectAfterLoadFilePath = pathExpression;
-						
 			for (String path : notLoadedPaths) {
 				sendLsRequest(path + "/");
 			}			
@@ -317,7 +304,7 @@ public class FileTreeComposite extends Composite {
 		List<FileVersion> fileVersions = lsResponse.getResult().getFileList();
 		
 		// Find parent path (where to attach new items)
-		TreeItem parentTreeItem = findTreeItemByPath(lsRequest.getOptions().getPathExpression());
+		TreeItem parentTreeItem = findItemByPath(lsRequest.getOptions().getPathExpression());
 		
 		if (parentTreeItem != null) {
 			parentTreeItem.removeAll();
@@ -333,13 +320,13 @@ public class FileTreeComposite extends Composite {
 		}
 		
 		// Select item
-		selectAfterLoadItem();
+		selectItemIfSelectedPathOrFileVersion();
 	}
 
 	private void createFolderItems(TreeItem parentTreeItem, List<FileVersion> fileVersions) {
 		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() == FileType.FOLDER) {
-				TreeItem treeItem = createTreeItem(parentTreeItem);
+				TreeItem treeItem = createItem(parentTreeItem);
 				treeItem.setData(fileVersion);
 				treeItem.setText(fileVersion.getName());	
 				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "folder")));
@@ -353,9 +340,7 @@ public class FileTreeComposite extends Composite {
 					refreshTree(fileVersion.getPath());
 				}
 				
-				if (state.getSelectedFileVersion() != null && state.getSelectedFileVersion().getFileHistoryId().equals(fileVersion.getFileHistoryId())) {
-					fileTree.setSelection(treeItem);
-				}
+				selectItemIfSelectedPathOrFileVersion(treeItem, fileVersion);
 			}
 		}
 	}
@@ -363,33 +348,40 @@ public class FileTreeComposite extends Composite {
 	private void createFileItems(TreeItem parentTreeItem, List<FileVersion> fileVersions) {
 		for (FileVersion fileVersion : fileVersions) {
 			if (fileVersion.getType() != FileType.FOLDER) {
-				TreeItem treeItem = createTreeItem(parentTreeItem);
+				TreeItem treeItem = createItem(parentTreeItem);
 				treeItem.setData(fileVersion);
 				treeItem.setText(new String[] { fileVersion.getName(), new PrettyTime().format(fileVersion.getLastModified())});			
 				treeItem.setImage(SWTResourceManager.getImage(String.format(TREE_ICON_RESOURCE_FORMAT, "file")));
 				
-				if (state.getSelectedFileVersion() != null && state.getSelectedFileVersion().getFileHistoryId().equals(fileVersion.getFileHistoryId())) {
-					fileTree.setSelection(treeItem);
-				}
+				selectItemIfSelectedPathOrFileVersion(treeItem, fileVersion);
 			}
+		}
+	}		
+
+	private void selectItemIfSelectedPathOrFileVersion(TreeItem treeItem, FileVersion fileVersion) {
+		if (state.getSelectedFileHistoryId() != null && state.getSelectedFileHistoryId().equals(fileVersion.getFileHistoryId())) {
+			fileTree.setSelection(treeItem);
+		}
+		else if (state.getSelectedFilePath() != null && state.getSelectedFilePath().equals(fileVersion.getPath())) {
+			fileTree.setSelection(treeItem);
 		}
 	}	
 
-	private void selectAfterLoadItem() {
-		if (selectAfterLoadFilePath != null) {
-			selectItemByPath(selectAfterLoadFilePath);
-		}
+	private void selectItemIfSelectedPathOrFileVersion() {
+		if (state.getSelectedFilePath() != null) {
+			selectItemByPath(state.getSelectedFilePath());
+		}		
 	}
-	
+
 	private void selectItemByPath(String searchPath) {
-		TreeItem treeItem = findTreeItemByPath(searchPath);
+		TreeItem treeItem = findItemByPath(searchPath);
 		
 		if (treeItem != null) {
 			fileTree.setSelection(treeItem);
 		}
 	}
 
-	private TreeItem createTreeItem(TreeItem parentItem) {
+	private TreeItem createItem(TreeItem parentItem) {
 		if (parentItem != null) {
 			return new TreeItem(parentItem, SWT.NONE);
 		}
@@ -398,7 +390,7 @@ public class FileTreeComposite extends Composite {
 		}
 	}
 
-	private TreeItem findTreeItemByPath(String searchPath) {				
+	private TreeItem findItemByPath(String searchPath) {				
 		if ("".equals(searchPath)) {
 			return null;
 		}
@@ -408,23 +400,22 @@ public class FileTreeComposite extends Composite {
 			}
 			
 			TreeItem[] treeItems = fileTree.getItems();
-			return findTreeItem(searchPath, treeItems);			
+			return findItemByPath(searchPath, treeItems);			
 		}		
 	}
 
-	private TreeItem findTreeItem(String searchPath, TreeItem[] treeItems) {
+	private TreeItem findItemByPath(String searchPath, TreeItem[] treeItems) {
 		for (int i = 0; i < treeItems.length; i++) {
 			TreeItem treeItem = treeItems[i];
-			boolean isRetrievingItem = RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());
 			
-			if (!isRetrievingItem) {
+			if (!isRetrievingItem(treeItem)) {
 				FileVersion fileVersion = (FileVersion) treeItem.getData();
 								
 				if (fileVersion.getPath().equals(searchPath)) {
 					return treeItem;
 				}
 				else if (treeItem.getItemCount() > 0) {
-					TreeItem searchItem = findTreeItem(searchPath, treeItem.getItems());
+					TreeItem searchItem = findItemByPath(searchPath, treeItem.getItems());
 					
 					if (searchItem != null) {
 						return searchItem;
@@ -434,5 +425,13 @@ public class FileTreeComposite extends Composite {
 		}			
 			
 		return null;
+	}
+	
+	private boolean isRetrievingItem(TreeItem treeItem) {
+		return RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());		
+	}
+	
+	private boolean hasRetrievingChildItem(TreeItem treeItem) {
+		return treeItem.getItemCount() == 1 && isRetrievingItem(treeItem.getItems()[0]);
 	}
 }

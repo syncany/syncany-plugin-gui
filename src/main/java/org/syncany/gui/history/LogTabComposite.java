@@ -50,6 +50,7 @@ public class LogTabComposite extends Composite {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private MainPanel mainPanel;
+	private MainPanelState mainPanelState;
 	private LogComposite logComposite;
 	
 	private String root;
@@ -61,6 +62,7 @@ public class LogTabComposite extends Composite {
 		super(logMainComposite, SWT.BORDER);	
 		
 		this.mainPanel = mainPanel;
+		this.mainPanelState = mainPanel.getState();
 		this.logComposite = logComposite;
 		
 		this.root = root;
@@ -170,10 +172,12 @@ public class LogTabComposite extends Composite {
 		jumpToTreeMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				mainPanel.showTree();
-
+				mainPanelState.setSelectedFilePath(relativeFilePath);
+				
 				mainPanel.setSelectedDate(databaseVersion.getDate());
 				mainPanel.refreshTree(relativeFilePath);
+				
+				mainPanel.showTree();
 			}
 		});
 		

@@ -20,7 +20,7 @@ package org.syncany.gui.history;
 import java.util.Date;
 import java.util.Set;
 
-import org.syncany.database.FileVersion;
+import org.syncany.database.PartialFileHistory.FileHistoryId;
 
 import com.google.common.collect.Sets;
 
@@ -30,13 +30,15 @@ import com.google.common.collect.Sets;
 public class MainPanelState {
 	private String selectedRoot;
 	private Date selectedDate;
-	private FileVersion selectedFileVersion;
+	private FileHistoryId selectedFileHistoryId;
+	private String selectedFilePath;
 	private Set<String> expandedFilePaths;
 	
 	public MainPanelState() {
 		this.selectedRoot = null;
 		this.selectedDate = null;		
-		this.selectedFileVersion = null;		
+		this.selectedFileHistoryId = null;	
+		this.selectedFilePath = null;
 		this.expandedFilePaths = Sets.newConcurrentHashSet();
 	}
 	
@@ -56,14 +58,24 @@ public class MainPanelState {
 		this.selectedDate = selectedDate;
 	}
 	
-	public FileVersion getSelectedFileVersion() {
-		return selectedFileVersion;
+	public FileHistoryId getSelectedFileHistoryId() {
+		return selectedFileHistoryId;
+	}
+
+	public void setSelectedFileHistoryId(FileHistoryId selectedFileHistoryId) {
+		this.selectedFileHistoryId = selectedFileHistoryId;
+		this.selectedFilePath = null;
 	}
 	
-	public void setSelectedFileVersion(FileVersion selectedFileVersion) {
-		this.selectedFileVersion = selectedFileVersion;
+	public String getSelectedFilePath() {
+		return selectedFilePath;
 	}
-	
+
+	public void setSelectedFilePath(String selectedFilePath) {
+		this.selectedFilePath = selectedFilePath;
+		this.selectedFileHistoryId = null;
+	}
+
 	public Set<String> getExpandedFilePaths() {
 		return expandedFilePaths;
 	}
