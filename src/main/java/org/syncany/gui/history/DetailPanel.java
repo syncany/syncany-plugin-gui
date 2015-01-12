@@ -59,36 +59,23 @@ public class DetailPanel extends Panel {
 	private static final int COLUMN_INDEX_LAST_MODIFIED = 8;
 	private static final int COLUMN_INDEX_UPDATED = 9;
 	
-	private Table historyTable;	
-	private Button restoreButton;
+	private DetailPanelListener listener;
 	
-	private String selectedRoot;
-	private PartialFileHistory selectedFileHistory;
-	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
+	private Table historyTable;	
+	private Button restoreButton;	
 
-	private GuiEventBus eventBus;
-
-	public DetailPanel(HistoryDialog parentDialog, Composite composite, int style) {
-		super(parentDialog, composite, style);
+	public DetailPanel(Composite composite, int style, DetailPanelListener listener) {
+		super(composite, style);
 
 		this.setBackgroundImage(null);
 		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
 		
-		this.historyTable = null;
-		this.restoreButton = null;
+		this.listener = listener;
 		
-		this.selectedRoot = null;
-		this.selectedFileHistory = null;		
-		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);	
+		this.historyTable = null;
+		this.restoreButton = null;			
 		
 		this.createContents();
-	}
-	
-	protected HistoryDialog getParentDialog() {
-		return (HistoryDialog) parentDialog;
 	}
 
 	private void createContents() {
@@ -115,7 +102,7 @@ public class DetailPanel extends Panel {
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				getParentDialog().showTree();
+				listener.onClickBackButton();
 			}
 		});
 		
@@ -319,22 +306,9 @@ public class DetailPanel extends Panel {
 			TableItem tableItem = selectedItems[0];
 			FileVersion fileVersion = (FileVersion) tableItem.getData();
 			
-			RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
-			restoreOptions.setFileHistoryId(fileVersion.getFileHistoryId());
-			restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
-			
-			RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
-			restoreRequest.setRoot(selectedRoot);
-			restoreRequest.setOptions(restoreOptions);
-			
-			eventBus.post(restoreRequest);
+			listener.onClickRestoreButton(fileVersion);			
 		}		
-	}
-	
-	@Subscribe
-	public void onRestoreResponseReceived(RestoreFolderResponse restoreResponse) {
-		System.out.println("restored to " + restoreResponse.getResult().getTargetFile());
-	}
+	}	
 
 	@Override
 	public boolean validatePanel() {

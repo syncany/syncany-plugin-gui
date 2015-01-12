@@ -146,7 +146,7 @@ public abstract class TrayIcon {
 			@Override
 			public void run() {
 				if (history == null) {
-					history = new HistoryDialog(trayShell);
+					history = new HistoryDialog();
 					history.open();
 
 					history = null;

@@ -49,8 +49,7 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 public class LogTabComposite extends Composite {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
-	private MainPanel mainPanel;
-	private MainPanelState mainPanelState;
+	private LogCompositeListener listener;
 	private LogComposite logComposite;
 	
 	private String root;
@@ -58,11 +57,10 @@ public class LogTabComposite extends Composite {
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public LogTabComposite(MainPanel mainPanel, LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion) {
+	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion, LogCompositeListener listener) {
 		super(logMainComposite, SWT.BORDER);	
 		
-		this.mainPanel = mainPanel;
-		this.mainPanelState = mainPanel.getState();
+		this.listener = listener;
 		this.logComposite = logComposite;
 		
 		this.root = root;
@@ -163,7 +161,7 @@ public class LogTabComposite extends Composite {
 		jumpToDetailViewMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				// mainPanel.showDetails(relativeFilePath);
+				listener.onFileJumpToDetail(databaseVersion, relativeFilePath);
 			}
 		});
 		
@@ -172,12 +170,7 @@ public class LogTabComposite extends Composite {
 		jumpToTreeMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				mainPanelState.setSelectedFilePath(relativeFilePath);
-				
-				mainPanel.setSelectedDate(databaseVersion.getDate());
-				mainPanel.refreshTree(relativeFilePath);
-				
-				mainPanel.showTree();
+				listener.onFileJumpToTree(databaseVersion, relativeFilePath);
 			}
 		});
 		
@@ -188,7 +181,7 @@ public class LogTabComposite extends Composite {
 		openFileMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				launchOrDisplayError(file);
+				listener.onFileOpen(databaseVersion, relativeFilePath);				
 			}
 		});
 		
@@ -197,7 +190,7 @@ public class LogTabComposite extends Composite {
 		openFolderMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				launchOrDisplayError(file.getParentFile());
+				listener.onFileOpenContainingFolder(databaseVersion, relativeFilePath);				
 			}
 		});
 		
@@ -208,25 +201,12 @@ public class LogTabComposite extends Composite {
 		copyPathMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				DesktopUtil.copyToClipboard(file.getAbsolutePath());
+				listener.onFileCopytoClipboard(databaseVersion, relativeFilePath);				
 			}
 		});
 		
 		fileMenu.setDefaultItem(jumpToDetailViewMenuItem);	
 		fileLabel.setMenu(fileMenu);
-	}
-	
-	private void launchOrDisplayError(File file) {
-		if (file.exists()) {
-			DesktopUtil.launch(file.getAbsolutePath());	
-		}
-		else {
-			MessageBox messageBox = new MessageBox(getShell(), SWT.ICON_WARNING | SWT.OK);	        
-	        messageBox.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.title"));
-	        messageBox.setMessage(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.description", file.getAbsolutePath()));
-	        
-	        messageBox.open();
-		}
 	}
 
 	private void addFileMouseListeners(final Label fileLabel) {
@@ -298,12 +278,12 @@ public class LogTabComposite extends Composite {
 		control.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {
-				mainPanel.setSelectedDate(databaseVersion.getDate());
+				listener.onSelectDatabaseVersion(databaseVersion);
 			}
 			
 			@Override
 			public void mouseDoubleClick(MouseEvent e) {
-				mainPanel.showTree();
+				listener.onDoubleClickDatabaseVesion(databaseVersion);
 			}
 		});
 		

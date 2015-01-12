@@ -49,25 +49,13 @@ public class FileTreeComposite extends Composite {
 	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + FileTreeComposite.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
 	
-	private MainPanel mainPanel;
-	private MainPanelState state;
-	
-	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
-	
+	private FileTreeCompositeListener listener;	
 	private Tree fileTree;
 	
-	private GuiEventBus eventBus;
-
-	public FileTreeComposite(MainPanel mainPanel, MainPanelState state, Composite parent, int style) {
+	public FileTreeComposite(Composite parent, int style, FileTreeCompositeListener fileTreeListener) {
 		super(parent, style);
 
-		this.mainPanel = mainPanel;
-		this.state = state;		
-				
-		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-		
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);	
+		this.listener = fileTreeListener;				
 		
 		this.createContents();
 	}	
@@ -160,7 +148,7 @@ public class FileTreeComposite extends Composite {
 					selectedItem.setExpanded(!selectedItem.getExpanded());
 				}
 				else {
-					mainPanel.showDetails(fileVersion);
+					listener.onDoubleClickItem(fileVersion);
 				}
 			}
 		}
@@ -169,136 +157,23 @@ public class FileTreeComposite extends Composite {
 	private void selectItem(TreeItem treeItem) {
 		if (!isRetrievingItem(treeItem)) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();
-			state.setSelectedFileHistoryId(fileVersion.getFileHistoryId());			
+			listener.onSelectItem(fileVersion);			
 		}
 	}
 
 	private void expandTreeItem(TreeItem treeItem) {
 		if (hasRetrievingChildItem(treeItem)) {
-			FileVersion fileVersion = (FileVersion) treeItem.getData();							
-			refreshTree(fileVersion.getPath());
+			FileVersion fileVersion = (FileVersion) treeItem.getData();		
+			listener.onExpandItem(fileVersion);
 		}
 	}
 	
 	private void collapseTreeItem(TreeItem treeItem) {
 		final FileVersion fileVersion = (FileVersion) treeItem.getData();
-		
-		// Remove all children items from saved expanded paths
-		Iterables.removeIf(state.getExpandedFilePaths(), new Predicate<String>() {
-			@Override
-			public boolean apply(String expandedPath) {				
-				return expandedPath.startsWith(fileVersion.getPath());
-			}			
-		});		
+		listener.onCollapseItem(fileVersion);		
 	}
 
-	public void safeDispose() {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {	
-				eventBus.unregister(FileTreeComposite.this);
-			}
-		});
-	}		
-
-	public void resetAndRefresh() {
-		fileTree.removeAll();
-		refreshRoot();
-	}
 	
-	public void refreshTree(String pathExpression) {
-		if ("".equals(pathExpression)) {
-			throw new IllegalArgumentException();
-		}
-				
-		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
-		
-		// Remember this as expanded path
-		state.getExpandedFilePaths().add(pathExpression);
-		
-		// Find all sub-paths, a/b/c/ -> [a, a/b, a/b/c]
-		List<String> allPaths = getPaths(pathExpression + "/");
-		List<String> notLoadedPaths = new ArrayList<>();
-		
-		for (String path : allPaths) {
-			TreeItem treeItem = findItemByPath(path);
-			
-			if (!notLoadedPaths.isEmpty()) {
-				notLoadedPaths.add(path);
-				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
-			}
-			else if (treeItem != null) {			
-				if (hasRetrievingChildItem(treeItem)) {
-					notLoadedPaths.add(path);
-					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
-				}
-			}
-		}
-		
-		// If items unloaded: set 'select after load' item, and send load requests
-		if (!notLoadedPaths.isEmpty()) {
-			for (String path : notLoadedPaths) {
-				sendLsRequest(path + "/");
-			}			
-		}
-		else {
-			selectItemByPath(pathExpression);
-		}
-	}
-	
-	private void refreshRoot() {
-		sendLsRequest("");
-	}
-	
-	private void sendLsRequest(String pathExpression) {
-		// Date
-		Date browseDate = (state.getSelectedDate() != null) ? state.getSelectedDate() : new Date();
-		
-		// Create list request
-		LsOperationOptions lsOptions = new LsOperationOptions();
-		
-		lsOptions.setPathExpression(pathExpression);
-		lsOptions.setDate(browseDate);
-		lsOptions.setRecursive(false);
-		lsOptions.setFetchHistories(false);
-		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.FOLDER, FileType.SYMLINK));
-		
-		LsFolderRequest lsRequest = new LsFolderRequest();
-		
-		lsRequest.setRoot(state.getSelectedRoot());
-		lsRequest.setOptions(lsOptions);
-		
-		// Send request
-		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
-		eventBus.post(lsRequest);		
-	}
-	
-	private List<String> getPaths(String pathExpression) {
-		List<String> paths = new ArrayList<>();
-		int previousIndexOf = -1;
-		
-		while (-1 != (previousIndexOf = pathExpression.indexOf('/', previousIndexOf + 1))) {
-			paths.add(pathExpression.substring(0, previousIndexOf));
-		}
-		
-		return paths;
-	}	
-
-	@Subscribe
-	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				fileTree.setEnabled(true);
-				
-				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
-				
-				if (lsRequest != null) {
-					updateTree(lsRequest, lsResponse);
-				}
-			}
-		});		
-	}
 
 	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
 		List<FileVersion> fileVersions = lsResponse.getResult().getFileList();

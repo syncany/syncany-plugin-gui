@@ -43,7 +43,7 @@ import com.google.common.eventbus.Subscribe;
 public class MainPanel extends Panel {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
-	private MainPanelState state;
+	private MainPanelListener listener;
 	
 	private Combo rootSelectCombo;
 	private Label dateLabel;
@@ -58,48 +58,24 @@ public class MainPanel extends Panel {
 	private Timer dateSliderChangeTimer;
 	
 	private Button toggleTreeButton;
-	private Button toggleLogButton;
-	
-	private ListWatchesManagementRequest pendingListWatchesRequest;
+	private Button toggleLogButton;	
 
-	private GuiEventBus eventBus;
+	public MainPanel(Composite composite, int style, MainPanelListener mainPanelListener, FileTreeCompositeListener fileTreeListener, LogCompositeListener logListener) {
+		super(composite, style);
 
-	public MainPanel(HistoryDialog parentDialog, Composite composite, int style) {
-		super(parentDialog, composite, style);
-
-		this.setBackgroundImage(null);
-		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
-		
-		this.state = new MainPanelState();
+		this.listener = mainPanelListener;
 		
 		this.dateLabelPrettyTime = true;
 		this.dateSliderValue = new AtomicInteger(-1);
 		this.dateSliderChangeTimer = null;
-		
-		this.pendingListWatchesRequest = null;
-		
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);	
-		
-		this.createContents();
-	}
-	
-	public HistoryDialog getParentDialog() {
-		return (HistoryDialog) parentDialog;
-	}
-
-	private void createContents() {
-		refreshRoots();
 		
 		createMainComposite();
 		createToggleButtons();
 		createRootSelectionCombo();
 		createDateSlider();
 		createStackComposite();
-		createFileTreeComposite();
-		createLogComposite();
-		
-		showLog();
+		createFileTreeComposite(fileTreeListener);
+		createLogComposite(logListener);		
 	}	
 
 	private void createMainComposite() {
@@ -124,7 +100,7 @@ public class MainPanel extends Panel {
 		toggleLogButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				showLog();				
+				showLog();			
 			}
 		});
 		
@@ -136,24 +112,6 @@ public class MainPanel extends Panel {
 		});				
 	}
 	
-	public void showLog() {
-		setCurrentControl(logComposite);
-
-		toggleTreeButton.setSelection(false);
-		toggleLogButton.setSelection(true);
-	}
-
-	public void showTree() {
-		setCurrentControl(fileTreeComposite);
-		
-		toggleTreeButton.setSelection(true);
-		toggleLogButton.setSelection(false);
-	}
-	
-	public void refreshTree(String file) {
-		fileTreeComposite.refreshTree(file);
-	}	
-
 	private void createRootSelectionCombo() {
 		rootSelectCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
 		
@@ -254,12 +212,12 @@ public class MainPanel extends Panel {
 		stackComposite.setLayoutData(stackCompositeGridData);
 	}
 	
-	private void createFileTreeComposite() {
-		fileTreeComposite = new FileTreeComposite(this, state, stackComposite, SWT.NONE);
+	private void createFileTreeComposite(FileTreeCompositeListener fileTreeListener) {
+		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE, fileTreeListener);
 	}
 
-	private void createLogComposite() {
-		logComposite = new LogComposite(this, state, stackComposite, SWT.NONE);
+	private void createLogComposite(LogCompositeListener logListener) {
+		logComposite = new LogComposite(stackComposite, SWT.NONE, logListener);
 	}
 
 	private void setCurrentControl(Control control) {
@@ -294,13 +252,8 @@ public class MainPanel extends Panel {
 			public void run() {		
 				Display.getDefault().syncExec(new Runnable() {
 					@Override
-					public void run() {	
-						Date newDate = getDateSliderDate();						
-						boolean listUpdateRequired = !newDate.equals(state.getSelectedDate());
-						
-						if (listUpdateRequired) {
-							setSelectedDate(newDate);							
-						}
+					public void run() {							
+						listener.onDateChanged(getDateSliderDate());
 					}					
 				});
 			}
@@ -349,24 +302,27 @@ public class MainPanel extends Panel {
 	public void showDetails(FileVersion fileVersion) {
 		getParentDialog().showDetails(state.getSelectedRoot(), fileVersion.getFileHistoryId());
 	}
+	
+	public void showLog() {
+		setCurrentControl(logComposite);
+
+		toggleTreeButton.setSelection(false);
+		toggleLogButton.setSelection(true);
+	}
+
+	public void showTree() {
+		setCurrentControl(fileTreeComposite);
+		
+		toggleTreeButton.setSelection(true);
+		toggleLogButton.setSelection(false);
+	}
 
 	public void safeDispose() {
 		fileTreeComposite.safeDispose();
 		logComposite.safeDispose();
 		
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {	
-				eventBus.unregister(MainPanel.this);
-			}
-		});
 	}	
 	
-	private void refreshRoots() {
-		pendingListWatchesRequest = new ListWatchesManagementRequest();
-		eventBus.post(pendingListWatchesRequest);		
-	}
-
 	@Subscribe
 	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
 		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
@@ -407,44 +363,9 @@ public class MainPanel extends Panel {
 		
 		eventBus.post(getHeadersRequest);
 	}
-	
-	@Subscribe
-	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
-				
-				if (headers.size() > 0) {
-					int maxValue = headers.size() - 1;
-					Date newSelectedDate = headers.get(headers.size()-1).getDate();
-					
-					dateSlider.setData(headers);
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(maxValue);
-					dateSlider.setSelection(maxValue);
-					dateSlider.setEnabled(true);
-					
-					state.setSelectedDate(newSelectedDate);	
-					setDateLabel(newSelectedDate);
-				}
-				else {
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(0);
-					dateSlider.setEnabled(false);	
-					
-					state.setSelectedDate(null);
-				}				
-			}
-		});
-	}
 
 	@Override
 	public boolean validatePanel() {
 		return true;
-	}
-
-	public MainPanelState getState() {
-		return state;
 	}	
 }
