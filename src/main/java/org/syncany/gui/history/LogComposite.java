@@ -35,34 +35,19 @@ public class LogComposite extends Composite {
 	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
 	public static final int LOG_REQUEST_FILE_COUNT = 10;
 	
-	private MainPanel mainPanel;
-	private MainPanelState state;
-	
 	private ScrolledComposite scrollComposite;
 	private Composite logContentComposite;
 	
 	private Map<Date, LogTabComposite> tabComposites;
 	private LogTabComposite highlightedTabComposite;
-	private List<Composite> loadingTabComposites;
-	
-	private LogFolderRequest pendingLogFolderRequest;
+	private List<Composite> loadingTabComposites;	
 
-	private GuiEventBus eventBus;
-
-	public LogComposite(MainPanel mainPanel, MainPanelState state, Composite parent, int style) {
+	public LogComposite(Composite parent, int style) {
 		super(parent, style);
-
-		this.mainPanel = mainPanel;
-		this.state = state;		
 				
-		this.pendingLogFolderRequest = null;
-		
 		this.tabComposites = Maps.newConcurrentMap();
 		this.highlightedTabComposite = null;
-		this.loadingTabComposites = Lists.newArrayList();
-		
-		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);	
+		this.loadingTabComposites = Lists.newArrayList();		
 		
 		this.createContents();
 	}	
@@ -84,22 +69,6 @@ public class LogComposite extends Composite {
 		highlightedTabComposite = null;
 	}
 	
-	public void resetAndRefresh() {
-		resetAndRefresh(0);
-	}
-	
-	public void resetAndRefresh(int startIndex) {
-		LogOperationOptions logOptions = new LogOperationOptions();
-		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
-		logOptions.setStartDatabaseVersionIndex(startIndex);
-		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
-		
-		pendingLogFolderRequest = new LogFolderRequest();
-		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
-		pendingLogFolderRequest.setOptions(logOptions);
-		
-		eventBus.post(pendingLogFolderRequest);
-	}
 
 	private void createMainComposite() {
 		// Main composite
@@ -156,28 +125,6 @@ public class LogComposite extends Composite {
 		scrollComposite.setRedraw(true);
 	}
 	
-	public void safeDispose() {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {	
-				eventBus.unregister(LogComposite.this);
-			}
-		});
-	}			
-	
-	@Subscribe
-	public void onLogFolderResponse(final LogFolderResponse logResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
-					updateTabs(pendingLogFolderRequest, logResponse);
-					pendingLogFolderRequest = null;
-				}				
-			}
-		});		
-	}
-
 	private void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
 		// Dispose all existing tabs (if this is the first request)
 		boolean firstRequest = logRequest.getOptions().getStartDatabaseVersionIndex() == 0;

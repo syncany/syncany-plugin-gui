@@ -29,13 +29,17 @@ import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
+import org.syncany.operations.daemon.Watch;
 import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderResponse;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
+import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
+import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.daemon.messages.RestoreFolderRequest;
 import org.syncany.operations.log.LightweightDatabaseVersion;
+import org.syncany.operations.log.LogOperationOptions;
 import org.syncany.operations.ls.LsOperationOptions;
 import org.syncany.operations.restore.RestoreOperationOptions;
 
@@ -49,8 +53,10 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class HistoryDialog extends Dialog implements MainPanelListener, FileTreeCompositeListener, LogCompositeListener, DetailPanelListener {
-	private HistoryModel model;
-	
+	// Model
+	private HistoryModel model;	
+		
+	// View
 	private Shell windowShell;	
 	private Composite stackComposite;
 	private StackLayout stackLayout;
@@ -61,24 +67,21 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	private Panel currentPanel;
 		
 	// Controller
+	private ListWatchesManagementRequest pendingListWatchesRequest;
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
 	private LogFolderRequest pendingLogFolderRequest;
 
-	private GuiEventBus eventBus;
-
+	private GuiEventBus eventBus;	
 	
-	
-	
-	
-	public HistoryDialog() {
+	public HistoryDialog() {		
+		this.model = new HistoryModel();
+		
 		this.windowShell = null;	
 		
-		
-
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
 
 		this.eventBus = GuiEventBus.getInstance();
-		this.eventBus.register(this);
+		this.eventBus.register(this);					
 	}
 
 	public void open() {
@@ -145,8 +148,8 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	}
 
 	private void buildPanels() {
-		mainPanel = new MainPanel(stackComposite, SWT.NONE, this, this, this);
-		detailPanel = new DetailPanel(this, stackComposite, SWT.NONE);
+		mainPanel = new MainPanel(stackComposite, SWT.NONE, model, this, this, this);
+		detailPanel = new DetailPanel(stackComposite, SWT.NONE, model, this);
 	}
 
 	public Shell getWindowShell() {
@@ -343,7 +346,74 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 			}
 		});		
 	}
+	
 
+	public void resetAndRefresh() {
+		resetAndRefresh(0);
+	}
+	
+	public void resetAndRefresh(int startIndex) {
+		LogOperationOptions logOptions = new LogOperationOptions();
+		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
+		logOptions.setStartDatabaseVersionIndex(startIndex);
+		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
+		
+		pendingLogFolderRequest = new LogFolderRequest();
+		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
+		pendingLogFolderRequest.setOptions(logOptions);
+		
+		eventBus.post(pendingLogFolderRequest);
+	}
+	
+
+	@Subscribe
+	public void onLogFolderResponse(final LogFolderResponse logResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
+					updateTabs(pendingLogFolderRequest, logResponse);
+					pendingLogFolderRequest = null;
+				}				
+			}
+		});		
+	}
+
+
+	@Subscribe
+	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
+		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
+			// Nullify pending request
+			pendingListWatchesRequest = null;
+
+			// Update combo box
+			Display.getDefault().syncExec(new Runnable() {
+				@Override
+				public void run() {
+					ArrayList<Watch> watches = listWatchesResponse.getWatches();
+					
+					rootSelectCombo.removeAll();
+					
+					for (Watch watch : watches) {
+						rootSelectCombo.add(watch.getFolder().getName());
+					}
+					
+					rootSelectCombo.setData(listWatchesResponse);
+					rootSelectCombo.setEnabled(true);
+					
+					if (rootSelectCombo.getItemCount() > 0) {
+						state.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
+						rootSelectCombo.select(0);
+						
+						refreshDateSlider();
+						fileTreeComposite.resetAndRefresh();
+						logComposite.resetAndRefresh();
+					}
+				}
+			});
+		}
+	}
+	
 	
 
 	@Override
@@ -446,8 +516,16 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 
 	@Override
 	public void onRootChanged(String newRoot) {
-		// TODO Auto-generated method stub
+
+		state.setSelectedRoot(watches.get(selectionIndex).getFolder().getAbsolutePath());
+		state.setSelectedDate(null);
+		state.setSelectedFileHistoryId(null);
+		state.getExpandedFilePaths().clear();
 		
+		refreshDateSlider();
+		
+		fileTreeComposite.resetAndRefresh();
+		logComposite.resetAndRefresh();
 	}
 	
 	

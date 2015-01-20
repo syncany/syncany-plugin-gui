@@ -17,10 +17,14 @@
  */
 package org.syncany.gui.history;
 
+import java.util.Date;
+import java.util.List;
+
 /**
  * @author pheckel
  *
  */
 public interface HistoryModelListener {
-
+	public void onRootsChanged(List<String> newRoots);
+	public void onDateChanged(Date newDate);
 }

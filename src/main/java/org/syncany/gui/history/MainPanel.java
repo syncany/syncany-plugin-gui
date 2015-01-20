@@ -43,6 +43,7 @@ import com.google.common.eventbus.Subscribe;
 public class MainPanel extends Panel {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
+	private HistoryModel model;
 	private MainPanelListener listener;
 	
 	private Combo rootSelectCombo;
@@ -60,9 +61,10 @@ public class MainPanel extends Panel {
 	private Button toggleTreeButton;
 	private Button toggleLogButton;	
 
-	public MainPanel(Composite composite, int style, MainPanelListener mainPanelListener, FileTreeCompositeListener fileTreeListener, LogCompositeListener logListener) {
+	public MainPanel(Composite composite, int style, HistoryModel model, MainPanelListener mainPanelListener, FileTreeCompositeListener fileTreeListener, LogCompositeListener logListener) {
 		super(composite, style);
 
+		this.model = model;
 		this.listener = mainPanelListener;
 		
 		this.dateLabelPrettyTime = true;
@@ -129,15 +131,8 @@ public class MainPanel extends Panel {
 					int selectionIndex = rootSelectCombo.getSelectionIndex();
 
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {
-						state.setSelectedRoot(watches.get(selectionIndex).getFolder().getAbsolutePath());
-						state.setSelectedDate(null);
-						state.setSelectedFileHistoryId(null);
-						state.getExpandedFilePaths().clear();
-						
-						refreshDateSlider();
-						
-						fileTreeComposite.resetAndRefresh();
-						logComposite.resetAndRefresh();
+						String newRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
+						listener.onRootChanged(newRoot);						
 					}
 				}
 			}
@@ -318,44 +313,9 @@ public class MainPanel extends Panel {
 	}
 
 	public void safeDispose() {
-		fileTreeComposite.safeDispose();
 		logComposite.safeDispose();
 		
 	}	
-	
-	@Subscribe
-	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
-		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
-			// Nullify pending request
-			pendingListWatchesRequest = null;
-
-			// Update combo box
-			Display.getDefault().syncExec(new Runnable() {
-				@Override
-				public void run() {
-					ArrayList<Watch> watches = listWatchesResponse.getWatches();
-					
-					rootSelectCombo.removeAll();
-					
-					for (Watch watch : watches) {
-						rootSelectCombo.add(watch.getFolder().getName());
-					}
-					
-					rootSelectCombo.setData(listWatchesResponse);
-					rootSelectCombo.setEnabled(true);
-					
-					if (rootSelectCombo.getItemCount() > 0) {
-						state.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
-						rootSelectCombo.select(0);
-						
-						refreshDateSlider();
-						fileTreeComposite.resetAndRefresh();
-						logComposite.resetAndRefresh();
-					}
-				}
-			});
-		}
-	}
 	
 	private void refreshDateSlider() {
 		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();

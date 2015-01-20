@@ -196,14 +196,7 @@ public class DetailPanel extends Panel {
 		columnUpdated.setWidth(130);
 	}
 	
-	public void safeDispose() {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {	
-				eventBus.unregister(DetailPanel.this);
-			}
-		});
-	}		
+	
 	
 	public void showDetails(String root, FileHistoryId fileHistoryId) {
 		selectedRoot = root;
