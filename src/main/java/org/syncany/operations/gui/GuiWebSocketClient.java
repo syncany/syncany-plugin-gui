@@ -47,11 +47,12 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.UserTO;
+import org.syncany.operations.daemon.WebServer;
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.api.ExternalEventResponse;
 import org.syncany.operations.daemon.messages.api.Message;
-import org.syncany.operations.daemon.messages.api.MessageFactory;
 import org.syncany.operations.daemon.messages.api.Request;
+import org.syncany.operations.daemon.messages.api.XmlMessageFactory;
 import org.syncany.util.StringUtil;
 import org.xnio.BufferAllocator;
 import org.xnio.ByteBufferSlicePool;
@@ -72,7 +73,7 @@ import com.google.common.eventbus.Subscribe;
 public class GuiWebSocketClient {
 	private static final Logger logger = Logger.getLogger(GuiWebSocketClient.class.getSimpleName());
 	private final static String PROTOCOL = "wss://";
-	private final static String ENDPOINT = "/api/ws";
+	private final static String ENDPOINT = WebServer.API_ENDPOINT_WS_XML;
 
 	private GuiEventBus eventBus;
 	private WebSocketChannel webSocketChannel;
@@ -217,7 +218,7 @@ public class GuiWebSocketClient {
 				try {
 					logger.log(Level.INFO, "GUI received message: " + messageStr);
 					
-					message = MessageFactory.toMessage(messageStr);
+					message = XmlMessageFactory.toMessage(messageStr);
 					eventBus.post(message);
 				}
 				catch (Exception e) {
@@ -262,7 +263,7 @@ public class GuiWebSocketClient {
 		String messageStr = null;
 		
 		try {
-			messageStr = MessageFactory.toXml(message);						
+			messageStr = XmlMessageFactory.toXml(message);						
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "Unable to transform message to XML. Throwing message away!", e);
