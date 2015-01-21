@@ -32,9 +32,6 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogComposite extends Composite {
-	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
-	public static final int LOG_REQUEST_FILE_COUNT = 10;
-	
 	private ScrolledComposite scrollComposite;
 	private Composite logContentComposite;
 	

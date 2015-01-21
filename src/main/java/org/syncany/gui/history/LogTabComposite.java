@@ -122,7 +122,7 @@ public class LogTabComposite extends Composite {
 				+ databaseVersion.getChangeSet().getChangedFiles().size()
 				+ databaseVersion.getChangeSet().getDeletedFiles().size();
 		
-		if (totalEntryCount == LogComposite.LOG_REQUEST_FILE_COUNT) {
+		if (totalEntryCount == LogController.LOG_REQUEST_FILE_COUNT) {
 			createEntryLabel(I18n.getText("org.syncany.gui.history.LogTabComposite.more"), "more");	
 		}
 		

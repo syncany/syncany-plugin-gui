@@ -52,7 +52,7 @@ import com.google.common.eventbus.Subscribe;
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
-public class HistoryDialog extends Dialog implements MainPanelListener, FileTreeCompositeListener, LogCompositeListener, DetailPanelListener {
+public class HistoryDialog extends Dialog {
 	// Model
 	private HistoryModel model;	
 		
@@ -62,14 +62,14 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	private StackLayout stackLayout;
 			
 	private MainPanel mainPanel;
+	private MainController mainController;
+	
 	private DetailPanel detailPanel;
+	private DetailController detailController;
 	
 	private Panel currentPanel;
 		
 	// Controller
-	private ListWatchesManagementRequest pendingListWatchesRequest;
-	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
-	private LogFolderRequest pendingLogFolderRequest;
 
 	private GuiEventBus eventBus;	
 	
@@ -78,8 +78,6 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 		
 		this.windowShell = null;	
 		
-		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);					
 	}
@@ -176,10 +174,6 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 			public void run() {	
 				eventBus.unregister(HistoryDialog.this);
 				
-				if (!mainPanel.isDisposed()) {
-					mainPanel.safeDispose();
-				}	
-				
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
 				}									
@@ -188,106 +182,14 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	}
 	
 	public void showDetails(String root, FileHistoryId fileHistoryId) {
-		detailPanel.showDetails(root, fileHistoryId);
-		setCurrentPanel(detailPanel);
+		detailController.sendLsFolderRequest(root, fileHistoryId);
+		showDetailsPanel();
 	}
 
 	public void showTree() {
 		setCurrentPanel(mainPanel);
 	}
-	
-	
-	
-	
-	
 
-	private void refreshRoots() {
-		pendingListWatchesRequest = new ListWatchesManagementRequest();
-		eventBus.post(pendingListWatchesRequest);		
-	}
-
-
-	@Subscribe
-	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
-				
-				if (headers.size() > 0) {
-					int maxValue = headers.size() - 1;
-					Date newSelectedDate = headers.get(headers.size()-1).getDate();
-					
-					dateSlider.setData(headers);
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(maxValue);
-					dateSlider.setSelection(maxValue);
-					dateSlider.setEnabled(true);
-					
-					state.setSelectedDate(newSelectedDate);	
-					setDateLabel(newSelectedDate);
-				}
-				else {
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(0);
-					dateSlider.setEnabled(false);	
-					
-					state.setSelectedDate(null);
-				}				
-			}
-		});
-	}
-
-
-	
-	
-	public void refreshTree(String file) {
-		fileTreeComposite.refreshTree(file);
-	}
-
-
-	
-
-	public void refreshTree(String pathExpression) {
-		if ("".equals(pathExpression)) {
-			throw new IllegalArgumentException();
-		}
-				
-		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
-		
-		// Remember this as expanded path
-		state.getExpandedFilePaths().add(pathExpression);
-		
-		// Find all sub-paths, a/b/c/ -> [a, a/b, a/b/c]
-		List<String> allPaths = getPaths(pathExpression + "/");
-		List<String> notLoadedPaths = new ArrayList<>();
-		
-		for (String path : allPaths) {
-			TreeItem treeItem = findItemByPath(path);
-			
-			if (!notLoadedPaths.isEmpty()) {
-				notLoadedPaths.add(path);
-				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
-			}
-			else if (treeItem != null) {			
-				if (hasRetrievingChildItem(treeItem)) {
-					notLoadedPaths.add(path);
-					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
-				}
-			}
-		}
-		
-		// If items unloaded: set 'select after load' item, and send load requests
-		if (!notLoadedPaths.isEmpty()) {
-			for (String path : notLoadedPaths) {
-				sendLsRequest(path + "/");
-			}			
-		}
-		else {
-			selectItemByPath(pathExpression);
-		}
-	}
-	
 	private void refreshRoot() {
 		sendLsRequest("");
 	}
@@ -295,29 +197,6 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	public void resetAndRefresh() {
 		fileTree.removeAll();
 		refreshRoot();
-	}
-	
-	private void sendLsRequest(String pathExpression) {
-		// Date
-		Date browseDate = (state.getSelectedDate() != null) ? state.getSelectedDate() : new Date();
-		
-		// Create list request
-		LsOperationOptions lsOptions = new LsOperationOptions();
-		
-		lsOptions.setPathExpression(pathExpression);
-		lsOptions.setDate(browseDate);
-		lsOptions.setRecursive(false);
-		lsOptions.setFetchHistories(false);
-		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.FOLDER, FileType.SYMLINK));
-		
-		LsFolderRequest lsRequest = new LsFolderRequest();
-		
-		lsRequest.setRoot(state.getSelectedRoot());
-		lsRequest.setOptions(lsOptions);
-		
-		// Send request
-		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
-		eventBus.post(lsRequest);		
 	}
 	
 	private List<String> getPaths(String pathExpression) {
@@ -331,202 +210,8 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 		return paths;
 	}	
 
-	@Subscribe
-	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				fileTree.setEnabled(true);
-				
-				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
-				
-				if (lsRequest != null) {
-					updateTree(lsRequest, lsResponse);
-				}
-			}
-		});		
-	}
 	
 
-	public void resetAndRefresh() {
-		resetAndRefresh(0);
-	}
-	
-	public void resetAndRefresh(int startIndex) {
-		LogOperationOptions logOptions = new LogOperationOptions();
-		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
-		logOptions.setStartDatabaseVersionIndex(startIndex);
-		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
-		
-		pendingLogFolderRequest = new LogFolderRequest();
-		pendingLogFolderRequest.setRoot(state.getSelectedRoot());
-		pendingLogFolderRequest.setOptions(logOptions);
-		
-		eventBus.post(pendingLogFolderRequest);
-	}
-	
-
-	@Subscribe
-	public void onLogFolderResponse(final LogFolderResponse logResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
-					updateTabs(pendingLogFolderRequest, logResponse);
-					pendingLogFolderRequest = null;
-				}				
-			}
-		});		
-	}
-
-
-	@Subscribe
-	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
-		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
-			// Nullify pending request
-			pendingListWatchesRequest = null;
-
-			// Update combo box
-			Display.getDefault().syncExec(new Runnable() {
-				@Override
-				public void run() {
-					ArrayList<Watch> watches = listWatchesResponse.getWatches();
-					
-					rootSelectCombo.removeAll();
-					
-					for (Watch watch : watches) {
-						rootSelectCombo.add(watch.getFolder().getName());
-					}
-					
-					rootSelectCombo.setData(listWatchesResponse);
-					rootSelectCombo.setEnabled(true);
-					
-					if (rootSelectCombo.getItemCount() > 0) {
-						state.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
-						rootSelectCombo.select(0);
-						
-						refreshDateSlider();
-						fileTreeComposite.resetAndRefresh();
-						logComposite.resetAndRefresh();
-					}
-				}
-			});
-		}
-	}
-	
-	
-
-	@Override
-	public void onClickBackButton() {
-		setCurrentPanel(mainPanel);
-	}
-
-	@Override
-	public void onClickRestoreButton(FileVersion fileVersion) {
-		RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
-		restoreOptions.setFileHistoryId(fileVersion.getFileHistoryId());
-		restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
-		
-		RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
-		restoreRequest.setRoot(selectedRoot);
-		restoreRequest.setOptions(restoreOptions);
-		
-		eventBus.post(restoreRequest);
-	}
-
-	@Override
-	public void onSelectDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
-		mainPanel.setSelectedDate(databaseVersion.getDate());
-	}
-	
-	@Override
-	public void onDoubleClickDatabaseVesion(LightweightDatabaseVersion databaseVersion) {
-		mainPanel.showTree();
-	}
-
-	@Override
-	public void onFileJumpToDetail(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onFileJumpToTree(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		mainPanelState.setSelectedFilePath(relativeFilePath);
-		
-		mainPanel.setSelectedDate(databaseVersion.getDate());
-		mainPanel.refreshTree(relativeFilePath);
-		
-		mainPanel.showTree();				
-
-	}
-
-	@Override
-	public void onFileOpen(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(root, relativeFilePath);
-		launchOrDisplayError(file);
-	}
-
-	@Override
-	public void onFileOpenContainingFolder(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(root, relativeFilePath);
-		launchOrDisplayError(file.getParentFile());
-	}
-
-	@Override
-	public void onFileCopytoClipboard(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(root, relativeFilePath);
-		DesktopUtil.copyToClipboard(file.getAbsolutePath());
-	}
-
-	@Override
-	public void onDoubleClickItem(FileVersion fileVersion) {
-		showDetails(root, fileHistoryId);
-	}
-
-	@Override
-	public void onSelectItem(FileVersion fileVersion) {
-		state.setSelectedFileHistoryId(fileVersion.getFileHistoryId());
-	}
-
-	@Override
-	public void onExpandItem(FileVersion fileVersion) {
-		refreshTree(fileVersion.getPath());
-	}
-
-	@Override
-	public void onCollapseItem(FileVersion fileVersion) {
-		// Remove all children items from saved expanded paths
-		Iterables.removeIf(state.getExpandedFilePaths(), new Predicate<String>() {
-			@Override
-			public boolean apply(String expandedPath) {				
-				return expandedPath.startsWith(fileVersion.getPath());
-			}			
-		});		
-	}
-
-	@Override
-	public void onDateChanged(Date newDate) {
-		boolean listUpdateRequired = !newDate.equals(state.getSelectedDate());
-			
-		if (listUpdateRequired) {
-			setSelectedDate(newDate);							
-		}			
-	}
-
-	@Override
-	public void onRootChanged(String newRoot) {
-
-		state.setSelectedRoot(watches.get(selectionIndex).getFolder().getAbsolutePath());
-		state.setSelectedDate(null);
-		state.setSelectedFileHistoryId(null);
-		state.getExpandedFilePaths().clear();
-		
-		refreshDateSlider();
-		
-		fileTreeComposite.resetAndRefresh();
-		logComposite.resetAndRefresh();
-	}
 	
 	
 	private void launchOrDisplayError(File file) {
@@ -540,6 +225,14 @@ public class HistoryDialog extends Dialog implements MainPanelListener, FileTree
 	        
 	        messageBox.open();
 		}
+	}
+
+	public void showMainPanel() {
+		setCurrentPanel(mainPanel);
+	}
+	
+	public void showDetailsPanel() {
+		setCurrentPanel(currentPanel);
 	}
 
 

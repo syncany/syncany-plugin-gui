@@ -17,7 +17,6 @@
  */
 package org.syncany.gui.history;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -30,6 +29,7 @@ import org.syncany.database.FileVersion;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.operations.log.LightweightDatabaseVersion;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -38,7 +38,7 @@ import com.google.common.collect.Sets;
  *
  */
 public class HistoryModel {
-	private List<File> roots;
+	private List<String> roots;
 	private List<DatabaseVersionHeader> databaseVersionHeaders;
 	private Map<String, List<FileVersion>> fileTree;
 	private List<LightweightDatabaseVersion> databaseVersions;
@@ -49,8 +49,10 @@ public class HistoryModel {
 	private String selectedFilePath;
 	private Set<String> expandedFilePaths;
 	
+	private List<HistoryModelListener> listeners;
+	
 	public HistoryModel() {
-		this.roots = Collections.synchronizedList(new ArrayList<File>());
+		this.roots = Collections.synchronizedList(new ArrayList<String>());
 		this.databaseVersionHeaders = Collections.synchronizedList(new ArrayList<DatabaseVersionHeader>());
 		this.databaseVersions = Collections.synchronizedList(new ArrayList<LightweightDatabaseVersion>());
 		this.fileTree = Maps.newConcurrentMap();
@@ -60,16 +62,23 @@ public class HistoryModel {
 		this.selectedFileHistoryId = null;	
 		this.selectedFilePath = null;
 		this.expandedFilePaths = Sets.newConcurrentHashSet();
+		
+		this.listeners = Lists.newArrayList();
 	}
 	
-	public List<File> getRoots() {
+	public void addListener(HistoryModelListener listener) {
+		listeners.add(listener);
+	}
+	
+	public List<String> getRoots() {
 		return roots;
 	}
 
-	public void setRoots(List<File> roots) {
-		this.roots = roots;
+	public void setRoots(List<String> roots) {
+		this.roots = roots;		
+		fireNewRoots();
 	}
-
+	
 	public List<DatabaseVersionHeader> getDatabaseVersionHeaders() {
 		return databaseVersionHeaders;
 	}
@@ -108,6 +117,7 @@ public class HistoryModel {
 	
 	public void setSelectedDate(Date selectedDate) {
 		this.selectedDate = selectedDate;
+		fireNewDate();
 	}
 	
 	public FileHistoryId getSelectedFileHistoryId() {
@@ -134,5 +144,17 @@ public class HistoryModel {
 	
 	public void setExpandedFilePaths(Set<String> expandedFilePaths) {
 		this.expandedFilePaths = expandedFilePaths;
+	}
+	
+	private void fireNewRoots() {
+		for (HistoryModelListener listener : listeners) {
+			listener.onRootsChanged(roots);
+		}
+	}
+	
+	private void fireNewDate() {
+		for (HistoryModelListener listener : listeners) {
+			listener.onDateChanged(selectedDate);
+		}
 	}
 }

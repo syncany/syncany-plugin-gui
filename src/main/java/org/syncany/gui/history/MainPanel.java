@@ -294,10 +294,6 @@ public class MainPanel extends Panel {
 		}
 	}
 	
-	public void showDetails(FileVersion fileVersion) {
-		getParentDialog().showDetails(state.getSelectedRoot(), fileVersion.getFileHistoryId());
-	}
-	
 	public void showLog() {
 		setCurrentControl(logComposite);
 
@@ -310,22 +306,62 @@ public class MainPanel extends Panel {
 		
 		toggleTreeButton.setSelection(true);
 		toggleLogButton.setSelection(false);
-	}
-
-	public void safeDispose() {
-		logComposite.safeDispose();
-		
 	}	
-	
-	private void refreshDateSlider() {
-		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
-		getHeadersRequest.setRoot(state.getSelectedRoot());
-		
-		eventBus.post(getHeadersRequest);
-	}
 
 	@Override
 	public boolean validatePanel() {
 		return true;
+	}
+
+	public void updateRootsCombo(ArrayList<Watch> watches) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				ArrayList<Watch> watches = listWatchesResponse.getWatches();
+				
+				rootSelectCombo.removeAll();
+				
+				for (Watch watch : watches) {
+					rootSelectCombo.add(watch.getFolder().getName());
+				}
+				
+				rootSelectCombo.setData(listWatchesResponse);
+				rootSelectCombo.setEnabled(true);
+				
+				if (rootSelectCombo.getItemCount() > 0) {
+					state.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
+					rootSelectCombo.select(0);
+					
+					refreshDateSlider();
+					fileTreeComposite.resetAndRefresh();
+					logComposite.resetAndRefresh();
+				}
+			}
+		});
+	}
+
+	public void updateSlider(final List<DatabaseVersionHeader> headers) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (headers.size() > 0) {
+					int maxValue = headers.size() - 1;
+					Date newSelectedDate = headers.get(headers.size()-1).getDate();
+					
+					dateSlider.setData(headers);
+					dateSlider.setMinimum(0);
+					dateSlider.setMaximum(maxValue);
+					dateSlider.setSelection(maxValue);
+					dateSlider.setEnabled(true);
+					
+					setDateLabel(newSelectedDate);
+				}
+				else {
+					dateSlider.setMinimum(0);
+					dateSlider.setMaximum(0);
+					dateSlider.setEnabled(false);	
+				}				
+			}
+		});		
 	}	
 }

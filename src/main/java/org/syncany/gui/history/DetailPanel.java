@@ -2,7 +2,6 @@ package org.syncany.gui.history;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
@@ -14,33 +13,21 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
-import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileStatus;
-import org.syncany.database.FileVersion.FileType;
 import org.syncany.database.PartialFileHistory;
-import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
-import org.syncany.operations.daemon.messages.RestoreFolderRequest;
-import org.syncany.operations.daemon.messages.RestoreFolderResponse;
-import org.syncany.operations.ls.LsOperationOptions;
-import org.syncany.operations.restore.RestoreOperationOptions;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -63,6 +50,8 @@ public class DetailPanel extends Panel {
 	
 	private Table historyTable;	
 	private Button restoreButton;	
+	
+	private PartialFileHistory selectedFileHistory;
 
 	public DetailPanel(Composite composite, int style, DetailPanelListener listener) {
 		super(composite, style);
@@ -198,44 +187,10 @@ public class DetailPanel extends Panel {
 	
 	
 	
-	public void showDetails(String root, FileHistoryId fileHistoryId) {
-		selectedRoot = root;
-		
-		// Create list request
-		LsOperationOptions lsOptions = new LsOperationOptions();
-		
-		lsOptions.setPathExpression(fileHistoryId.toString());
-		lsOptions.setFileHistoryId(true);
-		lsOptions.setRecursive(false);
-		lsOptions.setDeleted(true);
-		lsOptions.setFetchHistories(true);
-		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.SYMLINK));
-		
-		LsFolderRequest lsRequest = new LsFolderRequest();
-		
-		lsRequest.setRoot(root);
-		lsRequest.setOptions(lsOptions);
-		
-		// Send request
-		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
-		eventBus.post(lsRequest);
-	}
-	
-	@Subscribe
-	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
-				
-				if (lsRequest != null) {
-					updateTable(lsRequest, lsResponse);
-				}
-			}
-		});		
-	}
 
-	private void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+	
+
+	public void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
 		historyTable.removeAll();
 		
 		List<PartialFileHistory> fileVersions = new ArrayList<>(lsResponse.getResult().getFileVersions().values());
