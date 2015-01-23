@@ -40,8 +40,7 @@ public class LogComposite extends Composite {
 	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
 	public static final int LOG_REQUEST_FILE_COUNT = 10;
 	
-	private HistoryModel model;
-	
+	private HistoryModel historyModel;	
 	private MainPanel mainPanel;
 	
 	private LogFolderRequest pendingLogFolderRequest;
@@ -54,15 +53,22 @@ public class LogComposite extends Composite {
 	private LogTabComposite highlightedTabComposite;
 	private List<Composite> loadingTabComposites;	
 
-	public LogComposite(Composite parent, int style) {
+	public LogComposite(Composite parent, int style, HistoryModel historyModel, MainPanel mainPanel) {
 		super(parent, style);
 				
+		this.historyModel = historyModel;
+		this.mainPanel = mainPanel;
+		
+		this.pendingLogFolderRequest = null;
+		this.eventBus = GuiEventBus.getAndRegister(this);
+		
+		this.scrollComposite = null;
+		this.logContentComposite = null;
+		
 		this.tabComposites = Maps.newConcurrentMap();
 		this.highlightedTabComposite = null;
 		this.loadingTabComposites = Lists.newArrayList();		
 		
-		this.eventBus = GuiEventBus.getAndRegister(this);
-
 		this.createContents();
 	}	
 	
@@ -139,6 +145,44 @@ public class LogComposite extends Composite {
 		scrollComposite.setRedraw(true);
 	}
 	
+
+	@Subscribe
+	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				sendLogFolderRequest(0);
+			}
+		});
+	}
+	
+	public void sendLogFolderRequest(int startIndex) {
+		LogOperationOptions logOptions = new LogOperationOptions();
+		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
+		logOptions.setStartDatabaseVersionIndex(startIndex);
+		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
+		
+		pendingLogFolderRequest = new LogFolderRequest();
+		pendingLogFolderRequest.setRoot(historyModel.getSelectedRoot());
+		pendingLogFolderRequest.setOptions(logOptions);
+		
+		eventBus.post(pendingLogFolderRequest);
+	}
+	
+
+	@Subscribe
+	public void onLogFolderResponse(final LogFolderResponse logResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
+					updateTabs(pendingLogFolderRequest, logResponse);
+					pendingLogFolderRequest = null;
+				}				
+			}
+		});		
+	}
+
 	public void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
 		// Dispose all existing tabs (if this is the first request)
 		boolean firstRequest = logRequest.getOptions().getStartDatabaseVersionIndex() == 0;
@@ -157,7 +201,7 @@ public class LogComposite extends Composite {
 
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
 			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, model.getSelectedRoot(), databaseVersion);			
+				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, historyModel.getSelectedRoot(), databaseVersion);			
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
 		}
@@ -168,15 +212,20 @@ public class LogComposite extends Composite {
 		}		
 		
 		// Highlight
-		highlightByDate(model.getSelectedDate());
+		highlightByDate(historyModel.getSelectedDate());
 				
 		// Then redraw!
 		redrawAll();
 	}
 
 	@Subscribe
-	public void onModelSelectedDateUpdatedEvent(ModelSelectedDateUpdatedEvent event) {
-		highlightByDate(event.getSelectedDate());
+	public void onModelSelectedDateUpdatedEvent(final ModelSelectedDateUpdatedEvent event) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				highlightByDate(event.getSelectedDate());
+			}
+		});
 	}
 	
 	public synchronized void highlightByDate(Date highlightDate) {
@@ -226,7 +275,7 @@ public class LogComposite extends Composite {
 			public void paintControl(PaintEvent e) {
 				if (pendingLogFolderRequest == null) {
 					int newStartDatabaseIndex = tabComposites.size();
-					resetAndRefresh(newStartDatabaseIndex);
+					sendLogFolderRequest(newStartDatabaseIndex);
 				}
 			}
 		});
@@ -234,40 +283,8 @@ public class LogComposite extends Composite {
 		loadingTabComposites.add(loadingComposite);
 	}
 	
-	@Subscribe
-	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
-		resetAndRefresh(0);
-	}
-	
-	public void resetAndRefresh(int startIndex) {
-		LogOperationOptions logOptions = new LogOperationOptions();
-		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
-		logOptions.setStartDatabaseVersionIndex(startIndex);
-		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
-		
-		pendingLogFolderRequest = new LogFolderRequest();
-		pendingLogFolderRequest.setRoot(model.getSelectedRoot());
-		pendingLogFolderRequest.setOptions(logOptions);
-		
-		eventBus.post(pendingLogFolderRequest);
-	}
-	
-
-	@Subscribe
-	public void onLogFolderResponse(final LogFolderResponse logResponse) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
-					updateTabs(pendingLogFolderRequest, logResponse);
-					pendingLogFolderRequest = null;
-				}				
-			}
-		});		
-	}
-
 	public void onSelectDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
-		model.setSelectedDate(databaseVersion.getDate());
+		historyModel.setSelectedDate(databaseVersion.getDate());
 	}
 	
 	public void onDoubleClickDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
@@ -280,24 +297,24 @@ public class LogComposite extends Composite {
 	}
 
 	public void onFileJumpToTree(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		model.setSelectedDate(databaseVersion.getDate());
-		model.setSelectedFilePath(relativeFilePath);
+		historyModel.setSelectedDate(databaseVersion.getDate());
+		historyModel.setSelectedFilePath(relativeFilePath);
 		
 		mainPanel.showTree();				
 	}
 
 	public void onFileOpen(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		final File file = new File(historyModel.getSelectedRoot(), relativeFilePath);
 		launchOrDisplayError(file);
 	}
 
 	public void onFileOpenContainingFolder(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		final File file = new File(historyModel.getSelectedRoot(), relativeFilePath);
 		launchOrDisplayError(file.getParentFile());
 	}
 
 	public void onFileCopytoClipboard(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		final File file = new File(historyModel.getSelectedRoot(), relativeFilePath);
 		DesktopUtil.copyToClipboard(file.getAbsolutePath());
 	}
 
@@ -312,5 +329,14 @@ public class LogComposite extends Composite {
 	        
 	        messageBox.open();
 		}
+	}
+	
+	public void dispose() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {	
+				eventBus.unregister(LogComposite.this);							
+			}
+		});
 	}
 }

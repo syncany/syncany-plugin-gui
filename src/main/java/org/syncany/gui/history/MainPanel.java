@@ -13,6 +13,7 @@ import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -26,6 +27,8 @@ import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.DatabaseVersionHeader;
 import org.syncany.gui.Panel;
+import org.syncany.gui.history.events.ModelSelectedDateUpdatedEvent;
+import org.syncany.gui.history.events.ModelSelectedRootUpdatedEvent;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.daemon.Watch;
@@ -42,13 +45,18 @@ import com.google.common.eventbus.Subscribe;
 public class MainPanel extends Panel {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
-	private HistoryModel model;
-	private MainPanel mainPanel;
+	private HistoryModel historyModel;
+	private HistoryDialog historyDialog;
 	
 	private ListWatchesManagementRequest pendingListWatchesRequest;
 	private GuiEventBus eventBus;		
 
+	private boolean dateLabelPrettyTime;
+	private AtomicInteger dateSliderValue;
+	private Timer dateSliderChangeTimer;
+
 	private Combo rootSelectCombo;
+	private SelectionListener rootSelectComboListener;
 	private Label dateLabel;
 	private Scale dateSlider;
 	private StackLayout stackLayout;
@@ -56,32 +64,36 @@ public class MainPanel extends Panel {
 	
 	private FileTreeComposite fileTreeComposite;
 	private LogComposite logComposite;
-	
-	private boolean dateLabelPrettyTime;
-	private AtomicInteger dateSliderValue;
-	private Timer dateSliderChangeTimer;
-	
+		
 	private Button toggleTreeButton;
 	private Button toggleLogButton;	
 
-	public MainPanel(Composite composite, int style, HistoryModel model) {
+	public MainPanel(Composite composite, int style, HistoryModel historyModel, HistoryDialog historyDialog) {
 		super(composite, style);
 
-		this.model = model;
-		
+		this.setBackgroundImage(null);
+		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
+
+		this.historyModel = historyModel;
+		this.historyDialog = historyDialog;
+
+		this.pendingListWatchesRequest = null;
+		this.eventBus = GuiEventBus.getAndRegister(this);
+
 		this.dateLabelPrettyTime = true;
 		this.dateSliderValue = new AtomicInteger(-1);
-		this.dateSliderChangeTimer = null;
-		
-		this.eventBus = GuiEventBus.getAndRegister(this);
+		this.dateSliderChangeTimer = null;		
 
 		createMainComposite();
 		createToggleButtons();
 		createRootSelectionCombo();
+		createRootSelectionComboListener();
 		createDateSlider();
 		createStackComposite();
 		createFileTreeComposite();
-		createLogComposite();		
+		createLogComposite();	
+		
+		sendListWatchesRequest();
 	}	
 
 	private void createMainComposite() {
@@ -123,9 +135,11 @@ public class MainPanel extends Panel {
 		
 		rootSelectCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		rootSelectCombo.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));
-		rootSelectCombo.setEnabled(false);
-		
-		rootSelectCombo.addSelectionListener(new SelectionAdapter() {
+		rootSelectCombo.setEnabled(false);			
+	}
+	
+	private void createRootSelectionComboListener() {
+		rootSelectComboListener = new SelectionAdapter() {
 			@Override
 			@SuppressWarnings("unchecked")
 			public void widgetSelected(SelectionEvent e) {
@@ -136,12 +150,16 @@ public class MainPanel extends Panel {
 
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {
 						String newRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
-						onRootChanged(newRoot);						
+						
+						historyModel.reset();
+						historyModel.setSelectedRoot(newRoot);
+
+						sendGetDatabaseVersionHeadersFolderRequest(newRoot);						
 					}
 				}
 			}
-		});
-	}
+		};		
+	}	
 	
 	private void createDateSlider() {
 		// Label
@@ -212,11 +230,11 @@ public class MainPanel extends Panel {
 	}
 	
 	private void createFileTreeComposite() {
-		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE);
+		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE, historyModel, historyDialog);
 	}
 
 	private void createLogComposite() {
-		logComposite = new LogComposite(stackComposite, SWT.NONE);
+		logComposite = new LogComposite(stackComposite, SWT.NONE, historyModel, this);
 	}
 
 	private void setCurrentControl(Control control) {
@@ -260,8 +278,8 @@ public class MainPanel extends Panel {
 	}
 	
 	public void setSelectedDate(Date newDate) {
-		if (!newDate.equals(model.getSelectedDate())) {
-			model.setSelectedDate(newDate);
+		if (!newDate.equals(historyModel.getSelectedDate())) {
+			historyModel.setSelectedDate(newDate);
 			
 			setDateSlider(newDate);
 			setDateLabel(newDate);
@@ -314,28 +332,6 @@ public class MainPanel extends Panel {
 		return true;
 	}
 
-	public void updateRootsCombo(final ArrayList<Watch> watches) {
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				rootSelectCombo.removeAll();
-				
-				for (Watch watch : watches) {
-					rootSelectCombo.add(watch.getFolder().getName());
-				}
-				
-				rootSelectCombo.setData(watches);
-				rootSelectCombo.setEnabled(true);
-				
-				if (rootSelectCombo.getItemCount() > 0) {
-					model.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
-					
-					rootSelectCombo.select(0);
-				}
-			}
-		});
-	}
-
 	public void updateSlider(final List<DatabaseVersionHeader> headers) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
@@ -361,28 +357,9 @@ public class MainPanel extends Panel {
 		});		
 	}	
 	
-
 	public void sendListWatchesRequest() {
 		pendingListWatchesRequest = new ListWatchesManagementRequest();
 		eventBus.post(pendingListWatchesRequest);		
-	}
-	
-	public void onDateChanged(Date newDate) {
-		boolean listUpdateRequired = !newDate.equals(model.getSelectedDate());
-			
-		if (listUpdateRequired) {
-			model.setSelectedDate(newDate);							
-		}			
-	}
-
-	public void onRootChanged(String newRoot) {
-		model.reset();
-		model.setSelectedRoot(newRoot);
-		
-		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
-		getHeadersRequest.setRoot(newRoot);
-		
-		eventBus.post(getHeadersRequest);		
 	}
 	
 	@Subscribe
@@ -392,9 +369,50 @@ public class MainPanel extends Panel {
 			pendingListWatchesRequest = null;
 
 			// Update combo box
-			mainPanel.updateRootsCombo(listWatchesResponse.getWatches());		
+			updateRootsCombo(listWatchesResponse.getWatches());		
 		}
 	}
+	
+	public void updateRootsCombo(final ArrayList<Watch> watches) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				rootSelectCombo.removeSelectionListener(rootSelectComboListener);
+				rootSelectCombo.removeAll();
+				
+				for (Watch watch : watches) {
+					rootSelectCombo.add(watch.getFolder().getName());
+				}
+				
+				rootSelectCombo.setData(watches);
+				rootSelectCombo.setEnabled(true);
+				
+				if (rootSelectCombo.getItemCount() > 0) {
+					historyModel.reset();
+					
+					rootSelectCombo.addSelectionListener(rootSelectComboListener);
+					rootSelectCombo.select(0);					
+				}
+			}
+		});
+	}
+
+	@Subscribe
+	public void onModelSelectedRootUpdatedEvent(final ModelSelectedRootUpdatedEvent event) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				sendGetDatabaseVersionHeadersFolderRequest(event.getSelectedRoot());
+			}
+		});
+	}
+
+	public void sendGetDatabaseVersionHeadersFolderRequest(String newRoot) {		
+		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
+		getHeadersRequest.setRoot(newRoot);
+		
+		eventBus.post(getHeadersRequest);		
+	}	
 	
 	@Subscribe
 	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
@@ -402,12 +420,51 @@ public class MainPanel extends Panel {
 
 		if (headers.size() > 0) {
 			Date newSelectedDate = headers.get(headers.size()-1).getDate();
-			model.setSelectedDate(newSelectedDate);	
+			historyModel.setSelectedDate(newSelectedDate);	
 		}
 		else {			
-			model.setSelectedDate(null);
+			historyModel.setSelectedDate(null);
 		}			
 		
-		mainPanel.updateSlider(headers);		
+		updateSlider(headers);		
+	}
+	
+	@Subscribe
+	public void onModelSelectedDateUpdatedEvent(final ModelSelectedDateUpdatedEvent event) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				onDateChanged(event.getSelectedDate());
+				
+				if (event.getSelectedDate() != getDateSliderDate()) {
+					setDateSlider(event.getSelectedDate());
+				}
+			}
+		});
+	}
+	
+	public void onDateChanged(Date newDate) {
+		boolean listUpdateRequired = !newDate.equals(historyModel.getSelectedDate());
+			
+		if (listUpdateRequired) {
+			historyModel.setSelectedDate(newDate);							
+		}			
+	}
+
+	public void dispose() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {	
+				eventBus.unregister(MainPanel.this);
+				
+				if (!logComposite.isDisposed()) {
+					logComposite.dispose();
+				}		
+				
+				if (!fileTreeComposite.isDisposed()) {
+					fileTreeComposite.dispose();
+				}												
+			}
+		});
 	}
 }

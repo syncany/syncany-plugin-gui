@@ -89,7 +89,7 @@ public class HistoryDialog extends Dialog {
 		windowShell.setLayout(shellGridLayout);		
 		windowShell.addListener(SWT.Close, new Listener() {
 			public void handleEvent(Event event) {
-				safeDispose();
+				dispose();
 			}
 		});
 		
@@ -110,8 +110,8 @@ public class HistoryDialog extends Dialog {
 	}
 
 	private void buildPanels() {
-		mainPanel = new MainPanel(stackComposite, SWT.NONE, model);
-		detailPanel = new DetailPanel(stackComposite, SWT.NONE);
+		mainPanel = new MainPanel(stackComposite, SWT.NONE, model, this);
+		detailPanel = new DetailPanel(stackComposite, SWT.NONE, model, this);
 	}
 
 	public Shell getWindowShell() {
@@ -132,11 +132,19 @@ public class HistoryDialog extends Dialog {
 		});
 	}
 	
-	public void safeDispose() {
+	public void dispose() {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
 				eventBus.unregister(HistoryDialog.this);
+				
+				if (!mainPanel.isDisposed()) {
+					mainPanel.dispose();
+				}		
+				
+				if (!detailPanel.isDisposed()) {
+					detailPanel.dispose();
+				}		
 				
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
@@ -155,6 +163,6 @@ public class HistoryDialog extends Dialog {
 	}
 	
 	public void showDetailsPanel() {
-		setCurrentPanel(currentPanel);
+		setCurrentPanel(detailPanel);
 	}
 }

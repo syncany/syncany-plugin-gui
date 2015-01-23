@@ -58,10 +58,8 @@ public class DetailPanel extends Panel {
 	private static final int COLUMN_INDEX_LAST_MODIFIED = 8;
 	private static final int COLUMN_INDEX_UPDATED = 9;
 	
-	private HistoryModel model;
-
+	private HistoryModel historyModel;
 	private HistoryDialog historyDialog;
-	private DetailPanel detailPanel;
 	
 	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
 	private GuiEventBus eventBus; 
@@ -71,14 +69,16 @@ public class DetailPanel extends Panel {
 	
 	private PartialFileHistory selectedFileHistory;
 
-	public DetailPanel(Composite composite, int style) {
+	public DetailPanel(Composite composite, int style, HistoryModel historyModel, HistoryDialog historyDialog) {
 		super(composite, style);
 
 		this.setBackgroundImage(null);
 		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
 		
+		this.historyModel = historyModel;
+		this.historyDialog = historyDialog;
+		
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
-
 		this.eventBus = GuiEventBus.getAndRegister(this);
 		
 		this.historyTable = null;
@@ -314,7 +314,7 @@ public class DetailPanel extends Panel {
 				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
 				
 				if (lsRequest != null) {
-					detailPanel.updateTable(lsRequest, lsResponse);
+					updateTable(lsRequest, lsResponse);
 				}
 			}
 		});		
@@ -330,9 +330,18 @@ public class DetailPanel extends Panel {
 		restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
 		
 		RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
-		restoreRequest.setRoot(model.getSelectedRoot());
+		restoreRequest.setRoot(historyModel.getSelectedRoot());
 		restoreRequest.setOptions(restoreOptions);
 		
 		eventBus.post(restoreRequest);
+	}
+	
+	public void dispose() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {	
+				eventBus.unregister(DetailPanel.this);								
+			}
+		});
 	}
 }
