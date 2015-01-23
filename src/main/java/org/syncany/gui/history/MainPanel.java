@@ -25,7 +25,6 @@ import org.eclipse.swt.widgets.Scale;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.DatabaseVersionHeader;
-import org.syncany.database.FileVersion;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
@@ -44,13 +43,17 @@ public class MainPanel extends Panel {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private HistoryModel model;
-	private MainPanelListener listener;
+	private MainPanel mainPanel;
 	
+	private ListWatchesManagementRequest pendingListWatchesRequest;
+	private GuiEventBus eventBus;		
+
 	private Combo rootSelectCombo;
 	private Label dateLabel;
 	private Scale dateSlider;
 	private StackLayout stackLayout;
 	private Composite stackComposite;
+	
 	private FileTreeComposite fileTreeComposite;
 	private LogComposite logComposite;
 	
@@ -61,23 +64,24 @@ public class MainPanel extends Panel {
 	private Button toggleTreeButton;
 	private Button toggleLogButton;	
 
-	public MainPanel(Composite composite, int style, HistoryModel model, MainPanelListener mainPanelListener, FileTreeCompositeListener fileTreeListener, LogCompositeListener logListener) {
+	public MainPanel(Composite composite, int style, HistoryModel model) {
 		super(composite, style);
 
 		this.model = model;
-		this.listener = mainPanelListener;
 		
 		this.dateLabelPrettyTime = true;
 		this.dateSliderValue = new AtomicInteger(-1);
 		this.dateSliderChangeTimer = null;
 		
+		this.eventBus = GuiEventBus.getAndRegister(this);
+
 		createMainComposite();
 		createToggleButtons();
 		createRootSelectionCombo();
 		createDateSlider();
 		createStackComposite();
-		createFileTreeComposite(fileTreeListener);
-		createLogComposite(logListener);		
+		createFileTreeComposite();
+		createLogComposite();		
 	}	
 
 	private void createMainComposite() {
@@ -123,16 +127,16 @@ public class MainPanel extends Panel {
 		
 		rootSelectCombo.addSelectionListener(new SelectionAdapter() {
 			@Override
+			@SuppressWarnings("unchecked")
 			public void widgetSelected(SelectionEvent e) {
-				ListWatchesManagementResponse listWatchesResponse = (ListWatchesManagementResponse) rootSelectCombo.getData();				
+				List<Watch> watches = (List<Watch>) rootSelectCombo.getData();				
 				
-				if (listWatchesResponse != null) {
-					List<Watch> watches = listWatchesResponse.getWatches();
+				if (watches != null) {
 					int selectionIndex = rootSelectCombo.getSelectionIndex();
 
 					if (selectionIndex >= 0 && selectionIndex < watches.size()) {
 						String newRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
-						listener.onRootChanged(newRoot);						
+						onRootChanged(newRoot);						
 					}
 				}
 			}
@@ -207,12 +211,12 @@ public class MainPanel extends Panel {
 		stackComposite.setLayoutData(stackCompositeGridData);
 	}
 	
-	private void createFileTreeComposite(FileTreeCompositeListener fileTreeListener) {
-		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE, fileTreeListener);
+	private void createFileTreeComposite() {
+		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE);
 	}
 
-	private void createLogComposite(LogCompositeListener logListener) {
-		logComposite = new LogComposite(stackComposite, SWT.NONE, logListener);
+	private void createLogComposite() {
+		logComposite = new LogComposite(stackComposite, SWT.NONE);
 	}
 
 	private void setCurrentControl(Control control) {
@@ -248,7 +252,7 @@ public class MainPanel extends Panel {
 				Display.getDefault().syncExec(new Runnable() {
 					@Override
 					public void run() {							
-						listener.onDateChanged(getDateSliderDate());
+						onDateChanged(getDateSliderDate());
 					}					
 				});
 			}
@@ -256,14 +260,11 @@ public class MainPanel extends Panel {
 	}
 	
 	public void setSelectedDate(Date newDate) {
-		if (!newDate.equals(state.getSelectedDate())) {
-			state.setSelectedDate(newDate);
+		if (!newDate.equals(model.getSelectedDate())) {
+			model.setSelectedDate(newDate);
 			
 			setDateSlider(newDate);
 			setDateLabel(newDate);
-			
-			fileTreeComposite.resetAndRefresh();
-			logComposite.highlightBySelectedDate();
 		}
 	}
 	
@@ -313,28 +314,23 @@ public class MainPanel extends Panel {
 		return true;
 	}
 
-	public void updateRootsCombo(ArrayList<Watch> watches) {
+	public void updateRootsCombo(final ArrayList<Watch> watches) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
-				ArrayList<Watch> watches = listWatchesResponse.getWatches();
-				
 				rootSelectCombo.removeAll();
 				
 				for (Watch watch : watches) {
 					rootSelectCombo.add(watch.getFolder().getName());
 				}
 				
-				rootSelectCombo.setData(listWatchesResponse);
+				rootSelectCombo.setData(watches);
 				rootSelectCombo.setEnabled(true);
 				
 				if (rootSelectCombo.getItemCount() > 0) {
-					state.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
-					rootSelectCombo.select(0);
+					model.setSelectedRoot(watches.get(0).getFolder().getAbsolutePath());
 					
-					refreshDateSlider();
-					fileTreeComposite.resetAndRefresh();
-					logComposite.resetAndRefresh();
+					rootSelectCombo.select(0);
 				}
 			}
 		});
@@ -364,4 +360,54 @@ public class MainPanel extends Panel {
 			}
 		});		
 	}	
+	
+
+	public void sendListWatchesRequest() {
+		pendingListWatchesRequest = new ListWatchesManagementRequest();
+		eventBus.post(pendingListWatchesRequest);		
+	}
+	
+	public void onDateChanged(Date newDate) {
+		boolean listUpdateRequired = !newDate.equals(model.getSelectedDate());
+			
+		if (listUpdateRequired) {
+			model.setSelectedDate(newDate);							
+		}			
+	}
+
+	public void onRootChanged(String newRoot) {
+		model.reset();
+		model.setSelectedRoot(newRoot);
+		
+		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
+		getHeadersRequest.setRoot(newRoot);
+		
+		eventBus.post(getHeadersRequest);		
+	}
+	
+	@Subscribe
+	public void onListWatchesManagementResponse(final ListWatchesManagementResponse listWatchesResponse) {
+		if (pendingListWatchesRequest != null && pendingListWatchesRequest.getId() == listWatchesResponse.getRequestId()) {
+			// Nullify pending request
+			pendingListWatchesRequest = null;
+
+			// Update combo box
+			mainPanel.updateRootsCombo(listWatchesResponse.getWatches());		
+		}
+	}
+	
+	@Subscribe
+	public void onGetDatabaseVersionHeadersFolderResponse(final GetDatabaseVersionHeadersFolderResponse getHeadersResponse) {
+		List<DatabaseVersionHeader> headers = getHeadersResponse.getDatabaseVersionHeaders();
+
+		if (headers.size() > 0) {
+			Date newSelectedDate = headers.get(headers.size()-1).getDate();
+			model.setSelectedDate(newSelectedDate);	
+		}
+		else {			
+			model.setSelectedDate(null);
+		}			
+		
+		mainPanel.updateSlider(headers);		
+	}
 }

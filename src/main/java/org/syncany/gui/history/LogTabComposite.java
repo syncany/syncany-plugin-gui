@@ -35,9 +35,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.MessageBox;
 import org.ocpsoft.prettytime.PrettyTime;
-import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
@@ -49,7 +47,6 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 public class LogTabComposite extends Composite {
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
-	private LogCompositeListener listener;
 	private LogComposite logComposite;
 	
 	private String root;
@@ -57,10 +54,9 @@ public class LogTabComposite extends Composite {
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion, LogCompositeListener listener) {
+	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion) {
 		super(logMainComposite, SWT.BORDER);	
 		
-		this.listener = listener;
 		this.logComposite = logComposite;
 		
 		this.root = root;
@@ -122,7 +118,7 @@ public class LogTabComposite extends Composite {
 				+ databaseVersion.getChangeSet().getChangedFiles().size()
 				+ databaseVersion.getChangeSet().getDeletedFiles().size();
 		
-		if (totalEntryCount == LogController.LOG_REQUEST_FILE_COUNT) {
+		if (totalEntryCount == LogComposite.LOG_REQUEST_FILE_COUNT) {
 			createEntryLabel(I18n.getText("org.syncany.gui.history.LogTabComposite.more"), "more");	
 		}
 		
@@ -161,7 +157,7 @@ public class LogTabComposite extends Composite {
 		jumpToDetailViewMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onFileJumpToDetail(databaseVersion, relativeFilePath);
+				logComposite.onFileJumpToDetail(databaseVersion, relativeFilePath);
 			}
 		});
 		
@@ -170,7 +166,7 @@ public class LogTabComposite extends Composite {
 		jumpToTreeMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onFileJumpToTree(databaseVersion, relativeFilePath);
+				logComposite.onFileJumpToTree(databaseVersion, relativeFilePath);
 			}
 		});
 		
@@ -181,7 +177,7 @@ public class LogTabComposite extends Composite {
 		openFileMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onFileOpen(databaseVersion, relativeFilePath);				
+				logComposite.onFileOpen(databaseVersion, relativeFilePath);				
 			}
 		});
 		
@@ -190,7 +186,7 @@ public class LogTabComposite extends Composite {
 		openFolderMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onFileOpenContainingFolder(databaseVersion, relativeFilePath);				
+				logComposite.onFileOpenContainingFolder(databaseVersion, relativeFilePath);				
 			}
 		});
 		
@@ -201,7 +197,7 @@ public class LogTabComposite extends Composite {
 		copyPathMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onFileCopytoClipboard(databaseVersion, relativeFilePath);				
+				logComposite.onFileCopytoClipboard(databaseVersion, relativeFilePath);				
 			}
 		});
 		
@@ -278,12 +274,12 @@ public class LogTabComposite extends Composite {
 		control.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {
-				listener.onSelectDatabaseVersion(databaseVersion);
+				logComposite.onSelectDatabaseVersion(databaseVersion);
 			}
 			
 			@Override
 			public void mouseDoubleClick(MouseEvent e) {
-				listener.onDoubleClickDatabaseVesion(databaseVersion);
+				logComposite.onDoubleClickDatabaseVersion(databaseVersion);
 			}
 		});
 		

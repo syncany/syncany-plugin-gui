@@ -2,6 +2,7 @@ package org.syncany.gui.history;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
@@ -13,12 +14,16 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
+import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileStatus;
+import org.syncany.database.FileVersion.FileType;
+import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.database.PartialFileHistory;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
@@ -26,8 +31,15 @@ import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
+import org.syncany.operations.daemon.messages.RestoreFolderRequest;
+import org.syncany.operations.ls.LsOperationOptions;
+import org.syncany.operations.restore.RestoreOperationOptions;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -46,20 +58,28 @@ public class DetailPanel extends Panel {
 	private static final int COLUMN_INDEX_LAST_MODIFIED = 8;
 	private static final int COLUMN_INDEX_UPDATED = 9;
 	
-	private DetailPanelListener listener;
+	private HistoryModel model;
+
+	private HistoryDialog historyDialog;
+	private DetailPanel detailPanel;
+	
+	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
+	private GuiEventBus eventBus; 
 	
 	private Table historyTable;	
 	private Button restoreButton;	
 	
 	private PartialFileHistory selectedFileHistory;
 
-	public DetailPanel(Composite composite, int style, DetailPanelListener listener) {
+	public DetailPanel(Composite composite, int style) {
 		super(composite, style);
 
 		this.setBackgroundImage(null);
 		this.setBackgroundMode(SWT.INHERIT_DEFAULT);
 		
-		this.listener = listener;
+		this.pendingLsFolderRequests = Maps.newConcurrentMap();
+
+		this.eventBus = GuiEventBus.getAndRegister(this);
 		
 		this.historyTable = null;
 		this.restoreButton = null;			
@@ -91,7 +111,7 @@ public class DetailPanel extends Panel {
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				listener.onClickBackButton();
+				onClickBackButton();
 			}
 		});
 		
@@ -254,12 +274,65 @@ public class DetailPanel extends Panel {
 			TableItem tableItem = selectedItems[0];
 			FileVersion fileVersion = (FileVersion) tableItem.getData();
 			
-			listener.onClickRestoreButton(fileVersion);			
+			onClickRestoreButton(fileVersion);			
 		}		
 	}	
 
 	@Override
 	public boolean validatePanel() {
 		return true;
+	}
+	
+
+	public void sendLsFolderRequest(String root, FileHistoryId fileHistoryId) {
+		// Create list request
+		LsOperationOptions lsOptions = new LsOperationOptions();
+		
+		lsOptions.setPathExpression(fileHistoryId.toString());
+		lsOptions.setFileHistoryId(true);
+		lsOptions.setRecursive(false);
+		lsOptions.setDeleted(true);
+		lsOptions.setFetchHistories(true);
+		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.SYMLINK));
+		
+		LsFolderRequest lsRequest = new LsFolderRequest();
+		
+		lsRequest.setRoot(root);
+		lsRequest.setOptions(lsOptions);
+		
+		// Send request
+		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
+		eventBus.post(lsRequest);
+	}
+	
+
+	@Subscribe
+	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
+				
+				if (lsRequest != null) {
+					detailPanel.updateTable(lsRequest, lsResponse);
+				}
+			}
+		});		
+	}
+	
+	public void onClickBackButton() {
+		historyDialog.showMainPanel();
+	}
+
+	public void onClickRestoreButton(FileVersion fileVersion) {
+		RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
+		restoreOptions.setFileHistoryId(fileVersion.getFileHistoryId());
+		restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
+		
+		RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
+		restoreRequest.setRoot(model.getSelectedRoot());
+		restoreRequest.setOptions(restoreOptions);
+		
+		eventBus.post(restoreRequest);
 	}
 }

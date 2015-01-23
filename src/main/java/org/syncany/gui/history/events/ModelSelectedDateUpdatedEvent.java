@@ -15,15 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.history;
+package org.syncany.gui.history.events;
 
 import java.util.Date;
 
-/**
- * @author pheckel
- *
- */
-public interface MainPanelListener {
-	public void onDateChanged(Date newDate);
-	public void onRootChanged(String newRoot);
+public class ModelSelectedDateUpdatedEvent {
+	private Date selectedDate;
+	
+	public ModelSelectedDateUpdatedEvent(Date selectedDate) {
+		this.selectedDate = selectedDate;
+	}
+	
+	public Date getSelectedDate() {
+		return selectedDate;
+	}
 }

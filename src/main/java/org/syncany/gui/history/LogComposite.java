@@ -1,5 +1,6 @@
 package org.syncany.gui.history;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,11 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.MessageBox;
 import org.syncany.config.GuiEventBus;
+import org.syncany.gui.history.events.ModelSelectedDateUpdatedEvent;
+import org.syncany.gui.history.events.ModelSelectedRootUpdatedEvent;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
@@ -32,6 +37,16 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogComposite extends Composite {
+	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
+	public static final int LOG_REQUEST_FILE_COUNT = 10;
+	
+	private HistoryModel model;
+	
+	private MainPanel mainPanel;
+	
+	private LogFolderRequest pendingLogFolderRequest;
+	private GuiEventBus eventBus;	
+	
 	private ScrolledComposite scrollComposite;
 	private Composite logContentComposite;
 	
@@ -46,6 +61,8 @@ public class LogComposite extends Composite {
 		this.highlightedTabComposite = null;
 		this.loadingTabComposites = Lists.newArrayList();		
 		
+		this.eventBus = GuiEventBus.getAndRegister(this);
+
 		this.createContents();
 	}	
 	
@@ -122,7 +139,7 @@ public class LogComposite extends Composite {
 		scrollComposite.setRedraw(true);
 	}
 	
-	private void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
+	public void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
 		// Dispose all existing tabs (if this is the first request)
 		boolean firstRequest = logRequest.getOptions().getStartDatabaseVersionIndex() == 0;
 		
@@ -140,7 +157,7 @@ public class LogComposite extends Composite {
 
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
 			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(mainPanel, this, logContentComposite, state.getSelectedRoot(), databaseVersion);			
+				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, model.getSelectedRoot(), databaseVersion);			
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
 		}
@@ -151,14 +168,15 @@ public class LogComposite extends Composite {
 		}		
 		
 		// Highlight
-		highlightBySelectedDate();
+		highlightByDate(model.getSelectedDate());
 				
 		// Then redraw!
 		redrawAll();
 	}
 
-	public void highlightBySelectedDate() {
-		highlightByDate(state.getSelectedDate());
+	@Subscribe
+	public void onModelSelectedDateUpdatedEvent(ModelSelectedDateUpdatedEvent event) {
+		highlightByDate(event.getSelectedDate());
 	}
 	
 	public synchronized void highlightByDate(Date highlightDate) {
@@ -214,5 +232,85 @@ public class LogComposite extends Composite {
 		});
 		
 		loadingTabComposites.add(loadingComposite);
+	}
+	
+	@Subscribe
+	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
+		resetAndRefresh(0);
+	}
+	
+	public void resetAndRefresh(int startIndex) {
+		LogOperationOptions logOptions = new LogOperationOptions();
+		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
+		logOptions.setStartDatabaseVersionIndex(startIndex);
+		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
+		
+		pendingLogFolderRequest = new LogFolderRequest();
+		pendingLogFolderRequest.setRoot(model.getSelectedRoot());
+		pendingLogFolderRequest.setOptions(logOptions);
+		
+		eventBus.post(pendingLogFolderRequest);
+	}
+	
+
+	@Subscribe
+	public void onLogFolderResponse(final LogFolderResponse logResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
+					updateTabs(pendingLogFolderRequest, logResponse);
+					pendingLogFolderRequest = null;
+				}				
+			}
+		});		
+	}
+
+	public void onSelectDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
+		model.setSelectedDate(databaseVersion.getDate());
+	}
+	
+	public void onDoubleClickDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
+		mainPanel.showTree();
+	}
+
+	public void onFileJumpToDetail(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void onFileJumpToTree(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
+		model.setSelectedDate(databaseVersion.getDate());
+		model.setSelectedFilePath(relativeFilePath);
+		
+		mainPanel.showTree();				
+	}
+
+	public void onFileOpen(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
+		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		launchOrDisplayError(file);
+	}
+
+	public void onFileOpenContainingFolder(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
+		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		launchOrDisplayError(file.getParentFile());
+	}
+
+	public void onFileCopytoClipboard(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
+		final File file = new File(model.getSelectedRoot(), relativeFilePath);
+		DesktopUtil.copyToClipboard(file.getAbsolutePath());
+	}
+
+	private void launchOrDisplayError(File file) {
+		if (file.exists()) {
+			DesktopUtil.launch(file.getAbsolutePath());	
+		}
+		else {
+			MessageBox messageBox = new MessageBox(mainPanel.getShell(), SWT.ICON_WARNING | SWT.OK);	        
+	        messageBox.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.title"));
+	        messageBox.setMessage(I18n.getText("org.syncany.gui.history.LogTabComposite.warningNotExist.description", file.getAbsolutePath()));
+	        
+	        messageBox.open();
+		}
 	}
 }

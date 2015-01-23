@@ -15,17 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.gui.history;
+package org.syncany.gui.history.events;
 
-import org.syncany.database.FileVersion;
-
-/**
- * @author pheckel
- *
- */
-public interface FileTreeCompositeListener {
-	public void onDoubleClickItem(FileVersion fileVersion);
-	public void onSelectItem(FileVersion fileVersion);
-	public void onExpandItem(FileVersion fileVersion);
-	public void onCollapseItem(FileVersion fileVersion);
+public class ModelSelectedRootUpdatedEvent {
+	private String selectedRoot;
+	
+	public ModelSelectedRootUpdatedEvent(String selectedRoot) {
+		this.selectedRoot = selectedRoot;
+	}
+	
+	public String getSelectedRoot() {
+		return selectedRoot;
+	}
 }

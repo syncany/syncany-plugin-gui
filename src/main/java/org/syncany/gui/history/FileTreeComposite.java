@@ -28,6 +28,7 @@ import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileType;
+import org.syncany.gui.history.events.ModelSelectedRootUpdatedEvent;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
@@ -36,7 +37,6 @@ import org.syncany.operations.ls.LsOperationOptions;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 
@@ -49,13 +49,20 @@ public class FileTreeComposite extends Composite {
 	private static final String TREE_ICON_RESOURCE_FORMAT = "/" + FileTreeComposite.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
 	
-	private FileTreeCompositeListener listener;	
+	private HistoryModel model;
 	private Tree fileTree;
-	
-	public FileTreeComposite(Composite parent, int style, FileTreeCompositeListener fileTreeListener) {
-		super(parent, style);
 
-		this.listener = fileTreeListener;				
+	private HistoryDialog historyDialog;
+	private FileTreeComposite fileTreeComposite;
+	
+	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
+	
+	private GuiEventBus eventBus;	
+	
+	public FileTreeComposite(Composite parent, int style) {
+		super(parent, style);
+		
+		this.eventBus = GuiEventBus.getAndRegister(this);
 		
 		this.createContents();
 	}	
@@ -148,7 +155,7 @@ public class FileTreeComposite extends Composite {
 					selectedItem.setExpanded(!selectedItem.getExpanded());
 				}
 				else {
-					listener.onDoubleClickItem(fileVersion);
+					onDoubleClickItem(fileVersion);
 				}
 			}
 		}
@@ -157,25 +164,23 @@ public class FileTreeComposite extends Composite {
 	private void selectItem(TreeItem treeItem) {
 		if (!isRetrievingItem(treeItem)) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();
-			listener.onSelectItem(fileVersion);			
+			onSelectItem(fileVersion);			
 		}
 	}
 
 	private void expandTreeItem(TreeItem treeItem) {
 		if (hasRetrievingChildItem(treeItem)) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();		
-			listener.onExpandItem(fileVersion);
+			onExpandItem(fileVersion);
 		}
 	}
 	
 	private void collapseTreeItem(TreeItem treeItem) {
 		final FileVersion fileVersion = (FileVersion) treeItem.getData();
-		listener.onCollapseItem(fileVersion);		
+		onCollapseItem(fileVersion);		
 	}
 
-	
-
-	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+	public void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
 		List<FileVersion> fileVersions = lsResponse.getResult().getFileList();
 		
 		// Find parent path (where to attach new items)
@@ -210,7 +215,7 @@ public class FileTreeComposite extends Composite {
 				retrieveListTreeItem.setData(RETRIEVING_LIST_IDENTIFIER);
 				retrieveListTreeItem.setText(I18n.getText("org.syncany.gui.history.HistoryDialog.retrievingList"));
 				
-				if (state.getExpandedFilePaths().contains(fileVersion.getPath())) {
+				if (model.getExpandedFilePaths().contains(fileVersion.getPath())) {
 					treeItem.setExpanded(true);
 					refreshTree(fileVersion.getPath());
 				}
@@ -234,17 +239,17 @@ public class FileTreeComposite extends Composite {
 	}		
 
 	private void selectItemIfSelectedPathOrFileVersion(TreeItem treeItem, FileVersion fileVersion) {
-		if (state.getSelectedFileHistoryId() != null && state.getSelectedFileHistoryId().equals(fileVersion.getFileHistoryId())) {
+		if (model.getSelectedFileHistoryId() != null && model.getSelectedFileHistoryId().equals(fileVersion.getFileHistoryId())) {
 			fileTree.setSelection(treeItem);
 		}
-		else if (state.getSelectedFilePath() != null && state.getSelectedFilePath().equals(fileVersion.getPath())) {
+		else if (model.getSelectedFilePath() != null && model.getSelectedFilePath().equals(fileVersion.getPath())) {
 			fileTree.setSelection(treeItem);
 		}
 	}	
 
 	private void selectItemIfSelectedPathOrFileVersion() {
-		if (state.getSelectedFilePath() != null) {
-			selectItemByPath(state.getSelectedFilePath());
+		if (model.getSelectedFilePath() != null) {
+			selectItemByPath(model.getSelectedFilePath());
 		}		
 	}
 
@@ -265,7 +270,7 @@ public class FileTreeComposite extends Composite {
 		}
 	}
 
-	private TreeItem findItemByPath(String searchPath) {				
+	public TreeItem findItemByPath(String searchPath) {				
 		if ("".equals(searchPath)) {
 			return null;
 		}
@@ -306,7 +311,131 @@ public class FileTreeComposite extends Composite {
 		return RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());		
 	}
 	
-	private boolean hasRetrievingChildItem(TreeItem treeItem) {
+	public boolean hasRetrievingChildItem(TreeItem treeItem) {
 		return treeItem.getItemCount() == 1 && isRetrievingItem(treeItem.getItems()[0]);
 	}
+
+	public void setTreeEnabled(boolean enabled) {
+		fileTree.setEnabled(enabled);		
+	}
+	
+	private void sendLsRequest(String pathExpression) {
+		// Date
+		Date browseDate = (model.getSelectedDate() != null) ? model.getSelectedDate() : new Date();
+		
+		// Create list request
+		LsOperationOptions lsOptions = new LsOperationOptions();
+		
+		lsOptions.setPathExpression(pathExpression);
+		lsOptions.setDate(browseDate);
+		lsOptions.setRecursive(false);
+		lsOptions.setFetchHistories(false);
+		lsOptions.setFileTypes(Sets.newHashSet(FileType.FILE, FileType.FOLDER, FileType.SYMLINK));
+		
+		LsFolderRequest lsRequest = new LsFolderRequest();
+		
+		lsRequest.setRoot(model.getSelectedRoot());
+		lsRequest.setOptions(lsOptions);
+		
+		// Send request
+		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
+		eventBus.post(lsRequest);		
+	}
+	
+	@Subscribe
+	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				fileTreeComposite.setTreeEnabled(true);
+				
+				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
+				
+				if (lsRequest != null) {
+					fileTreeComposite.updateTree(lsRequest, lsResponse);
+				}
+			}
+		});		
+	}
+
+	@Subscribe
+	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
+		fileTree.removeAll();	
+		sendLsRequest("");
+	}
+
+	public void refreshTree(String pathExpression) {
+		if ("".equals(pathExpression)) {
+			throw new IllegalArgumentException();
+		}
+				
+		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
+		
+		// Remember this as expanded path
+		model.getExpandedFilePaths().add(pathExpression);
+		
+		// Find all sub-paths, a/b/c/ -> [a, a/b, a/b/c]
+		List<String> allPaths = getPaths(pathExpression + "/");
+		List<String> notLoadedPaths = new ArrayList<>();
+		
+		for (String path : allPaths) {
+			TreeItem treeItem = fileTreeComposite.findItemByPath(path);
+			
+			if (!notLoadedPaths.isEmpty()) {
+				notLoadedPaths.add(path);
+				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
+			}
+			else if (treeItem != null) {			
+				if (fileTreeComposite.hasRetrievingChildItem(treeItem)) {
+					notLoadedPaths.add(path);
+					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
+				}
+			}
+		}
+		
+		// If items unloaded: set 'select after load' item, and send load requests
+		if (!notLoadedPaths.isEmpty()) {
+			for (String path : notLoadedPaths) {
+				sendLsRequest(path + "/");
+			}			
+		}
+		else {
+			selectItemByPath(pathExpression);
+		}
+	}
+	
+	public void onDoubleClickItem(FileVersion fileVersion) {
+		historyDialog.showDetails(model.getSelectedRoot(), fileVersion.getFileHistoryId());
+	}
+
+	public void onSelectItem(FileVersion fileVersion) {
+		model.setSelectedFileHistoryId(fileVersion.getFileHistoryId());
+	}
+
+	public void onExpandItem(FileVersion fileVersion) {
+		refreshTree(fileVersion.getPath());
+	}
+
+	public void onCollapseItem(final FileVersion fileVersion) {
+		// Remove all children items from saved expanded paths
+		Iterables.removeIf(model.getExpandedFilePaths(), new Predicate<String>() {
+			@Override
+			public boolean apply(String expandedPath) {				
+				return expandedPath.startsWith(fileVersion.getPath());
+			}			
+		});		
+	}
+		
+	private List<String> getPaths(String pathExpression) {
+		List<String> paths = new ArrayList<>();
+		int previousIndexOf = -1;
+		
+		while (-1 != (previousIndexOf = pathExpression.indexOf('/', previousIndexOf + 1))) {
+			paths.add(pathExpression.substring(0, previousIndexOf));
+		}
+		
+		return paths;
+	}	
+
+	
 }
