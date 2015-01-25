@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.Client;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.LocalEventBus;
@@ -116,8 +118,10 @@ public class GuiOperation extends Operation {
 	}
 	
 	private void initDisplayWindow() {
+		logger.log(Level.INFO, "SWT platform and version version: " + SWT.getPlatform() + " " + SWT.getVersion());
+
 		Display.setAppName("Syncany");
-		Display.setAppVersion("1.0");
+		Display.setAppVersion(Client.getApplicationVersionFull());
 		
 		shell = new Shell();
 		shell.addDisposeListener(new DisposeListener() {
@@ -125,7 +129,7 @@ public class GuiOperation extends Operation {
 			public void widgetDisposed(DisposeEvent e) {
 				System.exit(0);
 			}
-		});
+		});		
 	}
 
 	private void initInternationalization() {

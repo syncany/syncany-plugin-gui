@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +36,6 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * @author pheckel
@@ -55,7 +53,6 @@ public class HistoryModel {
 	private Date selectedDate;
 	private FileHistoryId selectedFileHistoryId;
 	private String selectedFilePath;
-	private Set<String> expandedFilePaths;
 	
 	private GuiEventBus eventBus;
 	
@@ -74,7 +71,6 @@ public class HistoryModel {
 		this.selectedDate = null;		
 		this.selectedFileHistoryId = null;	
 		this.selectedFilePath = null;
-		this.expandedFilePaths = Sets.newConcurrentHashSet();	
 	}
 	
 	public List<String> getRoots() {
@@ -159,12 +155,4 @@ public class HistoryModel {
 			eventBus.post(new ModelSelectedFilePathUpdatedEvent(selectedFilePath));
 		}		
 	}
-
-	public Set<String> getExpandedFilePaths() {
-		return expandedFilePaths;
-	}
-	
-	public void setExpandedFilePaths(Set<String> expandedFilePaths) {
-		this.expandedFilePaths = expandedFilePaths;
-	}		
 }

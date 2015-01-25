@@ -36,6 +36,7 @@ import tempfile
 import re
 
 from lxml import etree
+from xml.sax.saxutils import escape
 
 def fetch_image(relative_url):
 	global base_url, images_map
@@ -294,19 +295,19 @@ def menu_item_exit_clicked(widget):
 
 def menu_item_recent_changes_file_clicked(widget, afile):
 	do_print("Opening file/folder '" + afile + "' ...")
-	ws.send("<clickRecentChangesGuiInternalEvent><file>" + afile + "</file></clickRecentChangesGuiInternalEvent>")
+	ws.send("<clickRecentChangesGuiInternalEvent><file>" + escape(afile) + "</file></clickRecentChangesGuiInternalEvent>")
 
 def menu_item_folder_open_clicked(widget, folder):
 	do_print("Opening folder '" + folder + "' ...")
-	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>OPEN</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>OPEN</action><folder>" + escape(folder) + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def menu_item_folder_copy_link_clicked(widget, folder):
 	do_print("Copying link for folder '" + folder + "' ...")
-	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>COPY_LINK</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>COPY_LINK</action><folder>" + escape(folder) + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def menu_item_folder_remove_clicked(widget, folder):
 	do_print("Removing folder '" + folder + "' ...")
-	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>REMOVE</action><folder>" + folder + "</folder></clickTrayMenuFolderGuiInternalEvent>")
+	ws.send("<clickTrayMenuFolderGuiInternalEvent><action>REMOVE</action><folder>" + escape(folder) + "</folder></clickTrayMenuFolderGuiInternalEvent>")
 
 def do_kill():
 	# Note: this method cannot contain any do_print() calls since it is called

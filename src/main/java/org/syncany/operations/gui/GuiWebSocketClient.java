@@ -216,7 +216,7 @@ public class GuiWebSocketClient {
 				Message message;
 				
 				try {
-					logger.log(Level.INFO, "GUI received message: " + messageStr);
+					logger.log(Level.FINEST, "GUI received message: " + messageStr);
 					
 					message = XmlMessageFactory.toMessage(messageStr);
 					eventBus.post(message);
@@ -272,7 +272,7 @@ public class GuiWebSocketClient {
 		
 		// Send to websocket
 		if (webSocketChannel != null) {
-			logger.log(Level.INFO, "Sending WS message to daemon: " + messageStr);
+			logger.log(Level.FINEST, "Sending WS message to daemon: " + messageStr);
 
 			WebSockets.sendText(messageStr, webSocketChannel, new WebSocketCallback<Void>() {
 				@Override
@@ -286,12 +286,12 @@ public class GuiWebSocketClient {
 	
 				@Override
 				public void complete(WebSocketChannel channel, Void context) {
-					logger.log(Level.INFO, "WS message sent");
+					// Nothing.
 				}
 			});
 		}
 		else {
-			logger.log(Level.INFO, "Failed to send WS message to daemon. Not (yet) connected; " + messageStr);
+			logger.log(Level.WARNING, "Failed to send WS message to daemon. Not (yet) connected; " + messageStr);
 			
 			if (retryOnFailure) {
 				failedOutgoingMessages.add(message);

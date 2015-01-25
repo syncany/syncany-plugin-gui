@@ -1,6 +1,7 @@
 package org.syncany.gui.history;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Timer;
@@ -58,6 +59,7 @@ public class MainPanel extends Panel {
 	private boolean dateLabelPrettyTime;
 	private AtomicInteger dateSliderValue;
 	private Timer dateSliderChangeTimer;
+	private List<DatabaseVersionHeader> dateSliderHeaders;
 
 	private Combo rootSelectCombo;
 	private SelectionListener rootSelectComboListener;
@@ -86,7 +88,8 @@ public class MainPanel extends Panel {
 
 		this.dateLabelPrettyTime = true;
 		this.dateSliderValue = new AtomicInteger(-1);
-		this.dateSliderChangeTimer = null;		
+		this.dateSliderChangeTimer = null;	
+		this.dateSliderHeaders = Collections.synchronizedList(new ArrayList<DatabaseVersionHeader>());
 
 		createMainComposite();
 		createToggleButtons();
@@ -97,6 +100,7 @@ public class MainPanel extends Panel {
 		createFileTreeComposite();
 		createLogComposite();	
 		
+		showLog();
 		sendListWatchesRequest();
 	}	
 
@@ -254,7 +258,7 @@ public class MainPanel extends Panel {
 	private void onDateSliderSelected() {
 		synchronized (dateSlider) {	
 			int newDateSliderValue = dateSlider.getSelection();
-			Date newSliderDate = getDateSliderDate();
+			Date newSliderDate = getSliderDate();
 
 			boolean dateSliderValueChanged = dateSliderValue.get() != newDateSliderValue;
 			
@@ -287,7 +291,7 @@ public class MainPanel extends Panel {
 					@Override
 					public void run() {							
 						logger.log(Level.INFO, "Main: Date slider timer fired.");
-						onDateChanged(getDateSliderDate());
+						onDateChanged(getSliderDate());
 					}					
 				});
 			}
@@ -298,31 +302,25 @@ public class MainPanel extends Panel {
 		if (!newDate.equals(historyModel.getSelectedDate())) {
 			historyModel.setSelectedDate(newDate);
 			
-			setDateSlider(newDate);
+			setSliderDate(newDate);
 			setDateLabel(newDate);
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	private Date getDateSliderDate() {
-		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
-		
+	private Date getSliderDate() {
 		int dateSelectionIndex = dateSlider.getSelection();
 		
-		if (dateSelectionIndex >= 0 && dateSelectionIndex < headers.size()) {
-			return headers.get(dateSelectionIndex).getDate();
+		if (dateSelectionIndex >= 0 && dateSelectionIndex < dateSliderHeaders.size()) {
+			return dateSliderHeaders.get(dateSelectionIndex).getDate();
 		}
 		else {
 			return null;
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	private void setDateSlider(Date newDate) {
-		List<DatabaseVersionHeader> headers = (List<DatabaseVersionHeader>) dateSlider.getData();
-		
-		for (int i = 0; i < headers.size(); i++) {
-			DatabaseVersionHeader header = headers.get(i);
+	private void setSliderDate(Date newDate) {
+		for (int i = 0; i < dateSliderHeaders.size(); i++) {
+			DatabaseVersionHeader header = dateSliderHeaders.get(i);
 			
 			if (header.getDate().equals(newDate)) {
 				dateSlider.setSelection(i);
@@ -357,7 +355,9 @@ public class MainPanel extends Panel {
 					int maxValue = headers.size() - 1;
 					Date newSelectedDate = headers.get(headers.size()-1).getDate();
 					
-					dateSlider.setData(headers);
+					dateSliderHeaders.clear();
+					dateSliderHeaders.addAll(headers);
+					
 					dateSlider.setMinimum(0);
 					dateSlider.setMaximum(maxValue);
 					dateSlider.setSelection(maxValue);
@@ -455,14 +455,14 @@ public class MainPanel extends Panel {
 			public void run() {
 				onDateChanged(event.getSelectedDate());
 				
-				if (!Objects.equal(event.getSelectedDate(), getDateSliderDate())) {
-					setDateSlider(event.getSelectedDate());
+				if (!Objects.equal(event.getSelectedDate(), getSliderDate())) {
+					setSliderDate(event.getSelectedDate());
 				}
 			}
 		});
 	}
 	
-	public void onDateChanged(Date newDate) {
+	private void onDateChanged(Date newDate) {
 		boolean listUpdateRequired = !newDate.equals(historyModel.getSelectedDate());
 			
 		if (listUpdateRequired) {

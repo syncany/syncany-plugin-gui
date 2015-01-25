@@ -92,7 +92,6 @@ public class LogComposite extends Composite {
 		highlightedTabComposite = null;
 	}
 	
-
 	private void createMainComposite() {
 		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
@@ -146,8 +145,7 @@ public class LogComposite extends Composite {
 		
 		scrollComposite.setMinSize(logContentComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		scrollComposite.setRedraw(true);
-	}
-	
+	}	
 
 	@Subscribe
 	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
@@ -204,7 +202,7 @@ public class LogComposite extends Composite {
 
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
 			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, databaseVersion);			
+				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, historyModel, databaseVersion);			
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
 		}
