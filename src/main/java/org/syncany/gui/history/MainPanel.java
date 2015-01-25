@@ -164,6 +164,7 @@ public class MainPanel extends Panel {
 		dateLabelGridData.minimumWidth = 150;
 		
 		dateLabel = new Label(this, SWT.CENTER);
+		dateLabel.setEnabled(false);
 		dateLabel.setLayoutData(dateLabelGridData);
 		
 		dateLabel.addMouseListener(new MouseAdapter() {
@@ -354,6 +355,8 @@ public class MainPanel extends Panel {
 		toggleTreeButton.setEnabled(true);
 		
 		rootSelectCombo.setEnabled(true);
+		
+		dateLabel.setEnabled(true);
 		dateSlider.setEnabled(true);
 	}
 
@@ -513,5 +516,7 @@ public class MainPanel extends Panel {
 				}
 			}
 		});
+		
+		super.dispose();
 	}
 }

@@ -139,7 +139,7 @@ public class LogComposite extends Composite {
 		});
 	}
 	
-	private void redrawAll() {
+	public void redrawAll() {
 		logContentComposite.layout();
 		layout();
 		
@@ -170,7 +170,6 @@ public class LogComposite extends Composite {
 		eventBus.post(pendingLogFolderRequest);
 	}
 	
-
 	@Subscribe
 	public void onLogFolderResponse(final LogFolderResponse logResponse) {
 		Display.getDefault().asyncExec(new Runnable() {
@@ -201,12 +200,17 @@ public class LogComposite extends Composite {
 		
 		// And create new tabs		
 		List<LightweightDatabaseVersion> newDatabaseVersions = logResponse.getResult().getDatabaseVersions();
-
+		int databaseVersionIndex = logRequest.getOptions().getStartDatabaseVersionIndex();
+		
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
-			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, historyModel, databaseVersion);			
+			if (databaseVersion.getChangeSet().hasChanges()) {
+				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, historyModel.getSelectedRoot(),
+						databaseVersionIndex, databaseVersion);
+
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
+			
+			databaseVersionIndex++;			
 		}
 		
 		// Add 'Loading ...' panel (if potentially more databases there)
@@ -333,8 +337,14 @@ public class LogComposite extends Composite {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
-				eventBus.unregister(LogComposite.this);							
+				eventBus.unregister(LogComposite.this);
+				
+				for (LogTabComposite tabComposite : tabComposites.values()) {
+					tabComposite.dispose();
+				}
 			}
 		});
+		
+		super.dispose();
 	}
 }

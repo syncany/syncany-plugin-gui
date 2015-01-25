@@ -37,10 +37,16 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.ocpsoft.prettytime.PrettyTime;
+import org.syncany.config.GuiEventBus;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
+import org.syncany.operations.daemon.messages.LogFolderRequest;
+import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.log.LightweightDatabaseVersion;
+import org.syncany.operations.log.LogOperationOptions;
+
+import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -48,31 +54,48 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
 public class LogTabComposite extends Composite {
 	private static final Logger logger = Logger.getLogger(LogTabComposite.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
+	private static final int LOG_REQUEST_FILE_COUNT_STEP = 25;
 	
 	private LogComposite logComposite;
 	
-	private HistoryModel historyModel;
+	private String root;
+	private int databaseVersionIndex;
 	private LightweightDatabaseVersion databaseVersion;
 	
 	private boolean highlighted;
 	private boolean mouseOver;
+	private int showMoreLabelEntryLimit;
 	
-	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, HistoryModel historyModel, LightweightDatabaseVersion databaseVersion) {
+	private GuiEventBus eventBus;	
+	private LogFolderRequest pendingLogFolderRequest;
+	
+	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, String root, int databaseVersionIndex, LightweightDatabaseVersion databaseVersion) {
 		super(logMainComposite, SWT.BORDER);	
 		
 		this.logComposite = logComposite;
 		
-		this.historyModel = historyModel;
+		this.root = root;
+		this.databaseVersionIndex = databaseVersionIndex;
 		this.databaseVersion = databaseVersion;
 		
 		this.highlighted = false;
 		this.mouseOver = false;
+		this.showMoreLabelEntryLimit = LogComposite.LOG_REQUEST_FILE_COUNT;
+		
+		this.eventBus = null; // Register on demand!
+		this.pendingLogFolderRequest = null;
 		
 		this.createControls();
 		this.addMouseListeners();
 	}
 				
 	private void createControls() {		
+		createMainComposite();
+		createDateLabels();
+		createEntryLabels();		
+	}
+
+	private void createMainComposite() {
 		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -85,7 +108,9 @@ public class LogTabComposite extends Composite {
 		setLayout(mainCompositeGridLayout);		
 		setBackground(WidgetDecorator.WHITE);	
 		setBackgroundMode(SWT.INHERIT_FORCE);
-				
+	}
+
+	private void createDateLabels() {
 		Label dateLabel = new Label(this, SWT.NONE);
 		dateLabel.setText(databaseVersion.getDate().toString());		
 		dateLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, false, false, 2, 1));		
@@ -101,7 +126,9 @@ public class LogTabComposite extends Composite {
 		prettyDateLabel.setForeground(WidgetDecorator.DARK_GRAY);
 		
 		WidgetDecorator.smaller(prettyDateLabel);
-				
+	}
+
+	private void createEntryLabels() {
 		Label spacingLabel1 = new Label(this, SWT.NONE);
 		spacingLabel1.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));		
 		
@@ -122,7 +149,7 @@ public class LogTabComposite extends Composite {
 				+ databaseVersion.getChangeSet().getChangedFiles().size()
 				+ databaseVersion.getChangeSet().getDeletedFiles().size();
 		
-		if (totalEntryCount == LogComposite.LOG_REQUEST_FILE_COUNT) {
+		if (totalEntryCount == showMoreLabelEntryLimit) {
 			createMoreEntryLabel();	
 		}
 		
@@ -222,7 +249,8 @@ public class LogTabComposite extends Composite {
 		moreLabel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {				
-				logger.log(Level.INFO, "Not implemented.");		
+				logger.log(Level.INFO, "Reloading database version.");
+				sendMoreLogFolderRequest();				
 			}
 		});
 	}
@@ -314,5 +342,68 @@ public class LogTabComposite extends Composite {
 				logComposite.scrollBy(e.count);
 			}
 		});
+	}
+	
+	private void sendMoreLogFolderRequest() {
+		showMoreLabelEntryLimit += LOG_REQUEST_FILE_COUNT_STEP;
+
+		LogOperationOptions logOptions = new LogOperationOptions();
+		logOptions.setMaxDatabaseVersionCount(1);
+		logOptions.setStartDatabaseVersionIndex(databaseVersionIndex);
+		logOptions.setMaxFileHistoryCount(showMoreLabelEntryLimit);		
+		
+		pendingLogFolderRequest = new LogFolderRequest();
+		pendingLogFolderRequest.setRoot(root);
+		pendingLogFolderRequest.setOptions(logOptions);
+		
+		if (eventBus == null) {
+			eventBus = GuiEventBus.getAndRegister(this);
+		}
+		
+		eventBus.post(pendingLogFolderRequest);
+	}
+	
+	@Subscribe
+	public void onLogFolderResponse(final LogFolderResponse logResponse) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
+					databaseVersion = logResponse.getResult().getDatabaseVersions().get(0);
+					
+					disposeControls();
+					createControls();
+					
+					redrawParents();
+					
+					pendingLogFolderRequest = null;
+				}				
+			}				
+		});		
+	}
+	
+	private void disposeControls() {
+		for (Control control : getChildren()) {
+			control.dispose();
+		}
+	}
+	
+	private void redrawParents() {
+		LogTabComposite.this.layout();
+		logComposite.redrawAll();
+	}	
+	
+	@Override
+	public void dispose() {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {	
+				if (eventBus != null) {
+					eventBus.unregister(LogTabComposite.this);
+				}
+			}
+		});
+		
+		super.dispose();
 	}
 }
