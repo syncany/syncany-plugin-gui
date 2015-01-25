@@ -166,7 +166,7 @@ public class LogTabComposite extends Composite {
 
 		Label entryLabel = new Label(this, SWT.NONE);
 		entryLabel.setLayoutData(entryLabelGridData);		
-		entryLabel.setText(relativeFilePath);		
+		entryLabel.setText(relativeFilePath.replaceAll("&", "&&"));		
 		
 		return entryLabel;
 	}
