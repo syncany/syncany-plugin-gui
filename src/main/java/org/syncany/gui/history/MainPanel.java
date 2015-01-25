@@ -49,6 +49,7 @@ import com.google.common.eventbus.Subscribe;
 public class MainPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(MainPanel.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
+	private static final int DATE_SLIDER_DELAY = 400;
 	
 	private HistoryModel historyModel;
 	private HistoryDialog historyDialog;
@@ -70,6 +71,7 @@ public class MainPanel extends Panel {
 	
 	private FileTreeComposite fileTreeComposite;
 	private LogComposite logComposite;
+	private LoadingComposite loadingComposite;
 		
 	private Button toggleTreeButton;
 	private Button toggleLogButton;	
@@ -96,11 +98,10 @@ public class MainPanel extends Panel {
 		createRootSelectionCombo();
 		createRootSelectionComboListener();
 		createDateSlider();
-		createStackComposite();
-		createFileTreeComposite();
-		createLogComposite();	
+		createStackComposite();		
+		createComposites();		
 		
-		showLog();
+		showLoadingComposite();		
 		sendListWatchesRequest();
 	}	
 
@@ -116,10 +117,12 @@ public class MainPanel extends Panel {
 	
 	private void createToggleButtons() {	
 		toggleLogButton = new Button(this, SWT.TOGGLE);
+		toggleLogButton.setEnabled(false);
 		toggleLogButton.setSelection(true);
 		toggleLogButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "log")));
 		
 		toggleTreeButton = new Button(this, SWT.TOGGLE);
+		toggleTreeButton.setEnabled(false);
 		toggleTreeButton.setSelection(false);
 		toggleTreeButton.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "tree")));
 		
@@ -200,12 +203,10 @@ public class MainPanel extends Panel {
 		stackComposite.setLayout(stackLayout);
 		stackComposite.setLayoutData(stackCompositeGridData);
 	}
-	
-	private void createFileTreeComposite() {
-		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE, historyModel, historyDialog);
-	}
 
-	private void createLogComposite() {
+	private void createComposites() {
+		loadingComposite = new LoadingComposite(stackComposite, SWT.NONE);
+		fileTreeComposite = new FileTreeComposite(stackComposite, SWT.NONE, historyModel, historyDialog);
 		logComposite = new LogComposite(stackComposite, SWT.NONE, historyModel, this);
 	}
 
@@ -230,7 +231,6 @@ public class MainPanel extends Panel {
 				sendGetDatabaseVersionHeadersFolderRequest(newRoot);						
 			}
 		}
-
 	}
 	
 	private void setDateLabel(final Date dateSliderDate) {
@@ -254,7 +254,6 @@ public class MainPanel extends Panel {
 		});
 	}
 
-
 	private void onDateSliderSelected() {
 		synchronized (dateSlider) {	
 			int newDateSliderValue = dateSlider.getSelection();
@@ -276,7 +275,7 @@ public class MainPanel extends Panel {
 				}
 				
 				dateSliderChangeTimer = new Timer();
-				dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
+				dateSliderChangeTimer.schedule(createDateSliderTimerTask(), DATE_SLIDER_DELAY);
 				
 				logger.log(Level.INFO, "Main: Date slider value changed to " + newSliderDate + "; setting timer to refresh views in 800ms ...");
 			}
@@ -328,19 +327,46 @@ public class MainPanel extends Panel {
 		}
 	}
 	
+	private void showLoadingComposite() {
+		setCurrentControl(loadingComposite);
+	}
+	
 	public void showLog() {
 		setCurrentControl(logComposite);
 
-		toggleTreeButton.setSelection(false);
-		toggleLogButton.setSelection(true);
-	}
+		enableControls();
+		toggleButtons(true);
+		
+		disposeLoadingComposite();
+	}	
 
-	public void showTree() {
+	public void showTree() {		
 		setCurrentControl(fileTreeComposite);
 		
-		toggleTreeButton.setSelection(true);
-		toggleLogButton.setSelection(false);
+		enableControls();
+		toggleButtons(false);
+		
+		disposeLoadingComposite();
 	}	
+	
+	private void enableControls() {
+		toggleLogButton.setEnabled(true);
+		toggleTreeButton.setEnabled(true);
+		
+		rootSelectCombo.setEnabled(true);
+		dateSlider.setEnabled(true);
+	}
+
+	private void toggleButtons(boolean logEnabled) {
+		toggleLogButton.setSelection(logEnabled);
+		toggleTreeButton.setSelection(!logEnabled);	
+	}
+	
+	private void disposeLoadingComposite() {
+		if (!loadingComposite.isDisposed()) {
+			loadingComposite.dispose();
+		}
+	}
 
 	@Override
 	public boolean validatePanel() {
@@ -361,14 +387,12 @@ public class MainPanel extends Panel {
 					dateSlider.setMinimum(0);
 					dateSlider.setMaximum(maxValue);
 					dateSlider.setSelection(maxValue);
-					dateSlider.setEnabled(true);
 					
 					setDateLabel(newSelectedDate);
 				}
 				else {
 					dateSlider.setMinimum(0);
 					dateSlider.setMaximum(0);
-					dateSlider.setEnabled(false);	
 				}				
 			}
 		});		
@@ -402,7 +426,6 @@ public class MainPanel extends Panel {
 				}
 				
 				rootSelectCombo.setData(watches);
-				rootSelectCombo.setEnabled(true);
 				
 				if (rootSelectCombo.getItemCount() > 0) {
 					historyModel.reset();
@@ -483,7 +506,11 @@ public class MainPanel extends Panel {
 				
 				if (!fileTreeComposite.isDisposed()) {
 					fileTreeComposite.dispose();
-				}												
+				}
+				
+				if (!loadingComposite.isDisposed()) {
+					loadingComposite.dispose();
+				}
 			}
 		});
 	}

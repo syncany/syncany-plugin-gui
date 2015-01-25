@@ -173,11 +173,13 @@ public class LogComposite extends Composite {
 
 	@Subscribe
 	public void onLogFolderResponse(final LogFolderResponse logResponse) {
-		Display.getDefault().syncExec(new Runnable() {
+		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
 					updateTabs(pendingLogFolderRequest, logResponse);
+					mainPanel.showLog();
+					
 					pendingLogFolderRequest = null;
 				}				
 			}

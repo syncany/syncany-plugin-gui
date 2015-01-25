@@ -17,7 +17,6 @@
  */
 package org.syncany.gui.history;
 
-import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,15 +106,15 @@ public class LogTabComposite extends Composite {
 		spacingLabel1.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));		
 		
 		for (String file : databaseVersion.getChangeSet().getNewFiles()) {
-			createFileEntryLabel(file, "add");			
+			createFileEntryLabel(file, "add", true);			
 		}
 
 		for (String file : databaseVersion.getChangeSet().getChangedFiles()) {
-			createFileEntryLabel(file, "edit");	
+			createFileEntryLabel(file, "edit", true);	
 		}
 
 		for (String file : databaseVersion.getChangeSet().getDeletedFiles()) {
-			createFileEntryLabel(file, "delete");	
+			createFileEntryLabel(file, "delete", false);	
 		}
 		
 		// Add 'more ...' entry if max. number reached
@@ -131,11 +130,10 @@ public class LogTabComposite extends Composite {
 		spacingLabel2.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));
 	}
 
-	private void createFileEntryLabel(String relativeFilePath, String imageResourceName) {		
+	private void createFileEntryLabel(String relativeFilePath, String imageResourceName, boolean link) {		
 		Label fileLabel = createEntryLabel(relativeFilePath, imageResourceName);
-		File file = new File(historyModel.getSelectedRoot(), relativeFilePath);
 		
-		if (file.exists()) {
+		if (link) {
 			fileLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
 			
 			addFileEntryMenu(fileLabel, relativeFilePath);	

@@ -13,6 +13,7 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiEventBus;
+import org.syncany.config.Logging;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Dialog;
 import org.syncany.gui.Panel;
@@ -51,6 +52,16 @@ public class HistoryDialog extends Dialog {
 		this.eventBus.register(this);					
 	}
 
+	public static void main(String[] a) {
+		Logging.init();
+		
+		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");
+		I18n.registerBundleName(intlPackage + "/i18n/messages");
+
+		HistoryDialog dialog = new HistoryDialog();
+		dialog.open();
+	}
+	
 	public void open() {
 		// Create controls
 		createContents();
