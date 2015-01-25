@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
@@ -37,6 +38,8 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogComposite extends Composite {
+	private static final Logger logger = Logger.getLogger(LogComposite.class.getSimpleName());		
+
 	public static final int LOG_REQUEST_DATABASE_COUNT = 15;
 	public static final int LOG_REQUEST_FILE_COUNT = 10;
 	
@@ -201,7 +204,7 @@ public class LogComposite extends Composite {
 
 		for (LightweightDatabaseVersion databaseVersion : newDatabaseVersions) {
 			if (databaseVersion.getChangeSet().hasChanges()) {			
-				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, historyModel.getSelectedRoot(), databaseVersion);			
+				LogTabComposite tabComposite = new LogTabComposite(this, logContentComposite, databaseVersion);			
 				tabComposites.put(databaseVersion.getDate(), tabComposite);
 			}
 		}
@@ -289,11 +292,6 @@ public class LogComposite extends Composite {
 	
 	public void onDoubleClickDatabaseVersion(LightweightDatabaseVersion databaseVersion) {
 		mainPanel.showTree();
-	}
-
-	public void onFileJumpToDetail(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	public void onFileJumpToTree(LightweightDatabaseVersion databaseVersion, String relativeFilePath) {

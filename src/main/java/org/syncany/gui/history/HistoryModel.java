@@ -23,15 +23,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.syncany.config.GuiEventBus;
 import org.syncany.database.DatabaseVersionHeader;
 import org.syncany.database.FileVersion;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.history.events.ModelSelectedDateUpdatedEvent;
+import org.syncany.gui.history.events.ModelSelectedFilePathUpdatedEvent;
 import org.syncany.gui.history.events.ModelSelectedRootUpdatedEvent;
 import org.syncany.operations.log.LightweightDatabaseVersion;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -40,6 +44,8 @@ import com.google.common.collect.Sets;
  *
  */
 public class HistoryModel {
+	private static final Logger logger = Logger.getLogger(HistoryModel.class.getSimpleName());		
+
 	private List<String> roots;
 	private List<DatabaseVersionHeader> databaseVersionHeaders;
 	private Map<String, List<FileVersion>> fileTree;
@@ -108,9 +114,12 @@ public class HistoryModel {
 	}
 	
 	public void setSelectedRoot(String selectedRoot) {
-		this.selectedRoot = selectedRoot;
-		
-		eventBus.post(new ModelSelectedRootUpdatedEvent(selectedRoot));
+		if (!Objects.equal(selectedRoot, this.selectedRoot)) {			
+			this.selectedRoot = selectedRoot;
+			
+			logger.log(Level.INFO, "Model: Selecting new root " + selectedRoot + "; Sending model update event ...");
+			eventBus.post(new ModelSelectedRootUpdatedEvent(selectedRoot));
+		}
 	}
 	
 	public Date getSelectedDate() {
@@ -118,9 +127,12 @@ public class HistoryModel {
 	}
 	
 	public void setSelectedDate(Date selectedDate) {
-		this.selectedDate = selectedDate;
-		
-		eventBus.post(new ModelSelectedDateUpdatedEvent(selectedDate));
+		if (!Objects.equal(selectedDate, this.selectedDate)) {			
+			this.selectedDate = selectedDate;
+			
+			logger.log(Level.INFO, "Model: Selecting new date " + selectedDate + "; Sending model update event ...");
+			eventBus.post(new ModelSelectedDateUpdatedEvent(selectedDate));
+		}
 	}
 	
 	public FileHistoryId getSelectedFileHistoryId() {
@@ -128,6 +140,8 @@ public class HistoryModel {
 	}
 
 	public void setSelectedFileHistoryId(FileHistoryId selectedFileHistoryId) {
+		logger.log(Level.INFO, "Model: Selected history ID " + selectedFileHistoryId + "; selected path set to null.");
+
 		this.selectedFileHistoryId = selectedFileHistoryId;
 		this.selectedFilePath = null;
 	}
@@ -137,8 +151,13 @@ public class HistoryModel {
 	}
 
 	public void setSelectedFilePath(String selectedFilePath) {
-		this.selectedFilePath = selectedFilePath;
-		this.selectedFileHistoryId = null;
+		if (!Objects.equal(selectedFilePath, this.selectedFilePath)) {			
+			this.selectedFilePath = selectedFilePath;
+			this.selectedFileHistoryId = null;
+			
+			logger.log(Level.INFO, "Model: Selected path " + selectedFilePath + "; selected history ID set to null.");
+			eventBus.post(new ModelSelectedFilePathUpdatedEvent(selectedFilePath));
+		}		
 	}
 
 	public Set<String> getExpandedFilePaths() {

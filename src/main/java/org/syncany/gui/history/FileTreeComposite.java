@@ -29,7 +29,7 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileType;
 import org.syncany.gui.history.events.ModelSelectedDateUpdatedEvent;
-import org.syncany.gui.history.events.ModelSelectedRootUpdatedEvent;
+import org.syncany.gui.history.events.ModelSelectedFilePathUpdatedEvent;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
@@ -52,7 +52,8 @@ public class FileTreeComposite extends Composite {
 	private static final Object RETRIEVING_LIST_IDENTIFIER = new Object();
 	
 	private Tree fileTree;
-
+	private Listener fileTreeSelectionListener;
+	
 	private HistoryModel historyModel;
 	private HistoryDialog historyDialog;
 	
@@ -97,12 +98,19 @@ public class FileTreeComposite extends Composite {
 		fileTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		fileTree.setEnabled(false);		
 
-		fileTree.addListener(SWT.Selection, new Listener() {
+		createTreeListeners();
+		createTreeColumns();						
+	}		
+
+	private void createTreeListeners() {
+		fileTreeSelectionListener = new Listener() {
 			public void handleEvent(Event e) {
 				TreeItem treeItem = (TreeItem) e.item;
 				selectItem(treeItem);
 			}
-		});
+		};
+		
+		addTreeSelectionListener();
 		
 		fileTree.addMouseListener(new MouseAdapter() {			
 			@Override
@@ -123,7 +131,17 @@ public class FileTreeComposite extends Composite {
 				collapseTreeItem(treeItem);
 			}			
 		});
-		
+	}
+	
+	private void addTreeSelectionListener() {
+		fileTree.addListener(SWT.Selection, fileTreeSelectionListener);
+	}
+	
+	private void removeTreeSelectionListener() {
+		fileTree.removeListener(SWT.Selection, fileTreeSelectionListener);
+	}
+
+	private void createTreeColumns() {
 		final TreeColumn columnFile = new TreeColumn(fileTree, SWT.LEFT);
 	    columnFile.setWidth(400);
 	    
@@ -139,15 +157,11 @@ public class FileTreeComposite extends Composite {
 				columnFile.setWidth(newFileColumnWidth);
 			}
 		});		
-	}	
+	}
 
 	@Subscribe
-	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
-		resetAndSendRootLsRequest();
-	}	
-	
-	@Subscribe
 	public void onModelSelectedDateUpdatedEvent(ModelSelectedDateUpdatedEvent event) {
+		logger.log(Level.INFO, "Tree: Model DATE changed event received; resetting tree ...");
 		resetAndSendRootLsRequest();
 	}	
 	
@@ -155,7 +169,7 @@ public class FileTreeComposite extends Composite {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
-				fileTree.removeAll();	
+				logger.log(Level.INFO, "Tree: Reset: Remove all tree items; and resending LsRequest ...");
 				sendLsRequest("");
 			}
 		});
@@ -179,6 +193,8 @@ public class FileTreeComposite extends Composite {
 		lsRequest.setRoot(historyModel.getSelectedRoot());
 		lsRequest.setOptions(lsOptions);
 		
+		logger.log(Level.INFO, "Tree: Sending LsRequest #" + lsRequest.getId() + " for " + browseDate + " and " + historyModel.getSelectedRoot() + " ...");
+		
 		// Send request
 		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
 		eventBus.post(lsRequest);		
@@ -194,6 +210,7 @@ public class FileTreeComposite extends Composite {
 				LsFolderRequest lsRequest = pendingLsFolderRequests.remove(lsResponse.getRequestId());
 				
 				if (lsRequest != null) {
+					logger.log(Level.INFO, "Tree: Received LsResponse for request #" + lsResponse.getRequestId() + "; updating tree at path " + lsRequest.getOptions().getPathExpression() + " ...");					
 					updateTree(lsRequest, lsResponse);
 				}
 			}
@@ -201,7 +218,15 @@ public class FileTreeComposite extends Composite {
 	}	
 
 	private void updateTree(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+		logger.log(Level.INFO, "Tree: Updating with LsResponse " + lsResponse.getResult().getFileList().size() + " versions ...");
+
+		removeTreeSelectionListener();
 		List<FileVersion> fileVersions = lsResponse.getResult().getFileList();
+		
+		// Clear entire tree if '/' request
+		if ("".equals(lsRequest.getOptions().getPathExpression())) {
+			fileTree.removeAll();	
+		}
 		
 		// Find parent path (where to attach new items)
 		TreeItem parentTreeItem = findItemByPath(lsRequest.getOptions().getPathExpression());
@@ -221,6 +246,9 @@ public class FileTreeComposite extends Composite {
 		
 		// Select item
 		selectItemIfSelectedPathOrFileVersion();
+		
+		addTreeSelectionListener();
+		fileTree.redraw();
 	}
 
 	private void createFolderItems(TreeItem parentTreeItem, List<FileVersion> fileVersions) {
@@ -263,7 +291,8 @@ public class FileTreeComposite extends Composite {
 			throw new IllegalArgumentException();
 		}
 				
-		logger.log(Level.INFO, "Refreshing tree at " + pathExpression + " ...");	
+		removeTreeSelectionListener();
+		logger.log(Level.INFO, "Tree: Refreshing at " + pathExpression + " ...");	
 		
 		// Remember this as expanded path
 		historyModel.getExpandedFilePaths().add(pathExpression);
@@ -277,35 +306,42 @@ public class FileTreeComposite extends Composite {
 			
 			if (!notLoadedPaths.isEmpty()) {
 				notLoadedPaths.add(path);
-				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
+				logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
 			}
 			else if (treeItem != null) {			
 				if (hasRetrievingChildItem(treeItem)) {
 					notLoadedPaths.add(path);
-					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (1).");					
+					logger.log(Level.INFO, "- Item '" + path + "' has not been loaded (2).");					
 				}
+				else {
+					logger.log(Level.INFO, "- Item '" + path + "' already loaded (3).");					
+				}
+			}
+			else {
+				logger.log(Level.WARNING, "- Item '" + path + "' has no matching tree item (4).");					
 			}
 		}
 		
 		// If items unloaded: set 'select after load' item, and send load requests
 		if (!notLoadedPaths.isEmpty()) {
+			logger.log(Level.INFO, "Tree: Sending LsRequests for " + notLoadedPaths.size() + " not-yet-loaded-path(s) ...");					
+			
 			for (String path : notLoadedPaths) {
 				sendLsRequest(path + "/");
 			}			
 		}
-		else {
-			selectItemByPath(pathExpression);
-		}
+
+		selectItemByPath(pathExpression);
+		
+		addTreeSelectionListener();
+		fileTree.redraw();
 	}
 	
 	public void onDoubleClickItem(FileVersion fileVersion) {
-		historyDialog.showDetails(historyModel.getSelectedRoot(), fileVersion.getFileHistoryId());
+		logger.log(Level.INFO, "Tree: Double clicking item " + fileVersion.getPath() + " ...");					
+		historyDialog.showDetailsPanel(historyModel.getSelectedRoot(), fileVersion.getFileHistoryId());
 	}
-
-	public void onSelectItem(FileVersion fileVersion) {
-		historyModel.setSelectedFileHistoryId(fileVersion.getFileHistoryId());
-	}
-
+	
 	public void onExpandItem(FileVersion fileVersion) {
 		refreshTree(fileVersion.getPath());
 	}
@@ -331,7 +367,6 @@ public class FileTreeComposite extends Composite {
 		return paths;
 	}	
 	
-
 	protected void doubleClickSelectedItem() {
 		TreeItem[] selectedTreeItems = fileTree.getSelection();
 		
@@ -361,7 +396,9 @@ public class FileTreeComposite extends Composite {
 	private void selectItem(TreeItem treeItem) {
 		if (!isRetrievingItem(treeItem)) {
 			FileVersion fileVersion = (FileVersion) treeItem.getData();
-			onSelectItem(fileVersion);			
+			
+			logger.log(Level.INFO, "Tree: Selected item with history ID " + fileVersion.getFileHistoryId());							
+			historyModel.setSelectedFileHistoryId(fileVersion.getFileHistoryId());		
 		}
 	}
 
@@ -454,7 +491,12 @@ public class FileTreeComposite extends Composite {
 		return treeItem.getItemCount() == 1 && isRetrievingItem(treeItem.getItems()[0]);
 	}
 	
-
+	@Subscribe
+	public void onModelSelectedFilePathUpdatedEvent(ModelSelectedFilePathUpdatedEvent event) {
+		logger.log(Level.INFO, "Tree: Model FILE PATH changed event received; refreshing tree for " + event.getSelectedFilePath() + " ...");
+		refreshTree(event.getSelectedFilePath());
+	}	
+	
 	public void dispose() {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override

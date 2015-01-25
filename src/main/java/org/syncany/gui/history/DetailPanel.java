@@ -3,6 +3,8 @@ package org.syncany.gui.history;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
@@ -45,6 +47,7 @@ import com.google.common.eventbus.Subscribe;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class DetailPanel extends Panel {
+	private static final Logger logger = Logger.getLogger(DetailPanel.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 
 	private static final int COLUMN_INDEX_STATUS = 0;
@@ -205,12 +208,9 @@ public class DetailPanel extends Panel {
 		columnUpdated.setWidth(130);
 	}
 	
-	
-	
-
-	
-
 	public void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+		logger.log(Level.INFO, "Updating detail panel table with " + lsResponse.getResult().getFileVersions().size() + " file versions ...");
+		
 		historyTable.removeAll();
 		
 		List<PartialFileHistory> fileVersions = new ArrayList<>(lsResponse.getResult().getFileVersions().values());
@@ -283,7 +283,6 @@ public class DetailPanel extends Panel {
 		return true;
 	}
 	
-
 	public void sendLsFolderRequest(String root, FileHistoryId fileHistoryId) {
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
@@ -300,14 +299,17 @@ public class DetailPanel extends Panel {
 		lsRequest.setRoot(root);
 		lsRequest.setOptions(lsOptions);
 		
+		logger.log(Level.INFO, "History detail panel: Sending LsRequest with ID #" + lsRequest.getId() + " for " + root + " ...");
+
 		// Send request
 		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
 		eventBus.post(lsRequest);
 	}
 	
-
 	@Subscribe
 	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
+		logger.log(Level.INFO, "History detail panel: LsResponse received for request #" + lsResponse.getRequestId() + ".");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {

@@ -1,5 +1,8 @@
 package org.syncany.gui.history;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.layout.GridData;
@@ -21,6 +24,8 @@ import org.syncany.gui.util.WidgetDecorator;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class HistoryDialog extends Dialog {		
+	private static final Logger logger = Logger.getLogger(HistoryDialog.class.getSimpleName());		
+
 	private Shell windowShell;	
 	private Composite stackComposite;
 	private StackLayout stackLayout;
@@ -153,16 +158,15 @@ public class HistoryDialog extends Dialog {
 		});
 	}
 	
-	public void showDetails(String root, FileHistoryId fileHistoryId) {
+	public void showDetailsPanel(String root, FileHistoryId fileHistoryId) {
+		logger.log(Level.INFO, "History dialog: Sending LsRequest for history ID " + fileHistoryId + " (root " + root + "); and switching to detail view ...");
+		
 		detailPanel.sendLsFolderRequest(root, fileHistoryId);
-		showDetailsPanel();
+		setCurrentPanel(detailPanel);
 	}
 
 	public void showMainPanel() {
+		logger.log(Level.INFO, "History dialog: Switching to main view ...");
 		setCurrentPanel(mainPanel);
-	}
-	
-	public void showDetailsPanel() {
-		setCurrentPanel(detailPanel);
-	}
+	}	
 }

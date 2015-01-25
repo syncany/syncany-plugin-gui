@@ -17,7 +17,7 @@
  */
 package org.syncany.gui.history;
 
-import java.io.File;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
@@ -45,21 +45,20 @@ import org.syncany.operations.log.LightweightDatabaseVersion;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogTabComposite extends Composite {
+	private static final Logger logger = Logger.getLogger(LogTabComposite.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + HistoryDialog.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private LogComposite logComposite;
 	
-	private String root;
 	private LightweightDatabaseVersion databaseVersion;
 	private boolean highlighted;
 	private boolean mouseOver;
 	
-	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, String root, LightweightDatabaseVersion databaseVersion) {
+	public LogTabComposite(LogComposite logComposite, Composite logMainComposite, LightweightDatabaseVersion databaseVersion) {
 		super(logMainComposite, SWT.BORDER);	
 		
 		this.logComposite = logComposite;
 		
-		this.root = root;
 		this.databaseVersion = databaseVersion;
 		this.highlighted = false;
 		this.mouseOver = false;
@@ -126,7 +125,7 @@ public class LogTabComposite extends Composite {
 		spacingLabel2.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 3, 1));
 	}
 
-	private void createEntryLabel(String file, String imageResourceName) {		
+	private void createEntryLabel(String relativeFilePath, String imageResourceName) {		
 		GridData imageLabelGridData = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
 		imageLabelGridData.horizontalIndent = 20;
 		imageLabelGridData.verticalIndent = 2;
@@ -141,25 +140,15 @@ public class LogTabComposite extends Composite {
 
 		Label fileLabel = new Label(this, SWT.NONE);
 		fileLabel.setLayoutData(fileLabelGridData);		
-		fileLabel.setText(file);
+		fileLabel.setText(relativeFilePath);
 		fileLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
 		
-		addFileMenu(fileLabel, file);	
-		addFileMouseListeners(fileLabel);			
+		addFileMenu(fileLabel, relativeFilePath);	
+		addFileMouseListeners(fileLabel, relativeFilePath);			
 	}
 
 	private void addFileMenu(Label fileLabel, final String relativeFilePath) {
-		final Menu fileMenu = new Menu(fileLabel);
-		final File file = new File(root, relativeFilePath); 
-		
-		MenuItem jumpToDetailViewMenuItem = new MenuItem(fileMenu, SWT.NONE);
-		jumpToDetailViewMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.jumpToDetail"));
-		jumpToDetailViewMenuItem.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				logComposite.onFileJumpToDetail(databaseVersion, relativeFilePath);
-			}
-		});
+		final Menu fileMenu = new Menu(fileLabel);	
 		
 		MenuItem jumpToTreeMenuItem = new MenuItem(fileMenu, SWT.NONE);
 		jumpToTreeMenuItem.setText(I18n.getText("org.syncany.gui.history.LogTabComposite.jumpToTree"));
@@ -201,11 +190,11 @@ public class LogTabComposite extends Composite {
 			}
 		});
 		
-		fileMenu.setDefaultItem(jumpToDetailViewMenuItem);	
+		fileMenu.setDefaultItem(jumpToTreeMenuItem);	
 		fileLabel.setMenu(fileMenu);
 	}
 
-	private void addFileMouseListeners(final Label fileLabel) {
+	private void addFileMouseListeners(final Label fileLabel, final String relativeFilePath) {
 		fileLabel.addMouseTrackListener(new MouseTrackAdapter() {
 			@Override
 			public void mouseEnter(MouseEvent e) {
@@ -221,7 +210,7 @@ public class LogTabComposite extends Composite {
 		fileLabel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseUp(MouseEvent e) {				
-				// mainPanel.showDetails( ...			
+				logComposite.onFileJumpToTree(databaseVersion, relativeFilePath);			
 			}
 		});
 	}

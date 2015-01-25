@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StackLayout;
@@ -37,12 +39,14 @@ import org.syncany.operations.daemon.messages.GetDatabaseVersionHeadersFolderRes
 import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 
+import com.google.common.base.Objects;
 import com.google.common.eventbus.Subscribe;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class MainPanel extends Panel {
+	private static final Logger logger = Logger.getLogger(MainPanel.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + MainPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
 	
 	private HistoryModel historyModel;
@@ -141,23 +145,9 @@ public class MainPanel extends Panel {
 	private void createRootSelectionComboListener() {
 		rootSelectComboListener = new SelectionAdapter() {
 			@Override
-			@SuppressWarnings("unchecked")
 			public void widgetSelected(SelectionEvent e) {
-				List<Watch> watches = (List<Watch>) rootSelectCombo.getData();				
-				
-				if (watches != null) {
-					int selectionIndex = rootSelectCombo.getSelectionIndex();
-
-					if (selectionIndex >= 0 && selectionIndex < watches.size()) {
-						String newRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
-						
-						historyModel.reset();
-						historyModel.setSelectedRoot(newRoot);
-
-						sendGetDatabaseVersionHeadersFolderRequest(newRoot);						
-					}
-				}
-			}
+				onRootSelectComboSelected();
+			}			
 		};		
 	}	
 	
@@ -188,30 +178,8 @@ public class MainPanel extends Panel {
 		
 		dateSlider.addSelectionListener(new SelectionAdapter() {
 			@Override
-			public void widgetSelected(SelectionEvent e) {				
-				synchronized (dateSlider) {	
-					int newDateSliderValue = dateSlider.getSelection();
-					Date newSliderDate = getDateSliderDate();
-
-					boolean dateSliderValueChanged = dateSliderValue.get() != newDateSliderValue;
-					
-					if (dateSliderValueChanged) {
-						// Update cached value
-						dateSliderValue.set(newDateSliderValue);
-						
-						// Update label right away
-						setDateLabel(newSliderDate);
-						logComposite.highlightByDate(newSliderDate);
-
-						// Update file tree after a while  
-						if (dateSliderChangeTimer != null) {
-							dateSliderChangeTimer.cancel();
-						}
-						
-						dateSliderChangeTimer = new Timer();
-						dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
-					}
-				}
+			public void widgetSelected(SelectionEvent e) {	
+				onDateSliderSelected();				
 			}
 		});		
 	}
@@ -242,6 +210,25 @@ public class MainPanel extends Panel {
 		stackComposite.layout();	
 	}
 	
+	@SuppressWarnings("unchecked")
+	private void onRootSelectComboSelected() {
+		List<Watch> watches = (List<Watch>) rootSelectCombo.getData();				
+		
+		if (watches != null) {
+			int selectionIndex = rootSelectCombo.getSelectionIndex();
+
+			if (selectionIndex >= 0 && selectionIndex < watches.size()) {
+				String newRoot = watches.get(selectionIndex).getFolder().getAbsolutePath();
+				
+				historyModel.reset();
+				historyModel.setSelectedRoot(newRoot);
+
+				sendGetDatabaseVersionHeadersFolderRequest(newRoot);						
+			}
+		}
+
+	}
+	
 	private void setDateLabel(final Date dateSliderDate) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
@@ -263,6 +250,35 @@ public class MainPanel extends Panel {
 		});
 	}
 
+
+	private void onDateSliderSelected() {
+		synchronized (dateSlider) {	
+			int newDateSliderValue = dateSlider.getSelection();
+			Date newSliderDate = getDateSliderDate();
+
+			boolean dateSliderValueChanged = dateSliderValue.get() != newDateSliderValue;
+			
+			if (dateSliderValueChanged) {
+				// Update cached value
+				dateSliderValue.set(newDateSliderValue);
+				
+				// Update label right away
+				setDateLabel(newSliderDate);
+				logComposite.highlightByDate(newSliderDate);
+
+				// Update file tree after a while  
+				if (dateSliderChangeTimer != null) {
+					dateSliderChangeTimer.cancel();
+				}
+				
+				dateSliderChangeTimer = new Timer();
+				dateSliderChangeTimer.schedule(createDateSliderTimerTask(), 800);
+				
+				logger.log(Level.INFO, "Main: Date slider value changed to " + newSliderDate + "; setting timer to refresh views in 800ms ...");
+			}
+		}
+	}
+
 	private TimerTask createDateSliderTimerTask() {
 		return new TimerTask() {			
 			@Override
@@ -270,6 +286,7 @@ public class MainPanel extends Panel {
 				Display.getDefault().syncExec(new Runnable() {
 					@Override
 					public void run() {							
+						logger.log(Level.INFO, "Main: Date slider timer fired.");
 						onDateChanged(getDateSliderDate());
 					}					
 				});
@@ -391,7 +408,9 @@ public class MainPanel extends Panel {
 					historyModel.reset();
 					
 					rootSelectCombo.addSelectionListener(rootSelectComboListener);
-					rootSelectCombo.select(0);					
+					rootSelectCombo.select(0);	
+					
+					onRootSelectComboSelected();
 				}
 			}
 		});
@@ -436,7 +455,7 @@ public class MainPanel extends Panel {
 			public void run() {
 				onDateChanged(event.getSelectedDate());
 				
-				if (event.getSelectedDate() != getDateSliderDate()) {
+				if (!Objects.equal(event.getSelectedDate(), getDateSliderDate())) {
 					setDateSlider(event.getSelectedDate());
 				}
 			}
@@ -447,6 +466,7 @@ public class MainPanel extends Panel {
 		boolean listUpdateRequired = !newDate.equals(historyModel.getSelectedDate());
 			
 		if (listUpdateRequired) {
+			logger.log(Level.INFO, "Main: Changing DATE model in model to " + newDate + " ...");			
 			historyModel.setSelectedDate(newDate);							
 		}			
 	}
