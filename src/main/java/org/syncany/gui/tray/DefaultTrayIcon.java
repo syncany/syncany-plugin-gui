@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,10 +48,10 @@ import com.google.common.collect.Maps;
 /**
  * The default tray icon uses the default SWT {@link TrayItem}
  * class and the {@link Menu} to display the tray icon.
- * 
+ *
  * <p>These classes are supported by all operating systems and
  * desktop environment,  except Ubuntu/Unity.
- * 
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
  */
@@ -59,46 +59,50 @@ public class DefaultTrayIcon extends TrayIcon {
 	private static final String STATUS_TEXT_GLOBAL_IDENTIFIER = "GLOBAL";
 	private static final String STATUS_TEXT_FOLDER_FORMAT = (EnvironmentUtil.isWindows()) ? "(%s) %s" : "%s\n%s";
 
-	private TrayItem trayItem;
-	private Menu menu;
+	protected TrayItem trayItem;
+	protected String trayImageResourceRoot;
 
+	private Menu menu;
 	private MenuItem addFolderMenuItem;
-	
+	private MenuItem recentFileChangesItem;
+
 	private List<File> watches;
 	private Map<String, MenuItem> watchedFolderMenuItems;
-	
-	private MenuItem recentFileChangesItem;
-	
+
 	private Map<String, String> statusTexts;
 	private Map<String, MenuItem> statusTextItems;
-	
+
 	private Map<TrayIconImage, Image> images;
 
-	public DefaultTrayIcon(final Shell shell) {
-		super(shell);
+	public DefaultTrayIcon(final Shell shell, final TrayIconTheme theme) {
+		super(shell, theme);
 
 		this.trayItem = null;
 		this.menu = null;
-		
+
 		this.addFolderMenuItem = null;
-		
+
 		this.watches = Collections.synchronizedList(new ArrayList<File>());
 		this.watchedFolderMenuItems = Maps.newConcurrentMap();
-		
+
 		this.recentFileChangesItem = null;
-		
+
 		this.statusTexts = Maps.newConcurrentMap();
 		this.statusTextItems = Maps.newConcurrentMap();
 
 		this.images = null;
-		
+
+		setTrayImageResourcesRoot();
 		fillImageCache();
 		buildTray();
 	}
 
+	protected void setTrayImageResourcesRoot() {
+		trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/" + getTheme().toString().toLowerCase() + "/";
+	}
+
 	private void fillImageCache() {
 		images = new HashMap<TrayIconImage, Image>();
-		String trayImageResourceRoot = "/" + DefaultTrayIcon.class.getPackage().getName().replace(".", "/") + "/";
 
 		for (TrayIconImage trayIconImage : TrayIconImage.values()) {
 			String trayImageFileName = trayImageResourceRoot + trayIconImage.getFileName();
@@ -139,35 +143,35 @@ public class DefaultTrayIcon extends TrayIcon {
 
 	private void buildMenuItems(final List<File> newWatches) {
 		watches.clear();
-		
+
 		if (newWatches != null) {
 			watches.addAll(newWatches);
 		}
-		
+
 		if (menu == null) {
 			menu = new Menu(trayShell, SWT.POP_UP);
 		}
 
 		clearMenuItems();
-		
+
 		buildStatusTextMenuItems();
 		buildAddFolderMenuItem();
 		buildOrUpdateRecentChangesMenuItems();
 		buildWatchMenuItems();
-		buildStaticMenuItems();		
+		buildStaticMenuItems();
 	}
 
 	private void buildStatusTextMenuItems() {
 		// Create per-folder status text item
 		for (String root : statusTexts.keySet()) {
 			String statusText = statusTexts.get(root);
-			updateFolderStatusTextItem(root, statusText);				
+			updateFolderStatusTextItem(root, statusText);
 		}
 
 		// Add or hide global status text
 		resetGlobalStatusTextItem();
 	}
-	
+
 	private void buildAddFolderMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
@@ -182,85 +186,85 @@ public class DefaultTrayIcon extends TrayIcon {
 	}
 
 	private synchronized void buildOrUpdateRecentChangesMenuItems() {
-		if (recentFileChangesItem != null && !recentFileChangesItem.isDisposed()) {		
+		if (recentFileChangesItem != null && !recentFileChangesItem.isDisposed()) {
 			updateRecentFileChangesMenuItems();
 		}
 		else {
 			buildRecentFileChangesMenuItems();
-		}		
+		}
 	}
 
 	private void updateRecentFileChangesMenuItems() {
 		if (recentFileChanges.size() > 0) {
 			Menu recentFileChangesSubMenu = recentFileChangesItem.getMenu();
-			
+
 			// Clear old items from submenu
 			for (MenuItem recentFileChangesSubMenuItem : recentFileChangesSubMenu.getItems()) {
 				recentFileChangesSubMenuItem.dispose();
 			}
-			
-			// Add items to old submenu 
-			updateRecentFileChangesSubMenu(recentFileChangesSubMenu);				
+
+			// Add items to old submenu
+			updateRecentFileChangesSubMenu(recentFileChangesSubMenu);
 		}
 		else {
 			recentFileChangesItem.dispose();
 		}
 	}
-	
+
 	private void buildRecentFileChangesMenuItems() {
 		if (recentFileChanges.size() > 0) {
-			// Create new 'Recent changes >' item, and submenu 
+			// Create new 'Recent changes >' item, and submenu
 			recentFileChangesItem = new MenuItem(menu, SWT.CASCADE, findAddFolderMenuItemIndex());
 			recentFileChangesItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.recentChanges"));
-			
+
 			Menu recentChangesSubMenu = new Menu(menu);
 			recentFileChangesItem.setMenu(recentChangesSubMenu);
-			
-			// Add items to submenu 
-			updateRecentFileChangesSubMenu(recentChangesSubMenu);		
+
+			// Add items to submenu
+			updateRecentFileChangesSubMenu(recentChangesSubMenu);
 		}
 	}
 
 	private void updateRecentFileChangesSubMenu(Menu recentFileChangesSubMenu) {
 		for (final File recentFile : recentFileChanges.getRecentFiles()) {
 			MenuItem recentFileItem = new MenuItem(recentFileChangesSubMenu, SWT.PUSH);
-			recentFileItem.setText(recentFile.getName());				
+			recentFileItem.setText(recentFile.getName());
 			recentFileItem.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
 					showRecentFile(recentFile);
 				}
-			});	
-		}			
-	}	
-	
+			});
+		}
+	}
+
 	private int findAddFolderMenuItemIndex() {
 		for (int i = 0; i < menu.getItemCount(); i++) {
 			MenuItem menuItem = menu.getItem(i);
-			
+
 			if (menuItem.equals(addFolderMenuItem)) {
 				return i+1;
-			}			
+			}
 		}
-		
+
 		return 4; // Guessing.
 	}
-	
+
 	private void buildWatchMenuItems() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
 		if (watches.size() > 0) {
 			for (final File folder : watches) {
 				if (!watchedFolderMenuItems.containsKey(folder.getAbsolutePath())) {
-					if (folder.exists()) {		
+					if (folder.exists()) {
 						// Menu item for folder  (with submenu)
 						MenuItem folderMenuItem = new MenuItem(menu, SWT.CASCADE);
 						folderMenuItem.setText(folder.getName());
-						
+
 						Menu folderSubMenu = new Menu(menu);
 						folderMenuItem.setMenu(folderSubMenu);
-						
-						// Menu item for 'Remove' 
+
+						// Menu item for 'Remove'
 						MenuItem folderOpenMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
 						folderOpenMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.open"));
 						folderOpenMenuItem.addSelectionListener(new SelectionAdapter() {
@@ -269,8 +273,8 @@ public class DefaultTrayIcon extends TrayIcon {
 								showFolder(folder);
 							}
 						});
-						
-						// Menu item for 'Copy link' 
+
+						// Menu item for 'Copy link'
 						MenuItem folderCopyLinkMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
 						folderCopyLinkMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.copyLink"));
 						folderCopyLinkMenuItem.addSelectionListener(new SelectionAdapter() {
@@ -280,7 +284,7 @@ public class DefaultTrayIcon extends TrayIcon {
 							}
 						});
 
-						// Menu item for 'Remove' 
+						// Menu item for 'Remove'
 						MenuItem folderRemoveMenuItem = new MenuItem(folderSubMenu, SWT.PUSH);
 						folderRemoveMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.remove"));
 						folderRemoveMenuItem.addSelectionListener(new SelectionAdapter() {
@@ -295,7 +299,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				}
 			}
 
-			for (String filePath : watchedFolderMenuItems.keySet()) {
+			for (String filePath : watchedFolderMenuItems.keySet()){
 				boolean removeFilePath = true;
 
 				for (File file : watches) {
@@ -325,7 +329,7 @@ public class DefaultTrayIcon extends TrayIcon {
 		});
 
 		new MenuItem(menu, SWT.SEPARATOR);
-		
+
 		MenuItem reportIssueItem = new MenuItem(menu, SWT.PUSH);
 		reportIssueItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.issue"));
 		reportIssueItem.addSelectionListener(new SelectionAdapter() {
@@ -394,70 +398,70 @@ public class DefaultTrayIcon extends TrayIcon {
 			public void run() {
 				logger.log(Level.INFO, "setStatusText(" + root + ", " + statusText + ")");
 
-				if (root != null) {			
+				if (root != null) {
 					updateFolderStatusTextItem(root, statusText);
 				}
-				else {					
+				else {
 					clearStatusTextItems();
 				}
-				
-				resetGlobalStatusTextItem();				
+
+				resetGlobalStatusTextItem();
 			}
 		});
 	}
 
 	private void clearStatusTextItems() {
 		statusTexts.clear();
-		
+
 		synchronized (statusTextItems) {
 			Iterator<String> rootIterator = statusTextItems.keySet().iterator();
-			
+
 			while (rootIterator.hasNext()) {
 				String root = rootIterator.next();
 				MenuItem statusTextItem = statusTextItems.remove(root);
-				
-				statusTextItem.dispose();			
-			}			
+
+				statusTextItem.dispose();
+			}
 		}
-	}	
-	
+	}
+
 	private void updateFolderStatusTextItem(String root, String statusText) {
 		String inSyncStatusText = I18n.getText("org.syncany.gui.tray.TrayIcon.insync");
-		
+
 		MenuItem statusTextItem = statusTextItems.get(root);
-		boolean watchIsInSync = statusText.equals(inSyncStatusText); 
-		
+		boolean watchIsInSync = statusText.equals(inSyncStatusText);
+
 		if (watchIsInSync) {
 			statusTexts.remove(root);
 			statusTextItems.remove(root);
-			
+
 			if (statusTextItem != null) {
 				statusTextItem.dispose();
-			}			
+			}
 		}
 		else {
 			statusTexts.put(root, statusText);
-			
-			String statusTextPrefix = new File(root).getName(); 
+
+			String statusTextPrefix = new File(root).getName();
 			String fullStatusText = String.format(STATUS_TEXT_FOLDER_FORMAT, statusTextPrefix, statusText);
-			
+
 			if (statusTextItem != null) {
 				statusTextItem.setText(fullStatusText);
 			}
 			else {
 				statusTextItem = new MenuItem(menu, SWT.PUSH, 0);
 				statusTextItem.setText(fullStatusText);
-				statusTextItem.setEnabled(false);			
-				
+				statusTextItem.setEnabled(false);
+
 				statusTextItems.put(root, statusTextItem);
 			}
-		}		
+		}
 	}
-	
+
 	private void resetGlobalStatusTextItem() {
 		MenuItem globalStatusTextItem = statusTextItems.get(STATUS_TEXT_GLOBAL_IDENTIFIER);
 		boolean otherStatusTextItemsVisible = statusTexts.size() > 0;
-		
+
 		if (otherStatusTextItemsVisible) {
 			if (globalStatusTextItem != null && !globalStatusTextItem.isDisposed()) {
 				globalStatusTextItem.dispose();
@@ -468,7 +472,7 @@ public class DefaultTrayIcon extends TrayIcon {
 				MenuItem statusTextItem = new MenuItem(menu, SWT.PUSH, 0);
 				statusTextItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 				statusTextItem.setEnabled(false);
-				
+
 				statusTextItems.put(STATUS_TEXT_GLOBAL_IDENTIFIER, statusTextItem);
 			}
 		}
@@ -507,9 +511,9 @@ public class DefaultTrayIcon extends TrayIcon {
 			public void run() {
 				buildOrUpdateRecentChangesMenuItems();
 			}
-		});		
+		});
 	}
-	
+
 	@Override
 	protected void dispose() {
 		trayItem.dispose();

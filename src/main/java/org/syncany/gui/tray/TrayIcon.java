@@ -91,9 +91,10 @@ public abstract class TrayIcon {
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	protected Shell trayShell;
+	private final TrayIconTheme theme;
 	protected WizardDialog wizard;
 	protected PreferencesDialog preferences;
-	
+
 	protected GuiConfigTO guiConfig;
 	protected GuiEventBus eventBus;
 
@@ -101,23 +102,24 @@ public abstract class TrayIcon {
 	private AtomicBoolean syncing;
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
-	
 	protected RecentFileChanges recentFileChanges;
-	
-	public TrayIcon(Shell shell) {
+
+
+	public TrayIcon(Shell shell, TrayIconTheme theme) {
 		this.trayShell = shell;
+		this.theme = theme;
 
 		this.guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
-		
+
 		this.eventBus = GuiEventBus.getInstance();
 		this.eventBus.register(this);
 
 		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
-		
+
 		this.recentFileChanges = new RecentFileChanges(this);
-		
+
 		initAnimationThread();
 		initTrayImage();
 	}
@@ -135,7 +137,7 @@ public abstract class TrayIcon {
 			}
 		});
 	}
-	
+
 	protected void showPreferences() {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
@@ -153,11 +155,11 @@ public abstract class TrayIcon {
 	protected void showFolder(File folder) {
 		DesktopUtil.launch(folder.getAbsolutePath());
 	}
-	
+
 	protected void showRecentFile(File file) {
 		DesktopUtil.launch(file.getAbsolutePath());
 	}
-	
+
 	protected void showReportIssue() {
 		DesktopUtil.launch(URL_REPORT_ISSUE);
 	}
@@ -175,35 +177,39 @@ public abstract class TrayIcon {
 		eventBus.post(new ExitGuiInternalEvent());
 	}
 
+	public TrayIconTheme getTheme() {
+		return theme;
+	}
+
 	protected void removeFolder(File folder) {
 		eventBus.post(new RemoveWatchManagementRequest(folder));
 	}
-	
+
 	protected void copyLink(File folder) {
 		GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
 		genlinkOptions.setShortUrl(true);
-		
+
 		GenlinkFolderRequest genlinkRequest = new GenlinkFolderRequest();
 		genlinkRequest.setRoot(folder.getAbsolutePath());
 		genlinkRequest.setOptions(genlinkOptions);
-		
+
 		eventBus.post(genlinkRequest);
 	}
-	
+
 	@Subscribe
-	public void onGenlinkResponseReceived(GenlinkFolderResponse genlinkResponse) {		
+	public void onGenlinkResponseReceived(GenlinkFolderResponse genlinkResponse) {
 		DesktopUtil.copyToClipboard(genlinkResponse.getResult().getShareLink());
-		
+
 		if (guiConfig.isNotifications()) {
 			String subject = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.subject");
 			String message = I18n.getText("org.syncany.gui.tray.TrayIcon.notify.copied.message");
-			
+
 			displayNotification(subject, message);
 		}
 	}
 
 	@Subscribe
-	public void onRemoveWatchResponseReceived(RemoveWatchManagementResponse removeWatchResponse) {		
+	public void onRemoveWatchResponseReceived(RemoveWatchManagementResponse removeWatchResponse) {
 		if (removeWatchResponse.getCode() == RemoveWatchManagementResponse.OKAY) {
 			logger.log(Level.INFO, "Watch removed successfully from daemon config. Now reloading daemon.");
 			eventBus.post(new ControlManagementRequest(ControlCommand.RELOAD));
@@ -212,7 +218,7 @@ public abstract class TrayIcon {
 			logger.log(Level.WARNING, "Watch NOT removed from daemon config. Doing nothing.");
 		}
 	}
-	
+
 	@Subscribe
 	public void onDaemonReloadedEventReceived(DaemonReloadedExternalEvent daemonReloadedEvent) {
 		eventBus.post(new ListWatchesManagementRequest());
@@ -239,17 +245,17 @@ public abstract class TrayIcon {
 		if (!syncing.get()) {
 			setTrayImage(TrayIconImage.TRAY_IN_SYNC);
 			logger.log(Level.FINE, "Syncing image: Setting to image " + TrayIconImage.TRAY_IN_SYNC);
-		}	
-		
+		}
+
 		// Get recent changes
 		recentFileChanges.clear();
-		sendLogRequests(listWatchesResponse.getWatches());		
+		sendLogRequests(listWatchesResponse.getWatches());
 	}
 
 	private void sendLogRequests(final ArrayList<Watch> watchedFolders) {
 		if (watchedFolders.size() > 0) {
 			Timer logRequestTimer = new Timer();
-			
+
 			logRequestTimer.schedule(new TimerTask() {
 				@Override
 				public void run() {
@@ -257,15 +263,15 @@ public abstract class TrayIcon {
 						LogOperationOptions logOptions = new LogOperationOptions();
 						logOptions.setMaxDatabaseVersionCount(RecentFileChanges.RECENT_CHANGES_COUNT);
 						logOptions.setMaxFileHistoryCount(RecentFileChanges.RECENT_CHANGES_COUNT);
-										
+
 						LogFolderRequest logRequest = new LogFolderRequest();
 						logRequest.setRoot(watch.getFolder().getAbsolutePath());
 						logRequest.setOptions(logOptions);
-														
+
 						eventBus.post(logRequest);
 					}
-				}				
-			}, 2000);					
+				}
+			}, 2000);
 		}
 	}
 
@@ -344,9 +350,9 @@ public abstract class TrayIcon {
 		ChangeSet changeSet = downEndSyncEvent.getChanges();
 
 		// Update recent changes entries
-		recentFileChanges.updateRecentFiles(root, new Date(), changeSet); 
-		
-		// Display notification (if enabled)		
+		recentFileChanges.updateRecentFiles(root, new Date(), changeSet);
+
+		// Display notification (if enabled)
 		if (guiConfig.isNotifications() && changeSet.hasChanges()) {
 			String rootName = new File(root).getName();
 			int totalChangedFiles = changeSet.getNewFiles().size() + changeSet.getChangedFiles().size() + changeSet.getDeletedFiles().size();
@@ -417,12 +423,12 @@ public abstract class TrayIcon {
 	public void onCleanupEndEventReceived(CleanupEndSyncExternalEvent syncEvent) {
 		setStatusText(syncEvent.getRoot(), I18n.getText("org.syncany.gui.tray.TrayIcon.insync"));
 	}
-	
+
 	@Subscribe
 	public void onGuiConfigChanged(GuiConfigChangedGuiInternalEvent guiConfigChangedEvent) {
 		guiConfig = guiConfigChangedEvent.getNewGuiConfig();
 	}
-	
+
 	@Subscribe
 	public void onLogResponse(LogFolderResponse logResponse) {
 		recentFileChanges.updateRecentFiles(logResponse.getRoot(), logResponse.getResult().getDatabaseVersions());
@@ -494,8 +500,8 @@ public abstract class TrayIcon {
 
 		syncing.set(syncingFolders.size() > 0);
 	}
-		
-	
+
+
 	// Abstract methods
 
 	protected abstract void setTrayImage(TrayIconImage image);
@@ -503,7 +509,7 @@ public abstract class TrayIcon {
 	protected abstract void setWatchedFolders(List<File> folders);
 
 	protected abstract void setStatusText(String root, String statusText);
-	
+
 	protected abstract void setRecentChanges(List<File> recentFiles);
 
 	protected abstract void displayNotification(String subject, String message);

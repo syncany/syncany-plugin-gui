@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,40 +26,75 @@ import org.syncany.util.EnvironmentUtil;
 
 /**
  * The tray icon factory creates a tray icon given the current
- * {@link Shell} object. 
- * 
+ * {@link Shell} object.
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
+ * @author Christian Roth <christian.roth@port17.de>
  */
 public class TrayIconFactory {
+	private static final TrayIconTheme DEFAULT_THEME = TrayIconTheme.DEFAULT;
+
 	/**
 	 * Detects the current operating system and desktop environment
 	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}
 	 * or {@link AppIndicatorTrayIcon}.
-	 * 
-	 * <p>This method calls {@link #createTrayIcon(Shell, TrayIconType) createTrayIcon()}
-	 * with the determined {@link TrayIconType}.
+	 *
+	 * <p>This method calls {@link #createTrayIcon(Shell, TrayIconType, TrayIconTheme) createTrayIcon()}
+	 * with the default parameters.
 	 */
 	public static TrayIcon createTrayIcon(Shell shell) {
-		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
-			return createTrayIcon(shell, TrayIconType.APPINDICATOR);
-		}
-		else {
-			return createTrayIcon(shell, TrayIconType.DEFAULT);
-		}
+		return TrayIconFactory.createTrayIcon(shell, null, null);
 	}
-	
+
 	/**
 	 * Detects the current operating system and desktop environment
-	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}
+	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}, a{@link OSXTrayIcon}
 	 * or {@link AppIndicatorTrayIcon}, depending on the {@link TrayIconType}.
-	 */	
-	public static TrayIcon createTrayIcon(Shell shell, TrayIconType forceType) {
-		if (forceType == TrayIconType.APPINDICATOR) {
-			return new AppIndicatorTrayIcon(shell);
+	 * Also sets the theme.
+	 */
+	public static TrayIcon createTrayIcon(Shell shell, TrayIconType forceType, TrayIconTheme forceTheme) {
+		if (forceType == null) {
+			forceType = detectTypeFromOS();
+		}
+
+		if (forceTheme == null) {
+			forceTheme = detectThemeFromOS();
+		}
+
+		switch (forceType) {
+			case APPINDICATOR:
+				return new AppIndicatorTrayIcon(shell, forceTheme);
+
+			case OSX_NOTIFICATION_CENTER:
+				return new OSXTrayIcon(shell, forceTheme);
+
+			default:
+				return new DefaultTrayIcon(shell, forceTheme);
+		}
+	}
+
+	private static TrayIconType detectTypeFromOS() {
+		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
+			return TrayIconType.DEFAULT;
+		}
+		else if (EnvironmentUtil.isMacOSX()) {
+			return TrayIconType.OSX_NOTIFICATION_CENTER;
 		}
 		else {
-			return new DefaultTrayIcon(shell);
+			return TrayIconType.DEFAULT;
+		}
+	}
+
+	private static TrayIconTheme detectThemeFromOS() {
+		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
+			return TrayIconTheme.DEFAULT;
+		}
+		else if (EnvironmentUtil.isMacOSX()) {
+			return TrayIconTheme.OSX;
+		}
+		else {
+			return TrayIconTheme.DEFAULT;
 		}
 	}
 

@@ -15,29 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.gui;
+package org.syncany.gui.tray;
 
-import org.syncany.gui.tray.TrayIconTheme;
-import org.syncany.gui.tray.TrayIconType;
-import org.syncany.operations.OperationOptions;
-
-public class GuiOperationOptions implements OperationOptions {
-	private TrayIconType trayType;
-	private TrayIconTheme trayTheme;
-
-	public TrayIconType getTrayType() {
-		return trayType;
-	}
-
-	public void setTrayType(TrayIconType trayType) {
-		this.trayType = trayType;
-	}
-
-	public TrayIconTheme getTrayTheme() {
-		return trayTheme;
-	}
-
-	public void setTrayTheme(TrayIconTheme trayTheme) {
-		this.trayTheme = trayTheme;
-	}
+/**
+ * Theme of the tray icon -- Each theme has its own folder
+ * within the resource/gui/try directory.
+ *
+ * @author Christian Roth <christian.roth@port17.de>
+ */
+public enum TrayIconTheme {
+	DEFAULT, OSX
 }
