@@ -50,7 +50,7 @@ import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.api.Message;
-import org.syncany.operations.daemon.messages.api.MessageFactory;
+import org.syncany.operations.daemon.messages.api.XmlMessageFactory;
 
 /**
  * The app indicator tray icon uses a Python script to create
@@ -70,10 +70,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	private static String WEBSERVER_HOST = "127.0.0.1";
 	private static int WEBSERVER_PORT = 51601;
-	private static String WEBSERVER_PATH_HTTP = "/api/rs";
-	private static String WEBSERVER_PATH_WEBSOCKET = "/api/ws";
-	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP;
-	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET;
+	private static String WEBSERVER_PATH_HTTP_RESOURCES = "/api/res";
+	private static String WEBSERVER_PATH_WEBSOCKET_XML = "/api/ws/xml";
+	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP_RESOURCES;
+	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET_XML;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
 	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
 
@@ -92,12 +92,12 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/") + "/" + getTheme().toString().toLowerCase() + "/";
 
 		HttpHandler pathHttpHandler = path()
-				.addPrefixPath(WEBSERVER_PATH_WEBSOCKET, websocket(new InternalWebSocketHandler()))
-				.addPrefixPath(WEBSERVER_PATH_HTTP, resource(new ClassPathResourceManager(TrayIcon.class.getClassLoader(), resourcesRoot)));
+				.addPrefixPath(WEBSERVER_PATH_WEBSOCKET_XML, websocket(new InternalWebSocketHandler()))
+				.addPrefixPath(WEBSERVER_PATH_HTTP_RESOURCES, resource(new ClassPathResourceManager(TrayIcon.class.getClassLoader(), resourcesRoot)));
 
 		webServer = Undertow
 				.builder()
-				.addHttpListener(WEBSERVER_PORT, "localhost")
+				.addHttpListener(WEBSERVER_PORT, WEBSERVER_HOST)
 				.setHandler(pathHttpHandler)
 				.build();
 
@@ -178,7 +178,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	public void sendWebSocketMessage(Message message) {
 		if (pythonClientChannel != null) {
 			try {
-				String messageStr = MessageFactory.toXml(message);
+				String messageStr = XmlMessageFactory.toXml(message);
 				logger.log(Level.INFO, "Sending message: " + messageStr);
 
 				WebSockets.sendText(messageStr, pythonClientChannel, null);
@@ -193,7 +193,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 		logger.log(Level.INFO, "Web socket message received: " + messageStr);
 
 		try {
-			Message message = MessageFactory.toMessage(messageStr);
+			Message message = XmlMessageFactory.toMessage(messageStr);
 
 			if (message instanceof ClickTrayMenuFolderGuiInternalEvent) {
 				ClickTrayMenuFolderGuiInternalEvent folderClickEvent = (ClickTrayMenuFolderGuiInternalEvent) message;
