@@ -34,42 +34,19 @@ project.ext {
 	pluginNeedsOperatingSystemAndArchitecture = true
 }
 
-dependencies {
-	compile		project(":syncany-lib")
-	compile		project(":syncany-util")
-	compile		project(":syncany-cli")
+// Include tasks ///////////////////////////////////////////////////////////////
 
-	compile		"commons-net:commons-net:2.2"
-	compile		"commons-beanutils:commons-beanutils:1.9.0"
-	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	compile		"org.apache.httpcomponents:httpclient:4.3.4"
-	compile		"org.simpleframework:simple-xml:2.7.1"
-	compile		"com.google.guava:guava:15.0"
-	compile 	"commons-io:commons-io:2.4"
-
-	pluginjar			"commons-net:commons-net:2.2"
-	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
-
-	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
-	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
-	pluginjar_linux_x86			"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
-	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
-	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
-	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"
-
-	testCompile		project(path: ":syncany-lib", configuration: "tests")
-	testCompile		project(path: ":syncany-util", configuration: "tests")
-	testCompile		"junit:junit:4.9"
-}
+apply from: 'core/gradle/gradle/plugins.jar.gradle'
+apply from: 'core/gradle/gradle/plugins.debian.gradle'
 
 // Task to determine SWT library ///////////////////////////////////////////////
 
 public String getOs() {
-	return System.getProperty('os.name').toLowerCase().split()[0]
+	return (project.ext.has("pluginOperatingSystem") && !"all".equals(project.ext.pluginOperatingSystem)) ? project.ext.pluginOperatingSystem : System.getProperty("os.name").toLowerCase().split()[0]
 }
 
 public String getArch() {
-	String arch = System.getProperty("os.arch")
+	String arch = (project.ext.has("pluginArchitecture") && !"all".equals(project.ext.pluginArchitecture)) ? project.ext.pluginArchitecture : System.getProperty("os.arch")
 	return arch.substring(arch.length()-2, arch.length())
 }
 
@@ -90,8 +67,8 @@ public String getSwtLibrary(String os, String arch) {
 		case 'windows_64': swtJarName = 'win32.win32.x86_64'; break;
 		case 'linux_86': swtJarName = 'gtk.linux.x86'; break;
 		case 'linux_64': swtJarName = 'gtk.linux.x86_64'; break;
-		case 'mac_64': swtJarName = 'cocoa.macosx.x86_64'; break;
-		case 'mac_86': swtJarName = 'cocoa.macosx'; break;
+		case 'mac_64': case 'macosx_64': swtJarName = 'cocoa.macosx.x86_64'; break;
+		case 'mac_86': case 'macosx_86': swtJarName = 'cocoa.macosx'; break;
 		default: throw new Exception('Unknown OS');
 	}
 
@@ -102,8 +79,35 @@ public String getSwtLibrary() {
 	return getSwtLibrary(getOs(), getArch())
 }
 
-apply from: 'core/gradle/gradle/plugins.jar.gradle'
-apply from: 'core/gradle/gradle/plugins.debian.gradle'
+// GUI Dependencies ////////////////////////////////////////////////////////////
+
+dependencies {
+	compile		project(":syncany-lib")
+	compile		project(":syncany-util")
+	compile		project(":syncany-cli")
+
+	compile		"commons-net:commons-net:2.2"
+	compile		"commons-beanutils:commons-beanutils:1.9.0"
+	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
+	compile		"org.apache.httpcomponents:httpclient:4.3.4"
+	compile		"org.simpleframework:simple-xml:2.7.1"
+	compile		"com.google.guava:guava:15.0"
+	compile 	"commons-io:commons-io:2.4"
+
+	pluginjar			"commons-net:commons-net:2.2"
+	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
+
+	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
+	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
+	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
+	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
+	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
+	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"
+
+	testCompile		project(path: ":syncany-lib", configuration: "tests")
+	testCompile		project(path: ":syncany-util", configuration: "tests")
+	testCompile		"junit:junit:4.9"
+}
 
 // GUI-specific Debian Tasks ///////////////////////////////////////////////////
 
@@ -238,9 +242,7 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 	}
 }
 
-
 // OSX /////////////////////////////////////////////////////////////////////////
-
 
 buildscript {
 	repositories {
@@ -259,15 +261,15 @@ macAppBundle {
 	icon = "gradle/icon/syncany.icns"
 	agent = true
 
-	version = pluginVersion
-	shortVersion = pluginVersion
+	version = applicationVersionFull
+	shortVersion = applicationVersion
 
 	mainClassName = "org.syncany.cli.GuiCommand"
 
 	bundleJRE = false
 	bundleExecutable = "Syncany"
 	bundleIdentifier = "org.syncany.osx"
-	bundleCopyright = "Copyright 2015 Syncany"
+	bundleCopyright = "(C) Copyright 2011-2015 Philipp Heckel"
 
 	bundleExtras.put("NSHighResolutionCapable", "true")
 
@@ -277,7 +279,7 @@ macAppBundle {
 
 	javaClassPath.add("/Users/\$CURRENT_USER/.config/syncany/plugins/lib/*")
 
-	archiveName = "syncany_${pluginVersion}"
+	archiveName = "syncany-${applicationVersionFull}.app"
 	archiveOutputDir = "upload"
 }
 
