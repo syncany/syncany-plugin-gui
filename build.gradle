@@ -279,7 +279,7 @@ macAppBundle {
 
 	javaClassPath.add("/Users/\$CURRENT_USER/.config/syncany/plugins/lib/*")
 
-	archiveName = "syncany-${applicationVersionFull}.app"
+	archiveName = "syncany-${applicationVersionFull}-${pluginArchitecture}.app"
 	archiveOutputDir = "upload"
 }
 
