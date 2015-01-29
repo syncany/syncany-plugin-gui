@@ -46,7 +46,6 @@ dependencies {
 	compile		"org.simpleframework:simple-xml:2.7.1"
 	compile		"com.google.guava:guava:15.0"
 	compile 	"commons-io:commons-io:2.4"
-	compile     "net.lingala.zip4j:zip4j:1.3.2"
 
 	pluginjar			"commons-net:commons-net:2.2"
 	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
@@ -54,7 +53,7 @@ dependencies {
 
 	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
 	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
-	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
+	pluginjar_linux_x86			"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
 	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
 	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
 	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"
@@ -238,6 +237,49 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 			into file("${buildDir}/upload")
 		}
 	}
+}
+
+
+// OSX /////////////////////////////////////////////////////////////////////////
+
+
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.github.cr0:gradle-macappbundle-plugin:3.0.0'
+	}
+}
+
+apply plugin: 'com.github.cr0.macappbundle'
+
+macAppBundle {
+	appName = "Syncany"
+	appCategory = "public.app-category.utilities"
+	icon = "gradle/icon/syncany.icns"
+	agent = true
+
+	version = pluginVersion
+	shortVersion = pluginVersion
+
+	mainClassName = "org.syncany.cli.GuiCommand"
+
+	bundleJRE = false
+	bundleExecutable = "Syncany"
+	bundleIdentifier = "org.syncany.osx"
+	bundleCopyright = "Copyright 2015 Syncany"
+
+	bundleExtras.put("NSHighResolutionCapable", "true")
+
+	javaProperties.put("file.encoding", "utf-8")
+	javaXProperties.add("mx2048M")
+	javaXProperties.add("startOnFirstThread")
+
+	javaClassPath.add("/Users/\$CURRENT_USER/.config/syncany/plugins/lib/*")
+
+	archiveName = "syncany_${pluginVersion}"
+	archiveOutputDir = "upload"
 }
 
 // GUI Tasks ///////////////////////////////////////////////////////////////////

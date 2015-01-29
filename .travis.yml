@@ -4,12 +4,12 @@ jdk: openjdk7
 env:
   global:
   - TERM=dumb
-  
-  # FTP credentials 
+
+  # FTP credentials
   - secure: "EnoeJjBqPc/gnC83VOWrdnaWNFrrq1P4D4NVpu387tjVM6ejmutAvr0Pnx/hrPu1R8+RL23lFzPlvAGiPbneURQHEqZt47V2yXxOPxYp8oL74a5QGk420qCtDtiQTcbC6A0aheFk2UBmzIhddTfI3iyI78Tsghe9mMF+PUlXrVk="
   - secure: "HQFmxUk9nmy7MilybRAN0akVfw+8Thch1gnCzsE9qVqvICbxRhYmOHVULOAdlameeOUu4/DODZW4Rnlr+RrZEkwk49WLS70XkOfy0v9GliOqTkXaYZtzRoEnrjjIcboPkrG7nr25TB6AAjtFg/lpKtQ9UWY73Prs0/AVoWBLYIk="
   - secure: "BqO+9W0YAHPE2QdQFueEPszlJ/r/f7vpYAbHXHW38QIgpSEsk2LGKQpLXP07rlHnrMmF//bEwmGTK08pD6KpaIFFtgC20+9T5GiReMS0J6EH/vDHcZoZWDXInAFiDY/oK9DbHoJBvFXhrhQc8189lzKqDiFpIrlnOAsDgzXs4Ds="
-  
+
 branches:
   only:
   - master
@@ -31,17 +31,17 @@ before_install:
   - sudo apt-get install -y -q dh-make devscripts debhelper bash-completion
   - debuild --version
   - perl -v
-  
+
   # Inno Setup (for Windows executable/installer)
   # Note: If this code is changed, also update syncany/.travis.yml
   - sudo add-apt-repository --yes ppa:arx/release
   - sudo apt-get update -d
   - sudo apt-get install -y -q innoextract wine python-software-properties
-  - wine --version 
-  - innoextract --version 
+  - wine --version
+  - innoextract --version
   - core/gradle/innosetup/innoinstall.sh
   - sudo cp core/gradle/innosetup/iscc /usr/local/bin/iscc
-  - iscc /? 2> /dev/null | grep "Inno Setup Preprocessor"  
+  - iscc /? 2> /dev/null | grep "Inno Setup Preprocessor"
 
 install:
   # Disable default travis behavior 'gradle assemble'
@@ -64,10 +64,18 @@ script:
   - ./gradlew pluginJar -Pos=windows -Parch=x86_64
   - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 
+  # Build OSX version with included notification helper
+  - mkdir -p src/main/resources/gui/helper
+  - wget https://www.syncany.org/r/syncany-osx-notifier-latest.app.zip -O src/main/resources/gui/helper/osx-notifier.zip
+
   - ./gradlew pluginJar -Pos=macosx -Parch=x86
   - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 
   - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
+
+  # Create a OSX standalone app in upload dir
+  - ./gradlew createAppZip
+  - rm -r src/main/resources/gui/helper
 
   # Build Debian DEBs
   - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86 -PpluginJarDontCopyToUpload
@@ -76,7 +84,7 @@ script:
   # Build Windows installer
   - ./gradlew exeWithGui -Pos=windows -Parch=x86 -PpluginJarDontCopyToUpload
   - ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload
-  
+
 after_success:
   # Upload JARs and DEBs
   - core/gradle/lftp/lftpuploadplugin.sh

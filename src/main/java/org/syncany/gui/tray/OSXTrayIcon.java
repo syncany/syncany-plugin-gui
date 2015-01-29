@@ -20,8 +20,8 @@ import com.google.common.collect.Sets;
 
 /**
  * In contrast to see {@link org.syncany.gui.tray.DefaultTrayIcon}, this tray icon uses the mavericks+ notification
- * center to notify of changes. This is a more convienent way on OS X. The notifier's source code is avaiable at:
- *
+ * center to notify of changes. This is a more common way on OS X. The notifier's source code is available at:
+ * https://github.com/syncany/syncany-osx-notifier
  *
  * <p>Only supported by Mac OS X 10.9+</p>
  *
