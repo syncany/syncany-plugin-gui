@@ -51,6 +51,7 @@ import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.XmlMessageFactory;
+import org.syncany.util.StringUtil;
 
 /**
  * The app indicator tray icon uses a Python script to create
@@ -73,6 +74,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_PATH_HTTP_RESOURCES = "/api/res";
 	private static String WEBSERVER_PATH_WEBSOCKET_XML = "/api/ws/xml";
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP_RESOURCES;
+	private static String WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT = WEBSERVER_ENDPOINT_HTTP + "/%s";
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET_XML;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
 	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
@@ -88,8 +90,8 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 		startTray();
 	}
 
-	private void startWebServer() {
-		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/") + "/" + getTheme().toString().toLowerCase() + "/";
+	private void startWebServer() {		
+		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/");
 
 		HttpHandler pathHttpHandler = path()
 				.addPrefixPath(WEBSERVER_PATH_WEBSOCKET_XML, websocket(new InternalWebSocketHandler()))
@@ -106,19 +108,23 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	private void startTray() {
 		try {
+			String webServerEndpointHttpWithTheme = String.format(WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT, getTheme().toString().toLowerCase());		
+
 			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
-					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
+					webServerEndpointHttpWithTheme, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
 
 			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
 
+			logger.log(Level.INFO, "Starting external app indicator command: " + StringUtil.join(command, " "));
+			
 			pythonProcess = processBuilder.start();
 
-			BufferedReader is = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
-			BufferedReader es = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
+			BufferedReader scriptStdOutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+			BufferedReader scriptStdErrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
 
-			launchLoggerThread(is, "Python Input Stream : ");
-			launchLoggerThread(es, "Python Error Stream : ");
+			launchLoggerThread(scriptStdOutReader, "Python Input Stream : ");
+			launchLoggerThread(scriptStdErrReader, "Python Error Stream : ");
 		}
 		catch (Exception e) {
 			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);

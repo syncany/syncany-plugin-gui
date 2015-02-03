@@ -16,6 +16,8 @@ import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
+import org.syncany.gui.util.I18n;
+
 import com.google.common.collect.Sets;
 
 /**
@@ -27,7 +29,6 @@ import com.google.common.collect.Sets;
  *
  * @author Christian Roth <christian.roth@port17.de>
  */
-
 public class OSXTrayIcon extends DefaultTrayIcon {
 	private static final Logger logger = Logger.getLogger(OSXTrayIcon.class.getSimpleName());
 
@@ -107,34 +108,35 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 
 		if (useFallbackNotificationSystem) {
 			logger.log(Level.INFO, "Unable to notify using the native helper utility ({0}), using generic swt fallback", new Object[]{terminalNotifierExtractedBinary});
-			displayNotification("Error while loading notifier", "Unable to notify using the native helper utility and therefore using the generic swt fallback.");
+			
+			displayNotification(I18n.getText("org.syncany.gui.tray.TrayIcon.notify.osx.helperFailedWarning.subject"), 
+				I18n.getText("org.syncany.gui.tray.TrayIcon.notify.osx.helperFailedWarning.message"));
 		}
 	}
 
 	private void extractZip(File zipFilePath, File targetFolder) throws IOException {
 		ZipFile zipFile = new ZipFile(zipFilePath);
-		Enumeration<?> enu = zipFile.entries();
+		Enumeration<?> zipFileEntriesEnumeration = zipFile.entries();
 
-		while (enu.hasMoreElements()) {
-			ZipEntry zipEntry = (ZipEntry) enu.nextElement();
-			String name = zipEntry.getName();
-			File file = new File(targetFolder, name);
+		while (zipFileEntriesEnumeration.hasMoreElements()) {
+			ZipEntry zipEntry = (ZipEntry) zipFileEntriesEnumeration.nextElement();
+			String zipEntryName = zipEntry.getName();
+			File targetFile = new File(targetFolder, zipEntryName);
 
-			if (name.endsWith("/")) {
-				file.mkdirs();
+			if (zipEntryName.endsWith("/")) {
+				targetFile.mkdirs();
 			}
 			else {
-				File parent = file.getParentFile();
+				File parent = targetFile.getParentFile();
 
 				if (parent != null) {
 					parent.mkdirs();
 				}
 
-				FileUtils.copyInputStreamToFile(zipFile.getInputStream(zipEntry), file);
+				FileUtils.copyInputStreamToFile(zipFile.getInputStream(zipEntry), targetFile);
 			}
-
 		}
+		
 		zipFile.close();
 	}
-
 }

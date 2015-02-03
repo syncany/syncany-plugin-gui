@@ -33,8 +33,6 @@ import org.syncany.util.EnvironmentUtil;
  * @author Christian Roth <christian.roth@port17.de>
  */
 public class TrayIconFactory {
-	private static final TrayIconTheme DEFAULT_THEME = TrayIconTheme.DEFAULT;
-
 	/**
 	 * Detects the current operating system and desktop environment
 	 * and creates a new tray icon -- either a {@link DefaultTrayIcon}
