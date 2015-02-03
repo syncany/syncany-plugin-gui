@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2013 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,16 +51,17 @@ import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateWatchesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.api.Message;
 import org.syncany.operations.daemon.messages.api.XmlMessageFactory;
+import org.syncany.util.StringUtil;
 
 /**
- * The app indicator tray icon uses a Python script to create 
+ * The app indicator tray icon uses a Python script to create
  * a so called "app indicator" (introduced by Ubuntu Unity).
- * 
+ *
  * <p>The class starts a Python script that creates an app indicator
  * and connects to the embedded web and websocket server. The embedded
- * server serves static content (tray icon images) and provides a 
- * websocket server to communicate between the script and this class. 
- * 
+ * server serves static content (tray icon images) and provides a
+ * websocket server to communicate between the script and this class.
+ *
  * @see https://unity.ubuntu.com/projects/appindicators/
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  * @author Vincent Wiencek <vwiencek@gmail.com>
@@ -73,6 +74,7 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String WEBSERVER_PATH_HTTP_RESOURCES = "/api/res";
 	private static String WEBSERVER_PATH_WEBSOCKET_XML = "/api/ws/xml";
 	private static String WEBSERVER_ENDPOINT_HTTP = "http://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_HTTP_RESOURCES;
+	private static String WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT = WEBSERVER_ENDPOINT_HTTP + "/%s";
 	private static String WEBSERVER_ENDPOINT_WEBSOCKET = "ws://" + WEBSERVER_HOST + ":" + WEBSERVER_PORT + WEBSERVER_PATH_WEBSOCKET_XML;
 	private static String WEBSERVER_URL_SCRIPT = WEBSERVER_ENDPOINT_HTTP + "/tray.py";
 	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
@@ -81,14 +83,14 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private Process pythonProcess;
 	private WebSocketChannel pythonClientChannel;
 
-	public AppIndicatorTrayIcon(Shell shell) {
-		super(shell);
+	public AppIndicatorTrayIcon(Shell shell, TrayIconTheme theme) {
+		super(shell, theme);
 
 		startWebServer();
 		startTray();
 	}
 
-	private void startWebServer() {
+	private void startWebServer() {		
 		String resourcesRoot = TrayIcon.class.getPackage().getName().replace(".", "/");
 
 		HttpHandler pathHttpHandler = path()
@@ -106,19 +108,23 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 
 	private void startTray() {
 		try {
+			String webServerEndpointHttpWithTheme = String.format(WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT, getTheme().toString().toLowerCase());		
+
 			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
-					WEBSERVER_ENDPOINT_HTTP, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
+					webServerEndpointHttpWithTheme, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
 
 			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
 
+			logger.log(Level.INFO, "Starting external app indicator command: " + StringUtil.join(command, " "));
+			
 			pythonProcess = processBuilder.start();
 
-			BufferedReader is = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
-			BufferedReader es = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
+			BufferedReader scriptStdOutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+			BufferedReader scriptStdErrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
 
-			launchLoggerThread(is, "Python Input Stream : ");
-			launchLoggerThread(es, "Python Error Stream : ");
+			launchLoggerThread(scriptStdOutReader, "Python Input Stream : ");
+			launchLoggerThread(scriptStdErrReader, "Python Error Stream : ");
 		}
 		catch (Exception e) {
 			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);
