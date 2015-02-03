@@ -228,7 +228,8 @@ public class DefaultTrayIcon extends TrayIcon {
 	private void updateRecentFileChangesSubMenu(Menu recentFileChangesSubMenu) {
 		for (final File recentFile : recentFileChanges.getRecentFiles()) {
 			MenuItem recentFileItem = new MenuItem(recentFileChangesSubMenu, SWT.PUSH);
-			recentFileItem.setText(recentFile.getName());
+			recentFileItem.setText(recentFile.getName().replaceAll("&", "&&"));
+
 			recentFileItem.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {

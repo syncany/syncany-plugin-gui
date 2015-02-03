@@ -65,6 +65,8 @@ public class NetworkPanel extends Panel {
 	private Label proxyAuthPassLabel;
 	private Text proxyAuthPassText;
 	
+	private Composite proxyChangesNeedRestartComposite;
+	
 	public NetworkPanel(PreferencesDialog parentDialog, Composite composite, int style) {
 		super(parentDialog, composite, style);
 				
@@ -166,25 +168,7 @@ public class NetworkPanel extends Panel {
 		proxyServerPortText.addVerifyListener(new VerifyListener() {
 	        @Override
 	        public void verifyText(VerifyEvent e) {
-	            Text text = (Text) e.getSource();
-
-	            // Get old text and create new text by using the VerifyEvent.text
-	            final String oldValue = text.getText();
-	            String newValue = oldValue.substring(0, e.start) + e.text + oldValue.substring(e.end);
-	            
-	            // Validate correct type
-	            if (newValue.isEmpty()) {
-	            	e.doit = true;
-	            }
-	            else {
-		            try {
-		            	int newPort = Integer.parseInt(newValue);	            	
-		            	e.doit = newPort > 0 && newPort <= 65535; 
-		            }
-		            catch (NumberFormatException ex) {
-		            	e.doit = false;
-		            }
-	            }
+	        	proxyServerPortTextVerify(e);
 	        }
 	    });		
 	    
@@ -221,9 +205,51 @@ public class NetworkPanel extends Panel {
 		proxyAuthPassText.addModifyListener(commonModifyListener);	
 		
 		WidgetDecorator.normal(proxyAuthPassText);
+		
+		GridLayout proxyChangesNeedRestartGridLayout = new GridLayout(1, false);
+		proxyChangesNeedRestartGridLayout.marginLeft = 0;
+		proxyChangesNeedRestartGridLayout.marginBottom = 7;
+		
+		proxyChangesNeedRestartComposite = new Composite(this, SWT.NONE);
+		proxyChangesNeedRestartComposite.setVisible(false);
+		proxyChangesNeedRestartComposite.setLayout(proxyChangesNeedRestartGridLayout);
+		proxyChangesNeedRestartComposite.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, false, true, 4, 1));
+		
+		Label proxyChangesNeedRestartNoteLabel = new Label(proxyChangesNeedRestartComposite, SWT.NONE);
+		proxyChangesNeedRestartNoteLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyChangesNeedRestartNote"));
+		
+		Label proxyChangesNeedRestartTextLabel = new Label(proxyChangesNeedRestartComposite, SWT.NONE);
+		proxyChangesNeedRestartTextLabel.setText(I18n.getText("org.syncany.gui.preferences.NetworkPanel.proxyChangesNeedRestartText"));
+		
+		WidgetDecorator.bold(proxyChangesNeedRestartNoteLabel);
+		WidgetDecorator.normal(proxyChangesNeedRestartTextLabel);
 	}
 
+	private void proxyServerPortTextVerify(VerifyEvent e) {
+		Text text = (Text) e.getSource();
+
+        // Get old text and create new text by using the VerifyEvent.text
+        final String oldValue = text.getText();
+        String newValue = oldValue.substring(0, e.start) + e.text + oldValue.substring(e.end);
+        
+        // Validate correct type
+        if (newValue.isEmpty()) {
+        	e.doit = true;
+        }
+        else {
+            try {
+            	int newPort = Integer.parseInt(newValue);	            	
+            	e.doit = newPort > 0 && newPort <= 65535; 
+            }
+            catch (NumberFormatException ex) {
+            	e.doit = false;
+            }
+        }
+    }
+
 	private void updateControls() {
+		proxyChangesNeedRestartComposite.setVisible(true);
+		
 		if (noProxyButton.getSelection()) {
 			 toggleManualControls(false);
 		}

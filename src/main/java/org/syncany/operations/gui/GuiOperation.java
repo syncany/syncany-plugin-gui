@@ -156,11 +156,10 @@ public class GuiOperation extends Operation {
 	}
 
 	private void initTray() {
-		TrayIconType type = options.getTrayType() != null ? options.getTrayType() : guiConfig.getTray() != null ? guiConfig.getTray() : null;
-		TrayIconTheme theme = options.getTrayTheme() != null ? options.getTrayTheme() : guiConfig.getTheme() != null ? guiConfig.getTheme() : null;
+		TrayIconType type = (options.getTrayType() != null) ? options.getTrayType() : guiConfig.getTray();
+		TrayIconTheme theme = (options.getTrayTheme() != null) ? options.getTrayTheme() : guiConfig.getTheme();
 
 		trayIcon = TrayIconFactory.createTrayIcon(shell, type, theme);
-
 		trayIcon.hashCode(); // Dummy call to avoid 'don't use' warning
 	}
 

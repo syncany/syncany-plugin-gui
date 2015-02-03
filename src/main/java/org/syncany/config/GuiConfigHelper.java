@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.syncany.config.to.GuiConfigTO;
+import org.syncany.gui.tray.TrayIconTheme;
 import org.syncany.gui.tray.TrayIconType;
 
 public class GuiConfigHelper {
@@ -46,6 +47,7 @@ public class GuiConfigHelper {
 				// Write example config to daemon-example.xml, and default config to daemon.xml
 				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
 				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
+				exampleGuiConfig.setTheme(TrayIconTheme.DEFAULT);				
 				exampleGuiConfig.setNotifications(true);
 				
 				GuiConfigTO.save(exampleGuiConfig, configFileExample);

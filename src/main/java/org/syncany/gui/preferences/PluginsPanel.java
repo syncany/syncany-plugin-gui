@@ -347,7 +347,21 @@ public class PluginsPanel extends Panel {
 	}
 	
 	protected void clickUpdatePlugin() {
-		// TODO [medium] Waiting for cr0's issue
+		if (!requestRunning.get()) {
+			requestRunning.set(true);
+						
+			PluginInfo pluginInfo = (selectedPlugin.isInstalled()) ? selectedPlugin.getLocalPluginInfo() : selectedPlugin.getRemotePluginInfo();			
+			pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginUpdating", pluginInfo.getPluginName()));
+			
+			updatePluginActionButtons(selectedPlugin);
+			updateStatusText(selectedPlugin);
+			
+			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+			pluginOperationOptions.setAction(PluginOperationAction.UPDATE);
+			pluginOperationOptions.setPluginId(selectedPlugin.getRemotePluginInfo().getPluginId());
+			
+		    eventBus.post(new PluginManagementRequest(pluginOperationOptions));			
+		}
 	}
 	
 	protected void clickRemovePlugin() {

@@ -89,7 +89,7 @@ public class TrayIconFactory {
 			return TrayIconTheme.DEFAULT;
 		}
 		else if (EnvironmentUtil.isMacOSX()) {
-			return TrayIconTheme.OSX;
+			return TrayIconTheme.MONOCHROME;
 		}
 		else {
 			return TrayIconTheme.DEFAULT;
