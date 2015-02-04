@@ -17,6 +17,7 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -165,6 +166,7 @@ public class MainPanel extends Panel {
 		
 		dateLabel = new Label(this, SWT.CENTER);
 		dateLabel.setEnabled(false);
+		dateLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
 		dateLabel.setLayoutData(dateLabelGridData);
 		
 		dateLabel.addMouseListener(new MouseAdapter() {
