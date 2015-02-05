@@ -249,7 +249,7 @@ buildscript {
 		jcenter()
 	}
 	dependencies {
-		classpath 'com.github.cr0:gradle-macappbundle-plugin:3.0.1'
+		classpath 'com.github.cr0:gradle-macappbundle-plugin:3.1.0'
 	}
 }
 
