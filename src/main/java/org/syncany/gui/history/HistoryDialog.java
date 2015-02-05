@@ -59,7 +59,7 @@ public class HistoryDialog extends Dialog {
 		I18n.registerBundleName(intlPackage + "/i18n/messages");
 
 		HistoryDialog dialog = new HistoryDialog();
-		dialog.open();
+		dialog.open();		
 	}
 	
 	public void open() {
@@ -68,6 +68,7 @@ public class HistoryDialog extends Dialog {
 		buildPanels();
 		
 		showMainPanel();
+		setCurrentPanel(detailPanel);
 
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
@@ -83,6 +84,8 @@ public class HistoryDialog extends Dialog {
 				display.sleep();
 			}
 		}		
+		
+		windowShell.dispose();
 	}
 
 	/**

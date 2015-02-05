@@ -3,8 +3,11 @@ package org.syncany.gui.history;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import joptsimple.internal.Strings;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
@@ -25,8 +28,8 @@ import org.syncany.config.GuiEventBus;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileStatus;
 import org.syncany.database.FileVersion.FileType;
-import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.database.PartialFileHistory;
+import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
@@ -34,8 +37,11 @@ import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.LsFolderRequest;
 import org.syncany.operations.daemon.messages.LsFolderResponse;
 import org.syncany.operations.daemon.messages.RestoreFolderRequest;
+import org.syncany.operations.daemon.messages.RestoreFolderResponse;
 import org.syncany.operations.ls.LsOperationOptions;
 import org.syncany.operations.restore.RestoreOperationOptions;
+import org.syncany.operations.restore.RestoreOperationResult;
+import org.syncany.operations.restore.RestoreOperationResult.RestoreResultCode;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
 
@@ -49,7 +55,9 @@ import com.google.common.eventbus.Subscribe;
 public class DetailPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(DetailPanel.class.getSimpleName());		
 	private static final String IMAGE_RESOURCE_FORMAT = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/%s.png";
-
+	private static final String IMAGE_LOADING_SPINNER_RESOURCE = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/loading-spinner.gif";
+	private static final int IMAGE_LOADING_SPINNER_FRAME_RATE = 90; // ms per image
+	
 	private static final int COLUMN_INDEX_STATUS = 0;
 	private static final int COLUMN_INDEX_PATH = 1;
 	private static final int COLUMN_INDEX_VERSION = 2;
@@ -64,11 +72,15 @@ public class DetailPanel extends Panel {
 	private HistoryModel historyModel;
 	private HistoryDialog historyDialog;
 	
-	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;	
+	private Map<Integer, LsFolderRequest> pendingLsFolderRequests;
+	private RestoreFolderRequest pendingRestoreRequest;	
 	private GuiEventBus eventBus; 
 	
+	private Composite restoreStatusComposite;
+	private ImageComposite restoreStatusIconComposite;
+	private Label restoreStatusTextLabel;
+	private Button restoreButton;		
 	private Table historyTable;	
-	private Button restoreButton;	
 	
 	private PartialFileHistory selectedFileHistory;
 
@@ -81,11 +93,14 @@ public class DetailPanel extends Panel {
 		this.historyModel = historyModel;
 		this.historyDialog = historyDialog;
 		
+		this.pendingRestoreRequest = null;
 		this.pendingLsFolderRequests = Maps.newConcurrentMap();
 		this.eventBus = GuiEventBus.getAndRegister(this);
 		
-		this.historyTable = null;
+		this.restoreStatusIconComposite = null;
+		this.restoreStatusTextLabel = null;
 		this.restoreButton = null;			
+		this.historyTable = null;
 		
 		this.createContents();
 	}
@@ -109,20 +124,44 @@ public class DetailPanel extends Panel {
 	
 	private void createButtons() {
 		Button backButton = new Button(this, SWT.NONE);
-		backButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.back"));
+		backButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.button.back"));
 		backButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1));
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				onClickBackButton();
+				//onClickBackButton();
+				//restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNGER_RESOURCE, "loading-spinner")));
+				
+				int len = new Random().nextInt(100);
+				restoreStatusTextLabel.setText(Strings.repeat('a', len));
+				
+				if (Math.random() > 0.5) {
+					restoreStatusIconComposite.setAnimatedImage(IMAGE_LOADING_SPINNER_RESOURCE, IMAGE_LOADING_SPINNER_FRAME_RATE);
+				}
+				else {
+					restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "success")));
+				}
+				
+				layout();
 			}
 		});
 		
-		new Label(this, SWT.NONE);
+		GridData restoreStatusCompositeGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
+		restoreStatusCompositeGridData.grabExcessHorizontalSpace = true;
 		
+		restoreStatusComposite = new Composite(this, SWT.NONE);
+		restoreStatusComposite.setLayout(new GridLayout(2, false));
+		restoreStatusComposite.setLayoutData(restoreStatusCompositeGridData);
+		
+		restoreStatusIconComposite = new ImageComposite(restoreStatusComposite, SWT.NONE);
+		restoreStatusIconComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		
+		restoreStatusTextLabel = new Label(restoreStatusComposite, SWT.NONE);
+		restoreStatusTextLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1));
+
 		restoreButton = new Button(this, SWT.NONE);
 		restoreButton.setEnabled(false);
-		restoreButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.restore"));
+		restoreButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.button.restore"));
 		restoreButton.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		restoreButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -253,14 +292,14 @@ public class DetailPanel extends Panel {
 	private Image getStatusImage(FileStatus status) {
 		switch (status) {
 		case NEW:
-			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "add"));
+			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "add"));
 			
 		case CHANGED:
 		case RENAMED:
-			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "edit"));
+			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "edit"));
 
 		case DELETED:
-			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "delete"));
+			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "delete"));
 
 		default:
 			return null;				
@@ -327,17 +366,70 @@ public class DetailPanel extends Panel {
 	}
 
 	public void onClickRestoreButton(FileVersion fileVersion) {
+		// Set labels/status
+		restoreButton.setEnabled(false);
+		
+		restoreStatusIconComposite.setAnimatedImage(IMAGE_LOADING_SPINNER_RESOURCE, IMAGE_LOADING_SPINNER_FRAME_RATE);
+		restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreOngoing"));
+		restoreStatusTextLabel.setToolTipText("");
+		
+		restoreStatusComposite.layout();
+		
+		// Send restore request
 		RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
 		restoreOptions.setFileHistoryId(fileVersion.getFileHistoryId());
 		restoreOptions.setFileVersion(fileVersion.getVersion().intValue());
 		
-		RestoreFolderRequest restoreRequest = new RestoreFolderRequest();
-		restoreRequest.setRoot(historyModel.getSelectedRoot());
-		restoreRequest.setOptions(restoreOptions);
+		pendingRestoreRequest = new RestoreFolderRequest();
+		pendingRestoreRequest.setRoot(historyModel.getSelectedRoot());
+		pendingRestoreRequest.setOptions(restoreOptions);
 		
-		eventBus.post(restoreRequest);
+		eventBus.post(pendingRestoreRequest);
 	}
 	
+	@Subscribe
+	public void onRestoreResponseReceived(final RestoreFolderResponse restoreResponse) {
+		logger.log(Level.INFO, "History detail panel: RestoreResponse received for request #" + restoreResponse.getRequestId() + ".");
+
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				boolean restoreRequestMatches = pendingRestoreRequest != null 
+						&& pendingRestoreRequest.getId() == restoreResponse.getRequestId();
+				
+				if (restoreRequestMatches) {
+					updateRestoreStatus(pendingRestoreRequest, restoreResponse);
+					pendingRestoreRequest = null;
+				}
+			}
+		});		
+	}
+	
+	private void updateRestoreStatus(RestoreFolderRequest restoreRequest, RestoreFolderResponse restoreResponse) {
+		RestoreOperationResult restoreResult = restoreResponse.getResult(); 
+		RestoreResultCode restoreResultCode = restoreResult.getResultCode();
+		
+		// Set labels/status
+		restoreButton.setEnabled(true);
+		
+		if (restoreResultCode == RestoreResultCode.ACK) {
+			logger.log(Level.INFO, "History detail panel: Restore successful, file restored to " + restoreResult.getTargetFile().toString());
+			
+			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "success")));
+			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreSuccess"));
+			restoreStatusTextLabel.setToolTipText(restoreResult.getTargetFile().toString());
+		}
+		else {
+			logger.log(Level.WARNING, "History detail panel: Restore FAILED, error code " + restoreResultCode);
+			
+			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "failure")));
+			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreFailure"));
+			restoreStatusTextLabel.setToolTipText("");
+		}
+		
+		restoreStatusComposite.layout();
+	}
+
 	public void dispose() {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override

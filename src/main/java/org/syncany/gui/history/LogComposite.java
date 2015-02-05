@@ -160,8 +160,8 @@ public class LogComposite extends Composite {
 	public void sendLogFolderRequest(int startIndex) {
 		LogOperationOptions logOptions = new LogOperationOptions();
 		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
-		logOptions.setStartDatabaseVersionIndex(startIndex);
 		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
+		logOptions.setStartDatabaseVersionIndex(startIndex);
 		
 		pendingLogFolderRequest = new LogFolderRequest();
 		pendingLogFolderRequest.setRoot(historyModel.getSelectedRoot());
