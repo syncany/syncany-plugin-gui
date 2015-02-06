@@ -1,19 +1,20 @@
 package org.syncany.gui.history;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import joptsimple.internal.Strings;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -31,6 +32,7 @@ import org.syncany.database.FileVersion.FileType;
 import org.syncany.database.PartialFileHistory;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
 import org.syncany.gui.Panel;
+import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
@@ -58,6 +60,8 @@ public class DetailPanel extends Panel {
 	private static final String IMAGE_LOADING_SPINNER_RESOURCE = "/" + DetailPanel.class.getPackage().getName().replace('.', '/') + "/loading-spinner.gif";
 	private static final int IMAGE_LOADING_SPINNER_FRAME_RATE = 90; // ms per image
 	
+	private static final int RESTORE_FILENAME_SHORTENED_LENGTH = 50;
+	
 	private static final int COLUMN_INDEX_STATUS = 0;
 	private static final int COLUMN_INDEX_PATH = 1;
 	private static final int COLUMN_INDEX_VERSION = 2;
@@ -82,6 +86,7 @@ public class DetailPanel extends Panel {
 	private Button restoreButton;		
 	private Table historyTable;	
 	
+	private File restoredFile;
 	private PartialFileHistory selectedFileHistory;
 
 	public DetailPanel(Composite composite, int style, HistoryModel historyModel, HistoryDialog historyDialog) {
@@ -129,25 +134,12 @@ public class DetailPanel extends Panel {
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				//onClickBackButton();
-				//restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNGER_RESOURCE, "loading-spinner")));
-				
-				int len = new Random().nextInt(100);
-				restoreStatusTextLabel.setText(Strings.repeat('a', len));
-				
-				if (Math.random() > 0.5) {
-					restoreStatusIconComposite.setAnimatedImage(IMAGE_LOADING_SPINNER_RESOURCE, IMAGE_LOADING_SPINNER_FRAME_RATE);
-				}
-				else {
-					restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "success")));
-				}
-				
-				layout();
+				onClickBackButton();				
 			}
 		});
 		
 		GridData restoreStatusCompositeGridData = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
-		restoreStatusCompositeGridData.grabExcessHorizontalSpace = true;
+		restoreStatusCompositeGridData.verticalIndent = 3;
 		
 		restoreStatusComposite = new Composite(this, SWT.NONE);
 		restoreStatusComposite.setLayout(new GridLayout(2, false));
@@ -157,7 +149,15 @@ public class DetailPanel extends Panel {
 		restoreStatusIconComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 		
 		restoreStatusTextLabel = new Label(restoreStatusComposite, SWT.NONE);
-		restoreStatusTextLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1));
+		restoreStatusTextLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1));		
+		restoreStatusTextLabel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseUp(MouseEvent e) {
+				if (restoredFile != null) {
+					DesktopUtil.launch(restoredFile.getAbsolutePath());
+				}
+			}
+		});
 
 		restoreButton = new Button(this, SWT.NONE);
 		restoreButton.setEnabled(false);
@@ -292,14 +292,14 @@ public class DetailPanel extends Panel {
 	private Image getStatusImage(FileStatus status) {
 		switch (status) {
 		case NEW:
-			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "add"));
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "add"));
 			
 		case CHANGED:
 		case RENAMED:
-			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "edit"));
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "edit"));
 
 		case DELETED:
-			return SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "delete"));
+			return SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "delete"));
 
 		default:
 			return null;				
@@ -367,13 +367,19 @@ public class DetailPanel extends Panel {
 
 	public void onClickRestoreButton(FileVersion fileVersion) {
 		// Set labels/status
+		String shortFileName = shortenFileName(fileVersion.getPath());
+		String versionStr = Long.toString(fileVersion.getVersion());
+		
 		restoreButton.setEnabled(false);
 		
 		restoreStatusIconComposite.setAnimatedImage(IMAGE_LOADING_SPINNER_RESOURCE, IMAGE_LOADING_SPINNER_FRAME_RATE);
-		restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreOngoing"));
+		restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreOngoing", shortFileName, versionStr));
+		restoreStatusTextLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_ARROW));
 		restoreStatusTextLabel.setToolTipText("");
 		
-		restoreStatusComposite.layout();
+		restoredFile = null;
+		
+		layout();
 		
 		// Send restore request
 		RestoreOperationOptions restoreOptions = new RestoreOperationOptions();
@@ -387,6 +393,11 @@ public class DetailPanel extends Panel {
 		eventBus.post(pendingRestoreRequest);
 	}
 	
+	private String shortenFileName(String path) {
+		String baseName = new File(path).getName();
+		return (baseName.length() >= RESTORE_FILENAME_SHORTENED_LENGTH) ? baseName.substring(0, RESTORE_FILENAME_SHORTENED_LENGTH-3) + "..." : baseName;
+	}
+
 	@Subscribe
 	public void onRestoreResponseReceived(final RestoreFolderResponse restoreResponse) {
 		logger.log(Level.INFO, "History detail panel: RestoreResponse received for request #" + restoreResponse.getRequestId() + ".");
@@ -413,21 +424,28 @@ public class DetailPanel extends Panel {
 		restoreButton.setEnabled(true);
 		
 		if (restoreResultCode == RestoreResultCode.ACK) {
+			String shortFileName = shortenFileName(restoreResult.getTargetFile().getAbsolutePath());			
 			logger.log(Level.INFO, "History detail panel: Restore successful, file restored to " + restoreResult.getTargetFile().toString());
 			
-			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "success")));
-			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreSuccess"));
+			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "success")));
+			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreSuccess", shortFileName));
+			restoreStatusTextLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_HAND));
 			restoreStatusTextLabel.setToolTipText(restoreResult.getTargetFile().toString());
+			
+			restoredFile = restoreResult.getTargetFile();
 		}
 		else {
 			logger.log(Level.WARNING, "History detail panel: Restore FAILED, error code " + restoreResultCode);
 			
-			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_LOADING_SPINNER_RESOURCE, "failure")));
+			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "failure")));
 			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreFailure"));
+			restoreStatusTextLabel.setCursor(new Cursor(Display.getDefault(), SWT.CURSOR_ARROW));
 			restoreStatusTextLabel.setToolTipText("");
+			
+			restoredFile = null;
 		}
 		
-		restoreStatusComposite.layout();
+		layout();
 	}
 
 	public void dispose() {

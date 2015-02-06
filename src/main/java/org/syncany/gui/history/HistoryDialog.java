@@ -68,7 +68,6 @@ public class HistoryDialog extends Dialog {
 		buildPanels();
 		
 		showMainPanel();
-		setCurrentPanel(detailPanel);
 
 		// Open shell
 		DesktopUtil.centerOnScreen(windowShell);
