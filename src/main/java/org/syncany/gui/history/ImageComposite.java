@@ -36,16 +36,20 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
 /**
- * Displays an animated GIF image.
+ * This composite can display either an animated GIF, 
+ * or a still image. 
+ * 
+ * <p>Using the {@link #setImage(Image) setImage()} method, a still
+ * PNG/GIF/JPEG image can be displayed. Using 
+ * {@link #setAnimatedImage(String, int) setAnimatedImage()}, an animated
+ * GIF image can be displayed. 
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ImageComposite extends Composite {
 	public ImageComposite(Composite composite, int style) {
 		super(composite, style);			
-		createFillLayout(this);		
-	}
-	
-	private void createFillLayout(Composite parentComposite) {
+
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -55,10 +59,15 @@ public class ImageComposite extends Composite {
 		mainCompositeGridLayout.marginHeight = 0;
 		mainCompositeGridLayout.marginWidth = 0;
 		
-		parentComposite.setLayout(mainCompositeGridLayout);		
-		parentComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+		setLayout(mainCompositeGridLayout);		
+		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 	}
 
+	/**
+	 * Set and display a still image on the composite.
+	 * 
+	 * @param image Image to display
+	 */
 	public void setImage(Image image) {
 		disposeControls();
 		
@@ -69,6 +78,13 @@ public class ImageComposite extends Composite {
 		layout();
 	}
 	
+	/**
+	 * Set and display an animated GIF image on the composite.
+	 * The animation start immediately and will run at the given frame rate.
+	 * 
+	 * @param resourceStr Resource identifier for the GIF image to play
+	 * @param frameRate Frame rate / speed at which to play the image (in ms / image; less is faster)
+	 */
 	public void setAnimatedImage(String resourceStr, int frameRate) {
 		disposeControls();
 		
@@ -122,14 +138,18 @@ public class ImageComposite extends Composite {
 			
 			canvas.addPaintListener(new PaintListener() {
 				public void paintControl(PaintEvent event) {
-					int posX = (canvas.getSize().x - image.getBounds().width) / 2;
-					int posY = (canvas.getSize().y - image.getBounds().height) / 2;
-					
-					event.gc.drawImage(image, posX, posY);
+					paintImage(event);					
 				}
 			});
 			
 			canvas.setSize(image.getBounds().width, image.getBounds().height);
+		}
+
+		private void paintImage(PaintEvent event) {
+			int posX = (canvas.getSize().x - image.getBounds().width) / 2;
+			int posY = (canvas.getSize().y - image.getBounds().height) / 2;
+			
+			event.gc.drawImage(image, posX, posY);			
 		}
 
 		private void createAndStartImageTimer() {
@@ -144,7 +164,7 @@ public class ImageComposite extends Composite {
 		}
 		
 		private void nextImage() {
-			Display.getDefault().syncExec(new Runnable(){
+			Display.getDefault().syncExec(new Runnable() {
 				public void run() {
 					try {
 						synchronized(ImageComposite.this) {						

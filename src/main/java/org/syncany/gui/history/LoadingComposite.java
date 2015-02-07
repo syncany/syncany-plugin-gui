@@ -3,6 +3,9 @@ package org.syncany.gui.history;
 import org.eclipse.swt.widgets.Composite;
 
 /**
+ * Composite to display a loading bar. This class simply reuses
+ * the {@link ImageComposite} to display a loading GIF image. 
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LoadingComposite extends ImageComposite {

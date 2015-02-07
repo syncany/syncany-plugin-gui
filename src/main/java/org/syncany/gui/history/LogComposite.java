@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.swt.SWT;
@@ -77,13 +78,15 @@ public class LogComposite extends Composite {
 	
 	private void createContents() {
 		createMainComposite();
-		createMainPanel();		
+		createScrollComposite();		
 		
 		replaceScrollEventHandling();
 		redrawAll();
 	}	
 
 	private void resetAndDisposeAll() {
+		logger.log(Level.INFO, "Log composite: Resetting tabs and disposing all controls ...");
+
 		for (Control control : logContentComposite.getChildren()) {
 			control.dispose();
 		}
@@ -93,7 +96,8 @@ public class LogComposite extends Composite {
 	}
 	
 	private void createMainComposite() {
-		// Main composite
+		logger.log(Level.INFO, "Log composite: Creating main composite ...");
+		
 		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -107,7 +111,9 @@ public class LogComposite extends Composite {
 		setLayout(mainCompositeGridLayout);		
 	}	
 	
-	private void createMainPanel() {
+	private void createScrollComposite() {
+		logger.log(Level.INFO, "Log composite: Creating scroll composite ...");
+
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		
 		scrollComposite = new ScrolledComposite(this, SWT.V_SCROLL);
@@ -125,6 +131,8 @@ public class LogComposite extends Composite {
 	}	
 
 	private void replaceScrollEventHandling() {
+		logger.log(Level.INFO, "Log composite: Replacing scroll event handling ...");
+
 		// Disables the default scrolling functionality of the ScrolledComposite
 		// and replaces it by manually scrolling.
 		
@@ -140,6 +148,8 @@ public class LogComposite extends Composite {
 	}
 	
 	public void redrawAll() {
+		logger.log(Level.INFO, "Log composite: Redrawing and layouting scroll composite ...");
+		
 		logContentComposite.layout();
 		layout();
 		
@@ -149,6 +159,8 @@ public class LogComposite extends Composite {
 
 	@Subscribe
 	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
+		logger.log(Level.INFO, "Log composite: Selected root updated event received; Sending 0-index log request ...");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -157,7 +169,7 @@ public class LogComposite extends Composite {
 		});
 	}
 	
-	public void sendLogFolderRequest(int startIndex) {
+	private void sendLogFolderRequest(int startIndex) {
 		LogOperationOptions logOptions = new LogOperationOptions();
 		logOptions.setMaxDatabaseVersionCount(LOG_REQUEST_DATABASE_COUNT);
 		logOptions.setMaxFileHistoryCount(LOG_REQUEST_FILE_COUNT);
@@ -167,15 +179,22 @@ public class LogComposite extends Composite {
 		pendingLogFolderRequest.setRoot(historyModel.getSelectedRoot());
 		pendingLogFolderRequest.setOptions(logOptions);
 		
+		logger.log(Level.INFO, "Log composite: Sending log request with ID #" + pendingLogFolderRequest.getId() + " ...");
+
 		eventBus.post(pendingLogFolderRequest);
 	}
 	
 	@Subscribe
 	public void onLogFolderResponse(final LogFolderResponse logResponse) {
+		logger.log(Level.INFO, "Log composite: Log response received.");
+
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				if (pendingLogFolderRequest != null && pendingLogFolderRequest.getId() == logResponse.getRequestId()) {
+				boolean matchingResponse = pendingLogFolderRequest != null 
+						&& pendingLogFolderRequest.getId() == logResponse.getRequestId();
+				
+				if (matchingResponse) {
 					updateTabs(pendingLogFolderRequest, logResponse);
 					mainPanel.showLog();
 					
@@ -185,7 +204,9 @@ public class LogComposite extends Composite {
 		});		
 	}
 
-	public void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
+	private void updateTabs(LogFolderRequest logRequest, LogFolderResponse logResponse) {
+		logger.log(Level.INFO, "Log composite: Updating tabs with log folder response.");
+
 		// Dispose all existing tabs (if this is the first request)
 		boolean firstRequest = logRequest.getOptions().getStartDatabaseVersionIndex() == 0;
 		
@@ -227,6 +248,8 @@ public class LogComposite extends Composite {
 
 	@Subscribe
 	public void onModelSelectedDateUpdatedEvent(final ModelSelectedDateUpdatedEvent event) {
+		logger.log(Level.INFO, "Log composite: Selected date event received, highlighing tab.");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -246,6 +269,8 @@ public class LogComposite extends Composite {
 			LogTabComposite tabComposite = tabComposites.get(highlightDate);
 			
 			if (tabComposite != null) {
+				logger.log(Level.INFO, "Log composite: Highlighting tab with date " + highlightDate);
+				
 				tabComposite.setHighlighted(true);				
 				tabComposite.setFocus(); // The scroll composite will scroll to it.
 				
