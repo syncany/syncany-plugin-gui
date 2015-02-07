@@ -20,8 +20,17 @@ import org.syncany.gui.Panel;
 import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
+import org.syncany.operations.daemon.messages.LsFolderRequest;
 
 /**
+ * The history dialog allows the user to browse old database versions and file versions
+ * in a tree view, a log view, and restore certain files via a detail view.
+ * 
+ * <p>The dialog itself knows only the {@link MainPanel} and the {@link DetailPanel} and
+ * can switch between them. The main logic is implemented in the {@link MainPanel}. The dialog
+ * and the panels implement a not-quite-textbook version of MVC, with the {@link HistoryModel}
+ * being the model, and the panels being the views and the controllers.
+ *  
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class HistoryDialog extends Dialog {		
@@ -52,7 +61,12 @@ public class HistoryDialog extends Dialog {
 		this.eventBus.register(this);					
 	}
 
-	public static void main(String[] a) {
+	/**
+	 * Main method to run/test the history dialog without connecting
+	 * to the daemon. This only partially works, because no actual data
+	 * is retrieved from the daemon.
+	 */
+	public static void main(String[] args) {
 		Logging.init();
 		
 		String intlPackage = I18n.class.getPackage().getName().replace(".", "/");
@@ -62,10 +76,16 @@ public class HistoryDialog extends Dialog {
 		dialog.open();		
 	}
 	
+	/**
+	 * Open dialog, switch to main panel and enter the
+	 * dispatch loop. This method blocks until the dialog
+	 * is closed.
+	 */
 	public void open() {
 		// Create controls
 		createContents();
-		buildPanels();
+		createStackComposite();
+		createPanels();
 		
 		showMainPanel();
 
@@ -86,11 +106,36 @@ public class HistoryDialog extends Dialog {
 		
 		windowShell.dispose();
 	}
+	
+	/**
+	 * Return window shell, i.e. the dialog window.
+	 */
+	public Shell getWindowShell() {
+		return windowShell;
+	}
+		
+	/**
+	 * Switch to the detail panel, and send {@link LsFolderRequest} (which will
+	 * update the detail panel, once the response is returned). 
+	 */
+	public void showDetailsPanel(String root, FileHistoryId fileHistoryId) {
+		logger.log(Level.INFO, "History dialog: Sending LsRequest for history ID " + fileHistoryId + " (root " + root + "); and switching to detail view ...");
+		
+		detailPanel.resetPanel(root, fileHistoryId);
+		setCurrentPanel(detailPanel);
+	}
 
 	/**
-	 * Create contents of the dialog.
+	 * Switch to main panel
 	 */
+	public void showMainPanel() {
+		logger.log(Level.INFO, "History dialog: Switching to main view ...");
+		setCurrentPanel(mainPanel);
+	}	
+
 	private void createContents() {
+		logger.log(Level.INFO, "History dialog: Creating dialog contents ...");
+
 		GridLayout shellGridLayout = new GridLayout(1, false);
 		shellGridLayout.marginTop = 0;
 		shellGridLayout.marginLeft = 0;
@@ -110,11 +155,11 @@ public class HistoryDialog extends Dialog {
 				dispose();
 			}
 		});
-		
-		createStackComposite();
 	}		
 
 	private void createStackComposite() {
+		logger.log(Level.INFO, "History dialog: Creating stack composite (for main/detail panel) ...");
+		
 		stackLayout = new StackLayout();
 		stackLayout.marginHeight = 0;
 		stackLayout.marginWidth = 0;
@@ -127,16 +172,16 @@ public class HistoryDialog extends Dialog {
 		stackComposite.setLayoutData(stackCompositeGridData);
 	}
 
-	private void buildPanels() {
+	private void createPanels() {
+		logger.log(Level.INFO, "History dialog: Creating main and detail panel ...");
+
 		mainPanel = new MainPanel(stackComposite, SWT.NONE, model, this);
 		detailPanel = new DetailPanel(stackComposite, SWT.NONE, model, this);
 	}
-
-	public Shell getWindowShell() {
-		return windowShell;
-	}
-
-	public void setCurrentPanel(final Panel newPanel) {
+	
+	private void setCurrentPanel(final Panel newPanel) {
+		logger.log(Level.INFO, "History dialog: Setting current panel to " + newPanel.getClass().getSimpleName() + " ...");
+	
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -150,7 +195,9 @@ public class HistoryDialog extends Dialog {
 		});
 	}
 	
-	public void dispose() {
+	private void dispose() {
+		logger.log(Level.INFO, "History dialog: Disposing dialog ...");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
@@ -170,16 +217,4 @@ public class HistoryDialog extends Dialog {
 			}
 		});
 	}
-	
-	public void showDetailsPanel(String root, FileHistoryId fileHistoryId) {
-		logger.log(Level.INFO, "History dialog: Sending LsRequest for history ID " + fileHistoryId + " (root " + root + "); and switching to detail view ...");
-		
-		detailPanel.sendLsFolderRequest(root, fileHistoryId);
-		setCurrentPanel(detailPanel);
-	}
-
-	public void showMainPanel() {
-		logger.log(Level.INFO, "History dialog: Switching to main view ...");
-		setCurrentPanel(mainPanel);
-	}	
 }

@@ -52,6 +52,15 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The detail panel shows a list of all the {@link FileVersion}s of
+ * a single {@link PartialFileHistory}. In addition, it gives the user
+ * the possibility to restore certain file versions.
+ * 
+ * <p>The data for this view is retrieved by a {@link LsFolderRequest} (and
+ * the corresponding {@link LsFolderResponse}) for a single file. The restore 
+ * operation is triggered by sending a {@link RestoreFolderRequest} to the
+ * daemon.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class DetailPanel extends Panel {
@@ -110,14 +119,31 @@ public class DetailPanel extends Panel {
 		this.createContents();
 	}
 
+	/**
+	 * Resets the panel to the given file history, by sending an {@link LsFolderResponse}
+	 * and resetting the user interface.
+	 */
+	public void resetPanel(String root, FileHistoryId fileHistoryId) {
+		logger.log(Level.INFO, "Detail panel: Showing detail panel for file history ID #" + fileHistoryId + " ...");
+
+		hideRestoreStatusLabel();
+		clearHistoryTable();
+		
+		sendLsFolderRequest(root, fileHistoryId);
+	}
+	
 	private void createContents() {
 		createMainComposite();
-		createButtons();
+		createButtonRow();
+		
 		createHistoryTable();
+		createHistoryTableListener();
+		createHistoryTableColumns();
 	}	
 
 	private void createMainComposite() {
-		// Main composite
+		logger.log(Level.INFO, "Detail panel: Creating main composite ...");
+
 		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -127,14 +153,16 @@ public class DetailPanel extends Panel {
 		setLayout(mainCompositeGridLayout);
 	}
 	
-	private void createButtons() {
+	private void createButtonRow() {
+		logger.log(Level.INFO, "Detail panel: Creating button row ...");
+
 		Button backButton = new Button(this, SWT.NONE);
 		backButton.setText(I18n.getText("org.syncany.gui.history.DetailPanel.button.back"));
 		backButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1));
 		backButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				onClickBackButton();				
+				historyDialog.showMainPanel();		
 			}
 		});
 		
@@ -172,28 +200,32 @@ public class DetailPanel extends Panel {
 	}
 
 	private void createHistoryTable() {
-		// Plugin list
-		GridData pluginTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-		pluginTableGridData.verticalIndent = 5;
-		pluginTableGridData.horizontalIndent = 0;
-		pluginTableGridData.horizontalSpan = 3;
+		logger.log(Level.INFO, "Detail panel: Creating history table ...");
+
+		GridData historyTableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+		historyTableGridData.verticalIndent = 5;
+		historyTableGridData.horizontalIndent = 0;
+		historyTableGridData.horizontalSpan = 3;
 		
 	    historyTable = new Table(this, SWT.BORDER | SWT.FULL_SELECTION);
 		historyTable.setHeaderVisible(true);
-		historyTable.setLayoutData(pluginTableGridData);
+		historyTable.setLayoutData(historyTableGridData);
 		
 		if (EnvironmentUtil.isWindows()) {
 			historyTable.setBackground(WidgetDecorator.WHITE);
-		}
-		
+		}				
+	}
+
+	private void createHistoryTableListener() {
+		logger.log(Level.INFO, "Detail panel: Creating history table listeners ...");
+
 		historyTable.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				TableItem tableItem = (TableItem) e.item;
 				FileVersion fileVersion = (FileVersion) tableItem.getData();
-				
-				boolean isLastVersion = fileVersion.equals(selectedFileHistory.getLastVersion());				
-				restoreButton.setEnabled(!isLastVersion);
+
+				selectFileVersion(fileVersion);
 			}
 		});
 		
@@ -203,7 +235,21 @@ public class DetailPanel extends Panel {
 				resizeColumns();
 			}			
 		});
+	}
+
+	private void selectFileVersion(FileVersion fileVersion) {
+		boolean isLastVersion = fileVersion.equals(selectedFileHistory.getLastVersion());
+		boolean restoreInProgress = pendingRestoreRequest != null;
+		boolean restoreButtonEnabled = !isLastVersion && !restoreInProgress;
 		
+		logger.log(Level.INFO, "Detail panel: Selecting file version" + fileVersion.getVersion() + "; Restore in progress = " + restoreInProgress + "; Last/current version = " + isLastVersion + " --> Button enabled = " + restoreButtonEnabled);
+		
+		restoreButton.setEnabled(restoreButtonEnabled);
+	}
+
+	private void createHistoryTableColumns() {
+		logger.log(Level.INFO, "Detail panel: Creating history table columns ...");
+
 		// When reordering/adding columns, make sure to adjust the constants!
 		// e.g TABLE_COLUMN_REMOTE_VERSION, ...
 
@@ -247,11 +293,10 @@ public class DetailPanel extends Panel {
 		columnUpdated.setWidth(130);
 	}
 	
-	public void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
-		logger.log(Level.INFO, "Updating detail panel table with " + lsResponse.getResult().getFileVersions().size() + " file versions ...");
+	private void updateTable(LsFolderRequest lsRequest, LsFolderResponse lsResponse) {
+		logger.log(Level.INFO, "Detail panel: Updating table with " + lsResponse.getResult().getFileVersions().size() + " file versions ...");
 		
-		historyTable.removeAll();
-		
+		// Add new file version items
 		List<PartialFileHistory> fileVersions = new ArrayList<>(lsResponse.getResult().getFileVersions().values());
 		selectedFileHistory = fileVersions.get(0);
 		
@@ -282,6 +327,8 @@ public class DetailPanel extends Panel {
 	}
 	
 	private void resizeColumns() {
+		logger.log(Level.INFO, "Detail panel: Auto-resizing table columns ...");
+
 		for (TableColumn tableColumn : historyTable.getColumns()) {
 			tableColumn.pack();
 		}
@@ -304,25 +351,38 @@ public class DetailPanel extends Panel {
 		default:
 			return null;				
 		}
-	}
-
-	private void restoreSelectedFile() {
-		TableItem[] selectedItems = historyTable.getSelection();
-		
-		if (selectedItems.length > 0) {
-			TableItem tableItem = selectedItems[0];
-			FileVersion fileVersion = (FileVersion) tableItem.getData();
-			
-			onClickRestoreButton(fileVersion);			
-		}		
 	}	
 
 	@Override
 	public boolean validatePanel() {
 		return true;
 	}
+
+	private void hideRestoreStatusLabel() {
+		logger.log(Level.INFO, "Detail panel: Hiding restore status label ...");
+
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {				
+				restoreStatusTextLabel.setVisible(false);
+				restoreStatusIconComposite.setVisible(false);
+			}
+		});		
+	}
 	
-	public void sendLsFolderRequest(String root, FileHistoryId fileHistoryId) {
+	private void clearHistoryTable() {
+		logger.log(Level.INFO, "Detail panel: Clearing history table ...");
+
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {				
+				historyTable.removeAll();
+			}
+		});		
+	}
+
+
+	private void sendLsFolderRequest(String root, FileHistoryId fileHistoryId) {
 		// Create list request
 		LsOperationOptions lsOptions = new LsOperationOptions();
 		
@@ -338,7 +398,7 @@ public class DetailPanel extends Panel {
 		lsRequest.setRoot(root);
 		lsRequest.setOptions(lsOptions);
 		
-		logger.log(Level.INFO, "History detail panel: Sending LsRequest with ID #" + lsRequest.getId() + " for " + root + " ...");
+		logger.log(Level.INFO, "Detail panel: Sending LsRequest with ID #" + lsRequest.getId() + " for " + root + " ...");
 
 		// Send request
 		pendingLsFolderRequests.put(lsRequest.getId(), lsRequest);
@@ -347,7 +407,7 @@ public class DetailPanel extends Panel {
 	
 	@Subscribe
 	public void onLsFolderResponse(final LsFolderResponse lsResponse) {
-		logger.log(Level.INFO, "History detail panel: LsResponse received for request #" + lsResponse.getRequestId() + ".");
+		logger.log(Level.INFO, "Detail panel: LsResponse received for request #" + lsResponse.getRequestId() + ".");
 
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
@@ -360,17 +420,26 @@ public class DetailPanel extends Panel {
 			}
 		});		
 	}
-	
-	public void onClickBackButton() {
-		historyDialog.showMainPanel();
-	}
 
-	public void onClickRestoreButton(FileVersion fileVersion) {
+	private void restoreSelectedFile() {
+		TableItem[] selectedItems = historyTable.getSelection();
+		
+		if (selectedItems.length > 0) {
+			TableItem tableItem = selectedItems[0];
+			FileVersion fileVersion = (FileVersion) tableItem.getData();
+			
+			restoreFileVersion(fileVersion);			
+		}		
+	}	
+	
+	private void restoreFileVersion(FileVersion fileVersion) {
 		// Set labels/status
 		String shortFileName = shortenFileName(fileVersion.getPath());
 		String versionStr = Long.toString(fileVersion.getVersion());
 		
 		restoreButton.setEnabled(false);
+		restoreStatusIconComposite.setVisible(true);
+		restoreStatusTextLabel.setVisible(true);
 		
 		restoreStatusIconComposite.setAnimatedImage(IMAGE_LOADING_SPINNER_RESOURCE, IMAGE_LOADING_SPINNER_FRAME_RATE);
 		restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreOngoing", shortFileName, versionStr));
@@ -400,7 +469,7 @@ public class DetailPanel extends Panel {
 
 	@Subscribe
 	public void onRestoreResponseReceived(final RestoreFolderResponse restoreResponse) {
-		logger.log(Level.INFO, "History detail panel: RestoreResponse received for request #" + restoreResponse.getRequestId() + ".");
+		logger.log(Level.INFO, "Detail panel: RestoreResponse received for request #" + restoreResponse.getRequestId() + ".");
 
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
@@ -422,10 +491,12 @@ public class DetailPanel extends Panel {
 		
 		// Set labels/status
 		restoreButton.setEnabled(true);
+		restoreStatusIconComposite.setVisible(true);
+		restoreStatusTextLabel.setVisible(true);
 		
 		if (restoreResultCode == RestoreResultCode.ACK) {
 			String shortFileName = shortenFileName(restoreResult.getTargetFile().getAbsolutePath());			
-			logger.log(Level.INFO, "History detail panel: Restore successful, file restored to " + restoreResult.getTargetFile().toString());
+			logger.log(Level.INFO, "Detail panel: Restore successful, file restored to " + restoreResult.getTargetFile().toString());
 			
 			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "success")));
 			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreSuccess", shortFileName));
@@ -435,7 +506,7 @@ public class DetailPanel extends Panel {
 			restoredFile = restoreResult.getTargetFile();
 		}
 		else {
-			logger.log(Level.WARNING, "History detail panel: Restore FAILED, error code " + restoreResultCode);
+			logger.log(Level.WARNING, "Detail panel: Restore FAILED, error code " + restoreResultCode);
 			
 			restoreStatusIconComposite.setImage(SWTResourceManager.getImage(String.format(IMAGE_RESOURCE_FORMAT, "failure")));
 			restoreStatusTextLabel.setText(I18n.getText("org.syncany.gui.history.DetailPanel.label.fileRestoreFailure"));
@@ -448,7 +519,10 @@ public class DetailPanel extends Panel {
 		layout();
 	}
 
+	@Override
 	public void dispose() {
+		logger.log(Level.INFO, "Detail panel: Disposing panel ...");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	

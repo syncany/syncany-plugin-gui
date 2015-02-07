@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 import org.ocpsoft.prettytime.PrettyTime;
 import org.syncany.config.GuiEventBus;
+import org.syncany.database.DatabaseVersion;
 import org.syncany.database.FileVersion;
 import org.syncany.database.FileVersion.FileType;
 import org.syncany.database.PartialFileHistory.FileHistoryId;
@@ -45,6 +46,18 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The file tree composite displays a tree-based view representing a particular
+ * {@link DatabaseVersion}, and its {@link FileVersion}s.
+ * 
+ * <p>The tree is updated by multiple {@link LsFolderRequest}s, starting with a request
+ * to "/", and whenever a new subfolder is opened by a user, a request to that subfolder
+ * is made.
+ * 
+ * <p>The tree keeps track of the expanded paths, the selected file (by path) and the
+ * selected file (by file history identifier). Whenever then tree is reloaded, the 
+ * expanded paths are reloaded (corresponding {@link LsFolderRequest}s are sent) and 
+ * the selected file is selected.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class FileTreeComposite extends Composite {
@@ -87,11 +100,15 @@ public class FileTreeComposite extends Composite {
 
 	private void createContents() {
 		createMainComposite();
+		
 		createFileTree();
+		createFileTreeListeners();
+		createFileTreeColumns();			
 	}	
 
 	private void createMainComposite() {
-		// Main composite
+		logger.log(Level.INFO, "Tree: Creating main composite ...");
+
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		mainCompositeGridLayout.marginTop = 0;
 		mainCompositeGridLayout.marginLeft = 0;
@@ -104,16 +121,17 @@ public class FileTreeComposite extends Composite {
 	}	
 	
 	private void createFileTree() {
+		logger.log(Level.INFO, "Tree: Creating tree ...");
+		
 		fileTree = new Tree(this, SWT.BORDER | SWT.V_SCROLL | SWT.H_SCROLL | SWT.DOUBLE_BUFFERED | SWT.SINGLE | SWT.FULL_SELECTION);
 
 		fileTree.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
-		fileTree.setEnabled(false);		
-
-		createTreeListeners();
-		createTreeColumns();						
+		fileTree.setEnabled(false);							
 	}		
 
-	private void createTreeListeners() {		
+	private void createFileTreeListeners() {	
+		logger.log(Level.INFO, "Tree: Creating tree listeners ...");
+		
 		fileTree.addMouseListener(new MouseAdapter() {	
 			@Override
 			public void mouseUp(MouseEvent e) {
@@ -147,7 +165,9 @@ public class FileTreeComposite extends Composite {
 		});
 	}
 	
-	private void createTreeColumns() {
+	private void createFileTreeColumns() {
+		logger.log(Level.INFO, "Tree: Creating tree columns ...");
+		
 		final TreeColumn columnFile = new TreeColumn(fileTree, SWT.LEFT);
 	    columnFile.setWidth(400);
 	    
@@ -509,7 +529,7 @@ public class FileTreeComposite extends Composite {
 		}
 	}
 
-	public TreeItem findItemByPath(String searchPath) {				
+	private TreeItem findItemByPath(String searchPath) {				
 		if (searchPath == null || "".equals(searchPath)) {
 			return null;
 		}
@@ -526,7 +546,7 @@ public class FileTreeComposite extends Composite {
 		return RETRIEVING_LIST_IDENTIFIER.equals(treeItem.getData());		
 	}
 	
-	public boolean hasRetrievingChildItem(TreeItem treeItem) {
+	private boolean hasRetrievingChildItem(TreeItem treeItem) {
 		return treeItem.getItemCount() == 1 && isRetrievingItem(treeItem.getItems()[0]);
 	}
 	
@@ -536,7 +556,10 @@ public class FileTreeComposite extends Composite {
 		sendLsRequestsWithChildren(event.getSelectedFilePath());
 	}	
 	
+	@Override
 	public void dispose() {
+		logger.log(Level.INFO, "Tree: Disposing tree ...");
+
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
