@@ -42,6 +42,8 @@ public class WidgetDecorator {
 	public static final Color BLACK = SWTResourceManager.getColor(SWT.COLOR_BLACK);
 	public static final Color GRAY = SWTResourceManager.getColor(SWT.COLOR_GRAY);
 	public static final Color DARK_GRAY = SWTResourceManager.getColor(SWT.COLOR_DARK_GRAY);
+	public static final Color LIGHT_GRAY = SWTResourceManager.getColor(220, 220, 220);
+	public static final Color BLUE_LINK = SWTResourceManager.getColor(0, 147, 173);
 	
 	public static final Color COLOR_WIDGET = SWTResourceManager.getColor(SWT.COLOR_WIDGET_BACKGROUND);
 
@@ -51,6 +53,7 @@ public class WidgetDecorator {
 	private static Font FONT_TITLE = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 5, SWT.NORMAL);
 	private static Font FONT_BIGGER = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE + 2, SWT.BOLD);
 	private static Font FONT_NORMAL = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.NORMAL);
+	private static Font FONT_SMALLER = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE - 1, SWT.NORMAL);
 	private static Font FONT_BOLD = SWTResourceManager.getFont(FONT_NAME, FONT_SIZE, SWT.BOLD);
 
 	public static void title(Control... controls) {
@@ -59,6 +62,10 @@ public class WidgetDecorator {
 
 	public static void bigger(Control... controls) {
 		font(FONT_BIGGER, controls);
+	}
+	
+	public static void smaller(Control... controls) {
+		font(FONT_SMALLER, controls);
 	}
 
 	public static void normal(Control... controls) {

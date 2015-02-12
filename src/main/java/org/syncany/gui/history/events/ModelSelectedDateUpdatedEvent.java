@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.syncany.operations.daemon.messages;
+package org.syncany.gui.history.events;
 
-import org.simpleframework.xml.Element;
+import java.util.Date;
 
-public class ClickTrayMenuGuiInternalEvent extends GuiInternalEvent {
-	public enum TrayAction { NEW, BROWSE_HISTORY, PREFERENCES, WEBSITE, DONATE, REPORT_ISSUE, EXIT }
+public class ModelSelectedDateUpdatedEvent {
+	private Date selectedDate;
 	
-	@Element(name = "action")
-	private TrayAction action;
-
-	public ClickTrayMenuGuiInternalEvent() {
-		// Nothing
+	public ModelSelectedDateUpdatedEvent(Date selectedDate) {
+		this.selectedDate = selectedDate;
 	}
-
-	public ClickTrayMenuGuiInternalEvent(TrayAction action) {
-		this.action = action;
-	}
-
-	public TrayAction getAction() {
-		return action;
+	
+	public Date getSelectedDate() {
+		return selectedDate;
 	}
 }
