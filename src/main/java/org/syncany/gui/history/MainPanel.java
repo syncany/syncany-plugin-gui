@@ -45,6 +45,16 @@ import com.google.common.base.Objects;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The main panel displays the history of a managed folder in form of
+ * a file tree ({@link FileTreeComposite}) and a log view ({@link LogComposite}).
+ * The panel gives the user the possibility to select the folder to browse, and
+ * offers a date slider to choose the date at which to browse the history.
+ * 
+ * <p>The panel sends out {@link ListWatchesManagementRequest}s to retrieve the 
+ * daemon-managed folders (roots), and {@link GetDatabaseVersionHeadersFolderRequest}s
+ * to get the dates of which database versions exist. The file tree and log composites
+ * update themselves using other requests.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class MainPanel extends Panel {
@@ -213,6 +223,32 @@ public class MainPanel extends Panel {
 		logComposite = new LogComposite(stackComposite, SWT.NONE, historyModel, this);
 	}
 
+	/**
+	 * Displays the log composite, toggles the buttons
+	 * and disposes the loading composite.
+	 */
+	public void showLog() {
+		setCurrentControl(logComposite);
+
+		enableControls();
+		toggleButtons(true);
+		
+		disposeLoadingComposite();
+	}	
+
+	/**
+	 * Displays the file tree composite, toggles the buttons
+	 * and disposes the loading composite.
+	 */
+	public void showTree() {		
+		setCurrentControl(fileTreeComposite);
+		
+		enableControls();
+		toggleButtons(false);
+		
+		disposeLoadingComposite();
+	}	
+
 	private void setCurrentControl(Control control) {
 		stackLayout.topControl = control;
 		stackComposite.layout();	
@@ -298,16 +334,7 @@ public class MainPanel extends Panel {
 				});
 			}
 		};
-	}
-	
-	public void setSelectedDate(Date newDate) {
-		if (!newDate.equals(historyModel.getSelectedDate())) {
-			historyModel.setSelectedDate(newDate);
-			
-			setSliderDate(newDate);
-			setDateLabel(newDate);
-		}
-	}
+	}	
 	
 	private Date getSliderDate() {
 		int dateSelectionIndex = dateSlider.getSelection();
@@ -333,25 +360,7 @@ public class MainPanel extends Panel {
 	private void showLoadingComposite() {
 		setCurrentControl(loadingComposite);
 	}
-	
-	public void showLog() {
-		setCurrentControl(logComposite);
-
-		enableControls();
-		toggleButtons(true);
 		
-		disposeLoadingComposite();
-	}	
-
-	public void showTree() {		
-		setCurrentControl(fileTreeComposite);
-		
-		enableControls();
-		toggleButtons(false);
-		
-		disposeLoadingComposite();
-	}	
-	
 	private void enableControls() {
 		toggleLogButton.setEnabled(true);
 		toggleTreeButton.setEnabled(true);
@@ -378,7 +387,7 @@ public class MainPanel extends Panel {
 		return true;
 	}
 
-	public void updateSlider(final List<DatabaseVersionHeader> headers) {
+	private void updateSlider(final List<DatabaseVersionHeader> headers) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -403,7 +412,7 @@ public class MainPanel extends Panel {
 		});		
 	}	
 	
-	public void sendListWatchesRequest() {
+	private void sendListWatchesRequest() {
 		pendingListWatchesRequest = new ListWatchesManagementRequest();
 		eventBus.post(pendingListWatchesRequest);		
 	}
@@ -419,7 +428,7 @@ public class MainPanel extends Panel {
 		}
 	}
 	
-	public void updateRootsCombo(final ArrayList<Watch> watches) {
+	private void updateRootsCombo(final ArrayList<Watch> watches) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -454,7 +463,7 @@ public class MainPanel extends Panel {
 		});
 	}
 
-	public void sendGetDatabaseVersionHeadersFolderRequest(String newRoot) {		
+	private void sendGetDatabaseVersionHeadersFolderRequest(String newRoot) {		
 		GetDatabaseVersionHeadersFolderRequest getHeadersRequest = new GetDatabaseVersionHeadersFolderRequest();
 		getHeadersRequest.setRoot(newRoot);
 		

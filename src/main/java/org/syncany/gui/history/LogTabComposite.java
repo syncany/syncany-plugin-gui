@@ -49,6 +49,15 @@ import org.syncany.operations.log.LogOperationOptions;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The log tag composite is a visual representation of a single database
+ * version and its changed file versions. Each tab lives inside a {@link LogComposite}
+ * and displays multiple file entries (added/changed/removed files).
+ * 
+ * <p>The initial tab is created by the results of the {@link LogFolderResponse} received
+ * by the {@link LogComposite}. If a certain number of entries is displayed, a "More ..."
+ * link is shown that lets the user load more entries. This triggers a new {@link LogFolderRequest}
+ * by this composite. Once the response is received, it composite updates itself.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogTabComposite extends Composite {
@@ -278,10 +287,10 @@ public class LogTabComposite extends Composite {
 		});		
 	}
 
-	public LightweightDatabaseVersion getDatabaseVersion() {
-		return databaseVersion;
-	}
-
+	/**
+	 * Highlights the tab or removes the highlight color
+	 * from the tab. 
+	 */
 	public void setHighlighted(boolean highlighted) {
 		this.highlighted = highlighted;						
 		updateHighlighted();

@@ -30,12 +30,22 @@ import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
 import org.syncany.operations.log.LightweightDatabaseVersion;
 import org.syncany.operations.log.LogOperationOptions;
+import org.syncany.operations.log.LogOperationResult;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The log composite displays the results of the log operation ({@link LogOperationResult}).
+ * Each database version is displayed as a {@link LogTabComposite}. The composite
+ * only retrieves/displays a certain amount of tabs until the user scrolls to the bottom
+ * of the component -- at which point the new tabs are loaded. Loading is done via
+ * {@link LogFolderRequest} (and the corresponding {@link LogFolderResponse}).
+ * 
+ * <p>The composite furthermore reacts on model changes ({@link ModelSelectedDateUpdatedEvent})
+ * by resetting the entire component. 
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class LogComposite extends Composite {
@@ -130,6 +140,57 @@ public class LogComposite extends Composite {
 		scrollComposite.setShowFocusedControl(true);		
 	}	
 
+	/**
+	 * Redraws and layouts the entire component (including the scroll component),
+	 * and adjusts the size of the scroll component to reflect the content. Calling
+	 * this method is necessary after tabs have been added/removed. 
+	 */
+	public void redrawAll() {
+		logger.log(Level.INFO, "Log composite: Redrawing and layouting scroll composite ...");
+		
+		logContentComposite.layout();
+		layout();
+		
+		scrollComposite.setMinSize(logContentComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		scrollComposite.setRedraw(true);
+	}
+
+	/**
+	 * This method highlights a {@link LogTabComposite} by its corresponding
+	 * database version date (and scrolls to that tab). It removes the highlight
+	 * status from all the other tabs. If no matching tabs are found (because they have
+	 * not been loaded), no tab is highlighted. 
+	 */
+	public synchronized void highlightByDate(Date highlightDate) {
+		// De-highlight
+		if (highlightedTabComposite != null) {
+			highlightedTabComposite.setHighlighted(false);
+		}
+		
+		// Highlight new tab
+		if (highlightDate != null) {
+			LogTabComposite tabComposite = tabComposites.get(highlightDate);
+			
+			if (tabComposite != null) {
+				logger.log(Level.INFO, "Log composite: Highlighting tab with date " + highlightDate);
+				
+				tabComposite.setHighlighted(true);				
+				tabComposite.setFocus(); // The scroll composite will scroll to it.
+				
+				highlightedTabComposite = tabComposite;
+			}
+		}
+	}
+
+	/**
+	 * Manually scrolls the scroll component by a certain number of pixels. This
+	 * count parameter is multiplied by the vertical scroll increment. 
+	 */
+	public void scrollBy(int count) {		
+		int increment = scrollComposite.getVerticalBar().getIncrement();
+		scrollComposite.setOrigin(0, scrollComposite.getOrigin().y - increment*count);		
+	}	
+	
 	private void replaceScrollEventHandling() {
 		logger.log(Level.INFO, "Log composite: Replacing scroll event handling ...");
 
@@ -146,16 +207,6 @@ public class LogComposite extends Composite {
 			}
 		});
 	}
-	
-	public void redrawAll() {
-		logger.log(Level.INFO, "Log composite: Redrawing and layouting scroll composite ...");
-		
-		logContentComposite.layout();
-		layout();
-		
-		scrollComposite.setMinSize(logContentComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-		scrollComposite.setRedraw(true);
-	}	
 
 	@Subscribe
 	public void onModelSelectedRootUpdatedEvent(ModelSelectedRootUpdatedEvent event) {
@@ -257,32 +308,6 @@ public class LogComposite extends Composite {
 			}
 		});
 	}
-	
-	public synchronized void highlightByDate(Date highlightDate) {
-		// De-highlight
-		if (highlightedTabComposite != null) {
-			highlightedTabComposite.setHighlighted(false);
-		}
-		
-		// Highlight new tab
-		if (highlightDate != null) {
-			LogTabComposite tabComposite = tabComposites.get(highlightDate);
-			
-			if (tabComposite != null) {
-				logger.log(Level.INFO, "Log composite: Highlighting tab with date " + highlightDate);
-				
-				tabComposite.setHighlighted(true);				
-				tabComposite.setFocus(); // The scroll composite will scroll to it.
-				
-				highlightedTabComposite = tabComposite;
-			}
-		}
-	}
-
-	public void scrollBy(int count) {		
-		int increment = scrollComposite.getVerticalBar().getIncrement();
-		scrollComposite.setOrigin(0, scrollComposite.getOrigin().y - increment*count);		
-	}	
 	
 	private void createLoadingComposite() {
 		GridLayout loadingCompositeGridLayout = new GridLayout(1, false);
