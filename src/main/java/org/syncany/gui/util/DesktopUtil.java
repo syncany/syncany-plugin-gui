@@ -59,8 +59,8 @@ public class DesktopUtil {
 
 	private static final String STARTUP_OSX_APPLICATION_NAME = "Syncany";
 	private static final Path STARTUP_OSX_OSASCRIPT = Paths.get("/usr/bin/osascript");
-	private static final String STARTUP_OSX_OSASCRIPT_ADD =  "'tell application \"System Events\" to make login item at end with properties {name: \"%s\", path:\"%s\", hidden:false}'";
-	private static final String STARTUP_OSX_OSASCRIPT_REMOVE = "'tell application \"System Events\" to delete login item \"%s\"''";
+	private static final String STARTUP_OSX_OSASCRIPT_ADD =  "tell application \"System Events\" to make login item at end with properties {name: \"%s\", path:\"%s\", hidden:false}";
+	private static final String STARTUP_OSX_OSASCRIPT_REMOVE = "tell application \"System Events\" to delete login item \"%s\"";
 
 	/**
 	 * Launches a program or a URL using SWT's {@link Program}
@@ -97,16 +97,16 @@ public class DesktopUtil {
 
 		shell.setLocation(x, y);
 	}
-	
+
 	/**
 	 * Brings the window to the front (might not work on all
 	 * operating systems).
 	 */
 	public static void bringToFront(final Shell shell) {
 	    shell.getDisplay().asyncExec(new Runnable() {
-	        public void run() {
-	            shell.forceActive();
-	        }
+		    public void run() {
+			    shell.forceActive();
+		    }
 	    });
 	}
 
@@ -238,11 +238,17 @@ public class DesktopUtil {
 		final String javaLibraryPath = System.getProperty("java.library.path");
 
 		if (javaLibraryPath == null || javaLibraryPath.equals("")) {
-			throw new IOException("Unable to add autostart for unbundled app");
+			throw new IOException("Unable to add autostart for unbundled app (1)");
 		}
 
 		// -Djava.library.path=/Users/chr/Desktop/Syncany.app/Contents/MacOS
 		final Path bundlePath = Paths.get(javaLibraryPath).getParent().getParent();
+
+		// make sure that path ends with *.app
+		if (!bundlePath.getFileName().toString().endsWith(".app")) {
+			throw new IOException("Unable to add autostart for unbundled app (2): " + bundlePath);
+		}
+
 		Runtime.getRuntime().exec(new String[]{STARTUP_OSX_OSASCRIPT.toString(), "-e", String.format(STARTUP_OSX_OSASCRIPT_ADD, STARTUP_OSX_APPLICATION_NAME, bundlePath)});
 	}
 
