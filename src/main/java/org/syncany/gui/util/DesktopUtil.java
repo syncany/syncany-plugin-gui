@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Display;
@@ -37,7 +38,6 @@ import org.syncany.gui.preferences.GeneralPanel;
 import org.syncany.util.EnvironmentUtil;
 import org.syncany.util.FileUtil;
 import com.google.common.base.StandardSystemProperty;
-import io.undertow.util.FileUtils;
 
 /**
  * Helper class to open web sites and local folders, and to center
@@ -166,7 +166,7 @@ public class DesktopUtil {
 
 		try {
 			InputStream startupScriptInputStream = GeneralPanel.class.getResourceAsStream(STARTUP_LINUX_SCRIPT_RESOURCE);
-			FileUtils.copyFile(startupScriptInputStream, startupScriptFile);
+			FileUtils.copyInputStreamToFile(startupScriptInputStream, startupScriptFile);
 		}
 		catch (IOException e) {
 			logger.log(Level.WARNING, "Autostart: Cannot write Linux startup script to " + startupScriptFile + ". Ignoring.", e);
