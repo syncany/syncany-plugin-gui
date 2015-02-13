@@ -65,6 +65,7 @@ public class DefaultTrayIcon extends TrayIcon {
 	private Menu menu;
 	private MenuItem addFolderMenuItem;
 	private MenuItem recentFileChangesItem;
+	private MenuItem browseHistoryMenuItem;
 
 	private List<File> watches;
 	private Map<String, MenuItem> watchedFolderMenuItems;
@@ -175,12 +176,21 @@ public class DefaultTrayIcon extends TrayIcon {
 	private void buildAddFolderMenuItem() {
 		new MenuItem(menu, SWT.SEPARATOR);
 
-		addFolderMenuItem = new MenuItem(menu, SWT.PUSH);
+		MenuItem addFolderMenuItem = new MenuItem(menu, SWT.PUSH);
 		addFolderMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.new"));
 		addFolderMenuItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				showNew();
+			}
+		});
+		
+		browseHistoryMenuItem = new MenuItem(menu, SWT.PUSH);
+		browseHistoryMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.browse"));
+		browseHistoryMenuItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				showBrowseHistory();
 			}
 		});
 	}

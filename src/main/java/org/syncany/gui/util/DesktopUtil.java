@@ -97,6 +97,18 @@ public class DesktopUtil {
 
 		shell.setLocation(x, y);
 	}
+	
+	/**
+	 * Brings the window to the front (might not work on all
+	 * operating systems).
+	 */
+	public static void bringToFront(final Shell shell) {
+	    shell.getDisplay().asyncExec(new Runnable() {
+	        public void run() {
+	            shell.forceActive();
+	        }
+	    });
+	}
 
 	/**
 	 * Copies the given text to the user clipboard.

@@ -27,7 +27,7 @@ import org.syncany.gui.util.SWTResourceManager;
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public abstract class Panel extends Composite {
-	private Dialog parentDialog;
+	protected Dialog parentDialog;
 
 	protected Panel(Composite parent, int style) {
 		super(parent, style);
@@ -44,7 +44,7 @@ public abstract class Panel extends Composite {
 		this.parentDialog = parentDialog;
 	}
 
-	public Dialog getParentWizardDialog() {
+	protected Dialog getParentDialog() {
 		return parentDialog;
 	}
 	
