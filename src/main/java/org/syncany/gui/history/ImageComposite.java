@@ -173,10 +173,15 @@ public class ImageComposite extends Composite {
 							ImageData nextFrameData = loader.data[imageNumber];
 							Image frameImage = new Image(Display.getDefault(), nextFrameData);
 			
-							gc.drawImage(frameImage, nextFrameData.x, nextFrameData.y);							
-
+							if (!gc.isDisposed()) {
+								gc.drawImage(frameImage, nextFrameData.x, nextFrameData.y);
+							}
+							
+							if (!canvas.isDisposed()) {
+								canvas.redraw();
+							}							
+							
 							frameImage.dispose();							
-							canvas.redraw();
 						}
 					}
 					catch (Exception e) {
