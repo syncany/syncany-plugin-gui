@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+### Syncany GUI Plugin 0.4.3-alpha (Date: 25 Feb 2015)
+- History browser (excl. Mac OSX)
+- First Mac OSX release
+- Autostart for Mac OSX
+  
 ### Syncany GUI Plugin 0.4.2-alpha (Date: 10 Jan 2015)
 - Patch release to fix serialization issue in 'sy ls'
   when daemon/GUI is running.

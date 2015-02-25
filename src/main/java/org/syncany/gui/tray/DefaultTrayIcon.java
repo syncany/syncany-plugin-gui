@@ -185,14 +185,16 @@ public class DefaultTrayIcon extends TrayIcon {
 			}
 		});
 		
-		browseHistoryMenuItem = new MenuItem(menu, SWT.PUSH);
-		browseHistoryMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.browse"));
-		browseHistoryMenuItem.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				showBrowseHistory();
-			}
-		});
+		if (!EnvironmentUtil.isMacOSX()) { // TODO [high] Workaround: Hide history browser for Mac users, see #333 
+			browseHistoryMenuItem = new MenuItem(menu, SWT.PUSH);
+			browseHistoryMenuItem.setText(I18n.getText("org.syncany.gui.tray.TrayIcon.menu.browse"));
+			browseHistoryMenuItem.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					showBrowseHistory();
+				}
+			});
+		}
 	}
 
 	private synchronized void buildOrUpdateRecentChangesMenuItems() {
