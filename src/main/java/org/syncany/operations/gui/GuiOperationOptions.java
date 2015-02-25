@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,13 @@
  */
 package org.syncany.operations.gui;
 
+import org.syncany.gui.tray.TrayIconTheme;
 import org.syncany.gui.tray.TrayIconType;
 import org.syncany.operations.OperationOptions;
 
 public class GuiOperationOptions implements OperationOptions {
 	private TrayIconType trayType;
+	private TrayIconTheme trayTheme;
 
 	public TrayIconType getTrayType() {
 		return trayType;
@@ -29,5 +31,13 @@ public class GuiOperationOptions implements OperationOptions {
 
 	public void setTrayType(TrayIconType trayType) {
 		this.trayType = trayType;
+	}
+
+	public TrayIconTheme getTrayTheme() {
+		return trayTheme;
+	}
+
+	public void setTrayTheme(TrayIconTheme trayTheme) {
+		this.trayTheme = trayTheme;
 	}
 }

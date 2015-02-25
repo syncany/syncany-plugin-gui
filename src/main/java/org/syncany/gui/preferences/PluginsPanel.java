@@ -347,7 +347,21 @@ public class PluginsPanel extends Panel {
 	}
 	
 	protected void clickUpdatePlugin() {
-		// TODO [medium] Waiting for cr0's issue
+		if (!requestRunning.get()) {
+			requestRunning.set(true);
+						
+			PluginInfo pluginInfo = (selectedPlugin.isInstalled()) ? selectedPlugin.getLocalPluginInfo() : selectedPlugin.getRemotePluginInfo();			
+			pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginUpdating", pluginInfo.getPluginName()));
+			
+			updatePluginActionButtons(selectedPlugin);
+			updateStatusText(selectedPlugin);
+			
+			PluginOperationOptions pluginOperationOptions = new PluginOperationOptions();
+			pluginOperationOptions.setAction(PluginOperationAction.UPDATE);
+			pluginOperationOptions.setPluginId(selectedPlugin.getRemotePluginInfo().getPluginId());
+			
+		    eventBus.post(new PluginManagementRequest(pluginOperationOptions));			
+		}
 	}
 	
 	protected void clickRemovePlugin() {
@@ -386,7 +400,7 @@ public class PluginsPanel extends Panel {
 		    else {
 			    if (selectedPlugin.isInstalled()) {
 					if (selectedPlugin.canUninstall()) {
-						if (false /* Can update */) { 
+						if (selectedPlugin.isOutdated()) { 
 							logger.log(Level.FINE, "Plugin '" + pluginInfo.getPluginId() + "' can be updated and removed.");
 							createActionButtons(Action.UPDATE, Action.REMOVE);
 						}
@@ -504,7 +518,7 @@ public class PluginsPanel extends Panel {
 	    tableItem.setText(TABLE_COLUMN_REMOTE_VERSION, remoteVersionStr);
 	    
     	if (extPluginInfo.isInstalled()) {
-    		if (false /*extPluginInfo.canUpdate()*/) {
+    		if (extPluginInfo.isOutdated()) {
     			tableItem.setImage(TABLE_COLUMN_STATUS, SWTResourceManager.getImage(String.format(PLUGIN_ACTION_RESOURCE_FORMAT, "updated")));
     		}
     		else {
@@ -554,12 +568,16 @@ public class PluginsPanel extends Panel {
 			onPluginInstallResponseReceived(pluginResponse);
 			break;
 			
+		case UPDATE:
+			onPluginUpdateResponseReceived(pluginResponse);
+			break;
+			
 		case REMOVE:
 			onPluginRemoveResponseReceived(pluginResponse);
 			break;				
 		}
 	}
-	
+
 	private void onPluginInstallResponseReceived(final PluginManagementResponse pluginResponse) {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
@@ -578,6 +596,30 @@ public class PluginsPanel extends Panel {
 				
 				// Update table entry and buttons
 				updatePluginTableEntry(pluginInfo, Action.INSTALL);
+				updatePluginActionButtons(selectedPlugin);		
+				updateStatusText(selectedPlugin);
+			}			
+		});		
+	}
+	
+	private void onPluginUpdateResponseReceived(final PluginManagementResponse pluginResponse) {
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {		
+				PluginInfo pluginInfo = pluginResponse.getResult().getAffectedPluginInfo();				
+
+				// Set status text
+				if (pluginResponse.getResult().getResultCode() == PluginResultCode.OK) {
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginUpdated", pluginInfo.getPluginName()));
+				}
+				else {
+					pluginStatusTexts.put(pluginInfo.getPluginId(), I18n.getText("org.syncany.gui.preferences.PluginsPanel.status.pluginNotUpdated", pluginInfo.getPluginName()));					
+				}
+				
+				requestRunning.set(false);
+				
+				// Update table entry and buttons
+				updatePluginTableEntry(pluginInfo, Action.UPDATE);
 				updatePluginActionButtons(selectedPlugin);		
 				updateStatusText(selectedPlugin);
 			}			

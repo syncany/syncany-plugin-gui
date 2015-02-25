@@ -22,54 +22,31 @@ repositories {
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.4.2-alpha"	
+	pluginVersion = "0.4.3-alpha"
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
 	pluginAppMinVersion = "0.4.2-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
-	
+
 	pluginVersionSnapshot = rootProject.ext.applicationVersionSnapshot
-	pluginVersionFull = "${pluginVersion}${pluginVersionSnapshot}"	
+	pluginVersionFull = "${pluginVersion}${pluginVersionSnapshot}"
 	pluginNeedsOperatingSystemAndArchitecture = true
 }
 
-dependencies {
-	compile		project(":syncany-lib")
-	compile		project(":syncany-util")	
-	compile		project(":syncany-cli")
+// Include tasks ///////////////////////////////////////////////////////////////
 
-	compile		"commons-net:commons-net:2.2"    
-	compile		"commons-beanutils:commons-beanutils:1.9.0"
-	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
-	compile		"org.apache.httpcomponents:httpclient:4.3.4"
-	compile		"org.simpleframework:simple-xml:2.7.1"
-	compile		"com.google.guava:guava:15.0"
-	compile 	"commons-io:commons-io:2.4"	
-
-	pluginjar			"commons-net:commons-net:2.2"    
-	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
-	
-	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
-	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
-	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
-	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
-	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
-	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"	
-
-	testCompile		project(path: ":syncany-lib", configuration: "tests")      
-	testCompile		project(path: ":syncany-util", configuration: "tests")
-	testCompile		"junit:junit:4.9"
-}
+apply from: 'core/gradle/gradle/plugins.jar.gradle'
+apply from: 'core/gradle/gradle/plugins.debian.gradle'
 
 // Task to determine SWT library ///////////////////////////////////////////////
 
 public String getOs() {
-	return System.getProperty('os.name').toLowerCase().split()[0] 	
+	return (project.ext.has("pluginOperatingSystem") && !"all".equals(project.ext.pluginOperatingSystem)) ? project.ext.pluginOperatingSystem : System.getProperty("os.name").toLowerCase().split()[0]
 }
 
 public String getArch() {
-	String arch = System.getProperty("os.arch")
+	String arch = (project.ext.has("pluginArchitecture") && !"all".equals(project.ext.pluginArchitecture)) ? project.ext.pluginArchitecture : System.getProperty("os.arch")
 	return arch.substring(arch.length()-2, arch.length())
 }
 
@@ -84,17 +61,17 @@ public String getOsArch() {
 public String getSwtLibrary(String os, String arch) {
 	String osArch = getOsArch(os, arch)
 	String swtJarName;
-	
+
 	switch(osArch) {
 		case 'windows_86': swtJarName = 'win32.win32.x86'; break;
-		case 'windows_64': swtJarName = 'win32.win32.x86_64'; break; 
+		case 'windows_64': swtJarName = 'win32.win32.x86_64'; break;
 		case 'linux_86': swtJarName = 'gtk.linux.x86'; break;
 		case 'linux_64': swtJarName = 'gtk.linux.x86_64'; break;
-		case 'mac_64': swtJarName = 'cocoa.macosx.x86_64'; break; 
-		case 'mac_86': swtJarName = 'cocoa.macosx'; break; 
+		case 'mac_64': case 'macosx_64': swtJarName = 'cocoa.macosx.x86_64'; break;
+		case 'mac_86': case 'macosx_86': swtJarName = 'cocoa.macosx'; break;
 		default: throw new Exception('Unknown OS');
 	}
-	
+
 	return swtJarName;
 }
 
@@ -102,34 +79,63 @@ public String getSwtLibrary() {
 	return getSwtLibrary(getOs(), getArch())
 }
 
-apply from: 'core/gradle/gradle/plugins.jar.gradle'
-apply from: 'core/gradle/gradle/plugins.debian.gradle'
+// GUI Dependencies ////////////////////////////////////////////////////////////
+
+dependencies {
+	compile		project(":syncany-lib")
+	compile		project(":syncany-util")
+	compile		project(":syncany-cli")
+
+	compile		"commons-net:commons-net:2.2"
+	compile		"commons-beanutils:commons-beanutils:1.9.0"
+	compile		"org.eclipse.swt:org.eclipse.swt.${getSwtLibrary()}:4.4"
+	compile		"org.apache.httpcomponents:httpclient:4.3.4"
+	compile		"org.simpleframework:simple-xml:2.7.1"
+	compile		"com.google.guava:guava:15.0"
+	compile 	"commons-io:commons-io:2.4"
+	compile		"org.ocpsoft.prettytime:prettytime:3.2.5.Final"
+
+	pluginjar			"commons-net:commons-net:2.2"
+	pluginjar			"commons-beanutils:commons-beanutils:1.9.0"
+	pluginjar			"org.ocpsoft.prettytime:prettytime:3.2.5.Final"
+
+	pluginjar_windows_x86		"org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.4"
+	pluginjar_windows_x86_64	"org.eclipse.swt:org.eclipse.swt.win32.win32.x86_64:4.4"
+	pluginjar_linux_x86		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86:4.4"
+	pluginjar_linux_x86_64		"org.eclipse.swt:org.eclipse.swt.gtk.linux.x86_64:4.4"
+	pluginjar_macosx_x86		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx:4.4"
+	pluginjar_macosx_x86_64		"org.eclipse.swt:org.eclipse.swt.cocoa.macosx.x86_64:4.4"
+
+	testCompile		project(path: ":syncany-lib", configuration: "tests")
+	testCompile		project(path: ":syncany-util", configuration: "tests")
+	testCompile		"junit:junit:4.9"
+}
 
 // GUI-specific Debian Tasks ///////////////////////////////////////////////////
 
-task pluginDebianGuiPrepare(dependsOn: [pluginDebianClean, pluginJar]) {	
-	doLast {			
+task pluginDebianGuiPrepare(dependsOn: [pluginDebianClean, pluginJar]) {
+	doLast {
 		copy {
-			from files("gradle/debian/syncany-plugin-gui") 
+			from files("gradle/debian/syncany-plugin-gui")
 			into file("build/debian/syncany-plugin-gui/debian")
 		}
-		
+
 		copy {
-			from file("gradle/debian/syncany-plugin-gui/debian") 
+			from file("gradle/debian/syncany-plugin-gui/debian")
 			include "control"
 			expand([
-				pluginAppMinVersion: "${pluginAppMinVersion}", 	
+				pluginAppMinVersion: "${pluginAppMinVersion}",
 				pluginDebianArchitecture: "${pluginDebianArchitecture}",
 				pluginMiscDepends: "\${misc:Depends}" // Dirty hack to keep ${misc:Depends} debian variable
 			])
 			into file("build/debian/syncany-plugin-gui/debian/debian")
 		}
-		
+
 		copy {
-			from files("build/libs") 
+			from files("build/libs")
 			into file("build/debian/syncany-plugin-gui/debian/usr/share/syncany/lib")
 		}
-		
+
 		exec {
 			workingDir file(".")
 			commandLine(
@@ -140,20 +146,20 @@ task pluginDebianGuiPrepare(dependsOn: [pluginDebianClean, pluginJar]) {
 				file("CHANGELOG.md"),
 				file("build/debian/syncany-plugin-gui/debian/debian/changelog")
 			)
-		}						
-	}	
+		}
+	}
 }
 
-task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {	
+task pluginDebianGuiDeb(dependsOn: [pluginDebianGuiPrepare]) {
 	doLast {
 		exec {
 			workingDir file("build/debian/syncany-plugin-gui/debian")
 			commandLine "debuild -i -us -uc -b -a${pluginDebianArchitecture}".split()
 		}
-		
+
 		if (!project.ext.has('pluginDebDontCopyToUpload')) {
 			copy {
-				from files("build/debian/syncany-plugin-gui") 
+				from files("build/debian/syncany-plugin-gui")
 				include "*.deb"
 				into file("build/upload")
 			}
@@ -176,14 +182,14 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 
 	def innoSetupDir = new File("${buildDir}/innosetup")
 
-	delete innoSetupDir	
-	innoSetupDir.mkdir();	
-	
+	delete innoSetupDir
+	innoSetupDir.mkdir();
+
 	copy {
 		from("${rootProject.projectDir}/build/install")
 		into("${buildDir}/install")
 	}
-	
+
 	copy {
 		from("${rootProject.projectDir}/gradle/innosetup/setup-icon.ico")
 		into("${buildDir}/install/syncany")
@@ -195,13 +201,13 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 		include("*.jar")
 		into("${buildDir}/install/syncany/lib")
 	}
-		
+
 	copy {
 		from("${rootProject.projectDir}/gradle/innosetup/setup-left.bmp")
 		from("${rootProject.projectDir}/gradle/innosetup/setup-top.bmp")
-		from("${rootProject.projectDir}/gradle/innosetup/setup-info-before.rtf")		
-		from("${rootProject.projectDir}/gradle/innosetup/setup-info-after.rtf")		
-		from("${rootProject.projectDir}/gradle/innosetup/setup-icon.ico")		
+		from("${rootProject.projectDir}/gradle/innosetup/setup-info-before.rtf")
+		from("${rootProject.projectDir}/gradle/innosetup/setup-info-after.rtf")
+		from("${rootProject.projectDir}/gradle/innosetup/setup-icon.ico")
 		from("${rootProject.projectDir}/gradle/innosetup/modpath.iss")
 		from("${rootProject.projectDir}/gradle/innosetup/code.iss")
 		into(innoSetupDir)
@@ -211,7 +217,7 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 		from("gradle/innosetup/launcher.vbs")
 		into("${buildDir}/install/syncany/bin")
 	}
-	
+
 	copy {
 		from("gradle/innosetup/setup-gui.iss.skel")
 		rename("setup-gui.iss.skel", "setup-gui.iss")
@@ -222,7 +228,7 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 			applicationArchitecureSuffix: "${applicationArchitecureSuffix}"
 		])
 		into(innoSetupDir)
-	}	
+	}
 
 	exec {
 		workingDir projectDir
@@ -231,11 +237,52 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 
 	if (!project.ext.has('pluginExeDontCopyToUpload')) {
 		copy {
-			from files("${buildDir}/innosetup") 
+			from files("${buildDir}/innosetup")
 			include "*.exe"
 			into file("${buildDir}/upload")
 		}
 	}
+}
+
+// OSX /////////////////////////////////////////////////////////////////////////
+
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.github.cr0:gradle-macappbundle-plugin:3.1.0'
+	}
+}
+
+apply plugin: 'com.github.cr0.macappbundle'
+
+macAppBundle {
+	appName = "Syncany"
+	appCategory = "public.app-category.utilities"
+	icon = "gradle/icon/syncany.icns"
+	agent = true
+
+	version = applicationVersionFull
+	shortVersion = applicationVersion
+
+	mainClassName = "org.syncany.cli.GuiCommand"
+
+	bundleJRE = false
+	bundleExecutable = "Syncany"
+	bundleIdentifier = "org.syncany.osx"
+	bundleCopyright = "(C) Copyright 2011-2015 Philipp Heckel"
+
+	bundleExtras.put("NSHighResolutionCapable", "true")
+
+	javaProperties.put("file.encoding", "utf-8")
+	javaXProperties.add("mx2048M")
+	javaXProperties.add("startOnFirstThread")
+
+	javaClassPath.add("/Users/\$CURRENT_USER/.config/syncany/plugins/lib/*")
+
+	archiveName = "syncany-${applicationVersionFull}-${pluginArchitecture}.app"
+	archiveOutputDir = "upload"
 }
 
 // GUI Tasks ///////////////////////////////////////////////////////////////////
@@ -243,7 +290,7 @@ task exeWithGui(dependsOn: [cleanInstallAndLibDirs, rootProject.installApp, plug
 task(runGui, dependsOn: 'classes', type: JavaExec) {
 	main = "org.syncany.cli.GuiCommand"
 	// SWT need -XStartOnFirstThread to run on OSX
-	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
+	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []
 	classpath = sourceSets.main.runtimeClasspath
 }
 
@@ -251,6 +298,6 @@ task(runGuiAppIndicator, dependsOn: 'classes', type: JavaExec) {
 	main = "org.syncany.cli.GuiCommand"
 	args = ["--tray", "appindicator"]
 	// SWT need -XStartOnFirstThread to run on OSX
-	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []	
+	jvmArgs = getOs().startsWith("mac") ? ['-XstartOnFirstThread'] : []
 	classpath = sourceSets.main.runtimeClasspath
 }

@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,16 +23,20 @@ import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.core.Persister;
 import org.syncany.config.ConfigException;
+import org.syncany.gui.tray.TrayIconTheme;
 import org.syncany.gui.tray.TrayIconType;
 
 @Root(name = "gui", strict = false)
-public class GuiConfigTO {	
+public class GuiConfigTO {
 	@Element(name = "tray", required = false)
 	private TrayIconType tray;
-	
+
+	@Element(name = "theme", required = false)
+	private TrayIconTheme theme;
+
 	@Element(name = "startup", required = false)
 	private boolean startup;
-	
+
 	@Element(name = "notifications", required = false)
 	private boolean notifications;
 
@@ -41,7 +45,7 @@ public class GuiConfigTO {
 		this.startup = true;
 		this.notifications = true;
 	}
-	
+
 	public static GuiConfigTO load(File file) throws ConfigException {
 		try {
 			return new Persister().read(GuiConfigTO.class, file);
@@ -50,7 +54,7 @@ public class GuiConfigTO {
 			throw new ConfigException("Config file does not exist or is invalid: " + file, e);
 		}
 	}
-	
+
 	public static void save(GuiConfigTO configTO, File file) throws ConfigException {
 		try {
 			new Persister().write(configTO, file);
@@ -59,13 +63,21 @@ public class GuiConfigTO {
 			throw new ConfigException("Config could not be written: " + file, e);
 		}
 	}
-	
+
 	public TrayIconType getTray() {
 		return tray;
 	}
-	
+
 	public void setTray(TrayIconType tray) {
 		this.tray = tray;
+	}
+
+	public TrayIconTheme getTheme() {
+		return theme;
+	}
+
+	public void setTheme(TrayIconTheme theme) {
+		this.theme = theme;
 	}
 
 	public boolean isNotifications() {
