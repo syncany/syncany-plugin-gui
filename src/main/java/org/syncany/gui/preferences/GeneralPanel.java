@@ -190,6 +190,7 @@ public class GeneralPanel extends Panel {
 				 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.version.description.full", appVersion, pluginVersions));
 				 	
 				 	fullDescriptionVisible.set(true);
+				 	layout();
 				}				
 			}
 		});

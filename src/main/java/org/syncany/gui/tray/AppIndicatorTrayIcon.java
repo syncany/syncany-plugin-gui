@@ -232,6 +232,10 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 				case NEW:
 					showNew();
 					break;
+				
+				case BROWSE_HISTORY:
+					showBrowseHistory();
+					break;
 					
 				case PREFERENCES:
 					showPreferences();

@@ -76,8 +76,8 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 			logger.log(Level.INFO, "Extracting required helper tools...");
 
 			// create a target for the app
+			// dont use deleteOnExit or FileUtils.forceDeleteOnExit due to http://stackoverflow.com/questions/617414/create-a-temporary-directory-in-java/1506777#1506777
 			final File terminalNotifierExtracted = Files.createTempDirectory("syncany-osx-notifier").toFile();
-			terminalNotifierExtracted.deleteOnExit();
 
 			if (logger.isLoggable(Level.FINE)) {
 				logger.log(Level.FINE, "Extracting syncany-notifier to {0}", new Object[]{terminalNotifierExtracted});
@@ -95,6 +95,19 @@ public class OSXTrayIcon extends DefaultTrayIcon {
 			logger.log(Level.INFO, "Using {0} to deliver notifications", new Object[]{terminalNotifierExtractedBinary});
 
 			temporaryZipFile.delete();
+			
+			Runtime.getRuntime().addShutdownHook(new Thread() {
+				@Override
+				public void run() {
+					logger.log(Level.INFO, "Cleaning up notification helper...");
+					try {
+						FileUtils.deleteDirectory(terminalNotifierExtracted);
+					}
+					catch (IOException e) {
+						logger.log(Level.SEVERE, "Unable to clean up notification helper", e);
+					}
+				}
+			});
 
 			logger.log(Level.INFO, "Done Extracting helper tools");
 		}

@@ -27,4 +27,11 @@ public class GuiEventBus extends InternalEventBus {
 	public static GuiEventBus getInstance() {
 		return InternalEventBus.getInstance(GuiEventBus.class);
 	}
+	
+	public static GuiEventBus getAndRegister(Object registerObject) {
+		GuiEventBus eventBus = getInstance();
+		
+		eventBus.register(registerObject);
+		return eventBus;
+	}
 }
