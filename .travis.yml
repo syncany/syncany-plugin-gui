@@ -48,4 +48,4 @@ install:
   - ./gradlew -v
 
 script:
-  - ./travis.sh
+  - ./.travis.sh
