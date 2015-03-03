@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,19 +36,19 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 
 /**
- * This composite can display either an animated GIF, 
- * or a still image. 
- * 
+ * This composite can display either an animated GIF,
+ * or a still image.
+ *
  * <p>Using the {@link #setImage(Image) setImage()} method, a still
- * PNG/GIF/JPEG image can be displayed. Using 
+ * PNG/GIF/JPEG image can be displayed. Using
  * {@link #setAnimatedImage(String, int) setAnimatedImage()}, an animated
- * GIF image can be displayed. 
- * 
+ * GIF image can be displayed.
+ *
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class ImageComposite extends Composite {
 	public ImageComposite(Composite composite, int style) {
-		super(composite, style);			
+		super(composite, style);
 
 		GridLayout mainCompositeGridLayout = new GridLayout(1, false);
 		mainCompositeGridLayout.marginTop = 0;
@@ -58,103 +58,108 @@ public class ImageComposite extends Composite {
 		mainCompositeGridLayout.verticalSpacing = 0;
 		mainCompositeGridLayout.marginHeight = 0;
 		mainCompositeGridLayout.marginWidth = 0;
-		
-		setLayout(mainCompositeGridLayout);		
+
+		setLayout(mainCompositeGridLayout);
 		setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 	}
 
 	/**
 	 * Set and display a still image on the composite.
-	 * 
+	 *
 	 * @param image Image to display
 	 */
 	public void setImage(Image image) {
 		disposeControls();
-		
+
 		Label imageLabel = new Label(this, SWT.NONE);
 		imageLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 		imageLabel.setImage(image);
-		
+
 		layout();
 	}
-	
+
 	/**
 	 * Set and display an animated GIF image on the composite.
 	 * The animation start immediately and will run at the given frame rate.
-	 * 
+	 *
 	 * @param resourceStr Resource identifier for the GIF image to play
 	 * @param frameRate Frame rate / speed at which to play the image (in ms / image; less is faster)
 	 */
 	public void setAnimatedImage(String resourceStr, int frameRate) {
 		disposeControls();
-		
+
 		AnimatedGifComposite animatedGifComposite = new AnimatedGifComposite(this, SWT.NONE, resourceStr, frameRate);
 		animatedGifComposite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
-		
+
 		layout();
 	}
-	
+
 	private void disposeControls() {
 		for (Control control : getChildren()) {
 			control.dispose();
 		}
 	}
-	
+
+	@Override
+	public void dispose() {
+		disposeControls();
+	}
+
 	private class AnimatedGifComposite extends Composite {
 		private String resourceStr;
 		private int frameRate;
-		
+
 		private Timer imageTimer;
 		private ImageLoader loader;
 		private Image image;
 		private int imageNumber;
 		private Canvas canvas;
 		private GC gc;
-		
+
 		public AnimatedGifComposite(Composite composite, int style, String resourceStr, int frameRate) {
 			super(composite, style);
 
 			this.resourceStr = resourceStr;
 			this.frameRate = frameRate;
-			
+
 			this.setBackgroundImage(null);
 			this.setBackgroundMode(SWT.INHERIT_DEFAULT);
-			
+
 			this.createContents();
 		}
-		
+
 		private void createContents() {
-			createCanvas();			
-			createAndStartImageTimer();	
-		}	
-		
-		private void createCanvas() {						
+			createCanvas();
+			createAndStartImageTimer();
+		}
+
+		private void createCanvas() {
 			loader = new ImageLoader();
 			loader.load(ImageComposite.class.getResourceAsStream(resourceStr));
 
 			canvas = new Canvas(this, SWT.NONE);
 			image = new Image(Display.getDefault(), loader.data[0]);
 			gc = new GC(image);
-			
+
 			canvas.addPaintListener(new PaintListener() {
 				public void paintControl(PaintEvent event) {
-					paintImage(event);					
+					paintImage(event);
 				}
 			});
-			
+
 			canvas.setSize(image.getBounds().width, image.getBounds().height);
 		}
 
 		private void paintImage(PaintEvent event) {
 			int posX = (canvas.getSize().x - image.getBounds().width) / 2;
 			int posY = (canvas.getSize().y - image.getBounds().height) / 2;
-			
-			event.gc.drawImage(image, posX, posY);			
+
+			event.gc.drawImage(image, posX, posY);
 		}
 
 		private void createAndStartImageTimer() {
 			imageTimer = new Timer();
-			
+
 			imageTimer.schedule(new TimerTask() {
 				@Override
 				public void run() {
@@ -162,25 +167,25 @@ public class ImageComposite extends Composite {
 				}
 			}, 0, frameRate);
 		}
-		
+
 		private void nextImage() {
 			Display.getDefault().syncExec(new Runnable() {
 				public void run() {
 					try {
-						synchronized(ImageComposite.this) {						
+						synchronized(ImageComposite.this) {
 							imageNumber = (imageNumber == loader.data.length - 1) ? 0 : imageNumber + 1;
-			
+
 							ImageData nextFrameData = loader.data[imageNumber];
 							Image frameImage = new Image(Display.getDefault(), nextFrameData);
-			
+
 							if (!gc.isDisposed()) {
 								gc.drawImage(frameImage, nextFrameData.x, nextFrameData.y);
 							}
-							
+
 							if (!canvas.isDisposed()) {
 								canvas.redraw();
-							}							
-							
+							}
+
 							frameImage.dispose();							
 						}
 					}
@@ -191,11 +196,11 @@ public class ImageComposite extends Composite {
 	            }
 	        });
 		}
-		
+
 		@Override
 		public void dispose() {
-			synchronized(this) {						
-				imageTimer.cancel();		
+			synchronized(this) {
+				imageTimer.cancel();
 				super.dispose();
 			}
 		}
