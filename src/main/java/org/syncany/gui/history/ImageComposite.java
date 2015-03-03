@@ -186,7 +186,7 @@ public class ImageComposite extends Composite {
 								canvas.redraw();
 							}
 
-							frameImage.dispose();
+							frameImage.dispose();							
 						}
 					}
 					catch (Exception e) {
