@@ -1,17 +1,20 @@
 Change Log
 ==========
 
+### Syncany GUI Plugin 0.4.4-alpha (Date: tba)
+- Enabled history browser on Mac OSX
+
 ### Syncany GUI Plugin 0.4.3-alpha (Date: 25 Feb 2015)
 - History browser (excl. Mac OSX)
 - First Mac OSX release
 - Autostart for Mac OSX
-  
+
 ### Syncany GUI Plugin 0.4.2-alpha (Date: 10 Jan 2015)
 - Patch release to fix serialization issue in 'sy ls'
   when daemon/GUI is running.
 
 ### Syncany GUI Plugin 0.4.1-alpha (Date: 10 Jan 2015)
-- New 'Preferences' dialog with ability to remove/add plugins, 
+- New 'Preferences' dialog with ability to remove/add plugins,
   enable/disable notifications, and change the proxy settings #334/#321
 - New 'Remove folder' feature in tray menu #330
 - New 'Copy link' feature in tray menu #336
