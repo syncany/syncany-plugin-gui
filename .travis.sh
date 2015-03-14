@@ -40,4 +40,4 @@ rm -r src/main/resources/org/syncany/gui/helper
 ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload
 
 # Upload JARs and DEBs
-core/gradle/lftp/lftpuploadplugin.sh
+core/gradle/upload/upload-plugin.sh

@@ -5,10 +5,8 @@ env:
   global:
   - TERM=dumb
 
-  # FTP credentials
-  - secure: "EnoeJjBqPc/gnC83VOWrdnaWNFrrq1P4D4NVpu387tjVM6ejmutAvr0Pnx/hrPu1R8+RL23lFzPlvAGiPbneURQHEqZt47V2yXxOPxYp8oL74a5QGk420qCtDtiQTcbC6A0aheFk2UBmzIhddTfI3iyI78Tsghe9mMF+PUlXrVk="
-  - secure: "HQFmxUk9nmy7MilybRAN0akVfw+8Thch1gnCzsE9qVqvICbxRhYmOHVULOAdlameeOUu4/DODZW4Rnlr+RrZEkwk49WLS70XkOfy0v9GliOqTkXaYZtzRoEnrjjIcboPkrG7nr25TB6AAjtFg/lpKtQ9UWY73Prs0/AVoWBLYIk="
-  - secure: "BqO+9W0YAHPE2QdQFueEPszlJ/r/f7vpYAbHXHW38QIgpSEsk2LGKQpLXP07rlHnrMmF//bEwmGTK08pD6KpaIFFtgC20+9T5GiReMS0J6EH/vDHcZoZWDXInAFiDY/oK9DbHoJBvFXhrhQc8189lzKqDiFpIrlnOAsDgzXs4Ds="
+  # Encrypted env variable SYNCANY_API_KEY for upload
+  - secure: "M95mBHvUCFyWldBoSFVG9/iSC8joyrexVnqS6oV+e173V+3eN/XmfDtwtsVOijIz8F0LRrrmhWI4AEfeLxONROnju4n2LkpKww+W2bg3KIC1SvWOI/nF2XFk+w9ImYL8+m4xEhkg+WJjCmfMK30BlxdBAJxoGXplEzy7Ay7xUbY="
 
 branches:
   only:
@@ -22,8 +20,6 @@ notifications:
 before_install:
   # Standard Stuff
   - sudo apt-get update
-  - sudo apt-get install -y -q lftp
-  - lftp -v
   - mkdir ~/.gradle 2> /dev/null || true
   - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
