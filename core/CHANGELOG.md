@@ -5,9 +5,13 @@ Change Log
 - Developer/alpha release (**We are now nearing the beta phase. Stay tuned!**)
 - Features and significant changes:
   + Unit tests for daemon #384/#397
+  + Completely re-written Syncany API and website, and open-sourced it
+    in the [syncany-website](https://github.com/syncany/syncany-website) repository
+  + Added 3rd-party plugins, and a 3rd party flag in `sy plugin list` responses
 - Bugfixes and other things:
   + Splitting test suite between unit and integration #384/#391
   + Allowing SFTP public key auth without private key password #390
+  + Setting default maxMemory to 512M to enable booting in VMs/low memory devices.
 
 ### Syncany 0.4.3-alpha (Date: 25 Feb 2015)
 - Developer/alpha release (**We are now nearing the beta phase. Stay tuned!**)
