@@ -37,7 +37,7 @@ mkdir -p build/osx-notifier
 wget https://www.syncany.org/r/syncany-osx-notifier-latest.app.zip -O build/osx-notifier/osx-notifier.zip
 
 
-## (1) Plugin upload ###########################################################
+## (1) Plugin ##################################################################
 
 # Build JARs for different Windows and Linux
 ./gradlew pluginJar -Pos=linux -Parch=x86 # (a)
@@ -70,11 +70,8 @@ rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64 -PpluginJarDontCopyToUpload # (h)
 
-# Upload plugins
-core/gradle/upload/upload-plugin.sh
 
-
-## (2) Application upload ######################################################
+## (2) Application #############################################################
 
 # Create a OSX standalone app in upload dir
 mkdir -p src/main/resources/org/syncany/gui/helper
@@ -92,5 +89,7 @@ rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 rm build/resources/main/org/syncany/plugins/gui/plugin.properties
 ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload # (k)
 
-# Upload applications
-core/gradle/upload/upload-application.sh
+
+## (3) Upload them #############################################################
+
+core/gradle/upload/upload-plugin.sh
