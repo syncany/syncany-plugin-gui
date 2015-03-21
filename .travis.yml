@@ -6,7 +6,7 @@ env:
   - TERM=dumb
 
   # Encrypted env variable SYNCANY_API_KEY for upload
-  - secure: "M95mBHvUCFyWldBoSFVG9/iSC8joyrexVnqS6oV+e173V+3eN/XmfDtwtsVOijIz8F0LRrrmhWI4AEfeLxONROnju4n2LkpKww+W2bg3KIC1SvWOI/nF2XFk+w9ImYL8+m4xEhkg+WJjCmfMK30BlxdBAJxoGXplEzy7Ay7xUbY="
+  - secure: "izz/hYLwOJuC9eA1jirHpPnkMkkCdEDUgzht2VoQPcoYW0NLd9IJhvZzRHzHgcCgPjBF//ydT2NY0+AYShrgLURMoPNTPGcTxhae+DTLMkPuTPz+EyEEe1hvJMwumChFSvgKdZUZQYmF1aqLs9tWKCk6RHVPc6gWAk81MQwfDoc="
 
 branches:
   only:
