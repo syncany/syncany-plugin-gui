@@ -5,10 +5,8 @@ env:
   global:
   - TERM=dumb
 
-  # FTP credentials
-  - secure: "EnoeJjBqPc/gnC83VOWrdnaWNFrrq1P4D4NVpu387tjVM6ejmutAvr0Pnx/hrPu1R8+RL23lFzPlvAGiPbneURQHEqZt47V2yXxOPxYp8oL74a5QGk420qCtDtiQTcbC6A0aheFk2UBmzIhddTfI3iyI78Tsghe9mMF+PUlXrVk="
-  - secure: "HQFmxUk9nmy7MilybRAN0akVfw+8Thch1gnCzsE9qVqvICbxRhYmOHVULOAdlameeOUu4/DODZW4Rnlr+RrZEkwk49WLS70XkOfy0v9GliOqTkXaYZtzRoEnrjjIcboPkrG7nr25TB6AAjtFg/lpKtQ9UWY73Prs0/AVoWBLYIk="
-  - secure: "BqO+9W0YAHPE2QdQFueEPszlJ/r/f7vpYAbHXHW38QIgpSEsk2LGKQpLXP07rlHnrMmF//bEwmGTK08pD6KpaIFFtgC20+9T5GiReMS0J6EH/vDHcZoZWDXInAFiDY/oK9DbHoJBvFXhrhQc8189lzKqDiFpIrlnOAsDgzXs4Ds="
+  # Encrypted env variable SYNCANY_API_KEY for upload
+  - secure: "izz/hYLwOJuC9eA1jirHpPnkMkkCdEDUgzht2VoQPcoYW0NLd9IJhvZzRHzHgcCgPjBF//ydT2NY0+AYShrgLURMoPNTPGcTxhae+DTLMkPuTPz+EyEEe1hvJMwumChFSvgKdZUZQYmF1aqLs9tWKCk6RHVPc6gWAk81MQwfDoc="
 
 branches:
   only:
@@ -22,8 +20,6 @@ notifications:
 before_install:
   # Standard Stuff
   - sudo apt-get update
-  - sudo apt-get install -y -q lftp
-  - lftp -v
   - mkdir ~/.gradle 2> /dev/null || true
   - echo "org.gradle.daemon=true" > ~/.gradle/gradle.properties
 
@@ -48,43 +44,4 @@ install:
   - ./gradlew -v
 
 script:
-  # Be safe and clean!
-  - ./gradlew clean
-
-  # Build JARs for different operating systems
-  - ./gradlew pluginJar -Pos=linux -Parch=x86
-  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-
-  - ./gradlew pluginJar -Pos=linux -Parch=x86_64
-  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-
-  - ./gradlew pluginJar -Pos=windows -Parch=x86
-  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-
-  - ./gradlew pluginJar -Pos=windows -Parch=x86_64
-  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-
-  # Build OSX version with included notification helper
-  - mkdir -p src/main/resources/org/syncany/gui/helper
-  - wget https://www.syncany.org/r/syncany-osx-notifier-latest.app.zip -O src/main/resources/org/syncany/gui/helper/osx-notifier.zip
-
-  - ./gradlew pluginJar -Pos=macosx -Parch=x86
-  - rm build/resources/main/org/syncany/plugins/gui/plugin.properties
-
-  - ./gradlew pluginJar -Pos=macosx -Parch=x86_64
-
-  # Create a OSX standalone app in upload dir
-  - ./gradlew createAppZip -Pos=macosx -Parch=x86_64
-  - rm -r src/main/resources/org/syncany/gui/helper
-
-  # Build Debian DEBs
-  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86 -PpluginJarDontCopyToUpload
-  - ./gradlew pluginDebianGuiDeb -Pos=linux -Parch=x86_64 -PpluginJarDontCopyToUpload
-
-  # Build Windows installer
-  - ./gradlew exeWithGui -Pos=windows -Parch=x86 -PpluginJarDontCopyToUpload
-  - ./gradlew exeWithGui -Pos=windows -Parch=x86_64 -PpluginJarDontCopyToUpload
-
-after_success:
-  # Upload JARs and DEBs
-  - core/gradle/lftp/lftpuploadplugin.sh
+  - ./.travis.sh

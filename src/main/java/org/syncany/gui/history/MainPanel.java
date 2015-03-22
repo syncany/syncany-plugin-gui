@@ -403,10 +403,17 @@ public class MainPanel extends Panel {
 					dateSlider.setSelection(maxValue);
 					
 					setDateLabel(newSelectedDate);
+
+					// setMaximum does not actually work if it sets 0, hence we disable the slider.
+					if (headers.size() == 1) {
+						dateSlider.setEnabled(false);
+					}
 				}
 				else {
-					dateSlider.setMinimum(0);
-					dateSlider.setMaximum(0);
+					// Disable slider and set today as date to clear fields
+					dateSlider.setSelection(0);
+					dateSlider.setEnabled(false);
+					setDateLabel(new Date());
 				}				
 			}
 		});		
