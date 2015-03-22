@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-### Syncany GUI Plugin 0.4.4-alpha (Date: tba)
+### Syncany GUI Plugin 0.4.4-alpha (Date: 22 Mar 2015)
 - Enabled history browser on Mac OSX
 
 ### Syncany GUI Plugin 0.4.3-alpha (Date: 25 Feb 2015)
