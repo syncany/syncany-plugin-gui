@@ -74,7 +74,7 @@ public class TrayIconFactory {
 
 	private static TrayIconType detectTypeFromOS() {
 		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
-			return TrayIconType.DEFAULT;
+			return TrayIconType.APPINDICATOR;
 		}
 		else if (EnvironmentUtil.isMacOSX()) {
 			return TrayIconType.OSX_NOTIFICATION_CENTER;
@@ -85,10 +85,7 @@ public class TrayIconFactory {
 	}
 
 	private static TrayIconTheme detectThemeFromOS() {
-		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
-			return TrayIconTheme.DEFAULT;
-		}
-		else if (EnvironmentUtil.isMacOSX()) {
+		if (EnvironmentUtil.isMacOSX()) {
 			return TrayIconTheme.MONOCHROME;
 		}
 		else {
