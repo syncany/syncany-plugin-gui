@@ -52,11 +52,11 @@ public class TrayIconFactory {
 	 * Also sets the theme.
 	 */
 	public static TrayIcon createTrayIcon(Shell shell, TrayIconType forceType, TrayIconTheme forceTheme) {
-		if (forceType == null) {
+		if (forceType == null || forceType == TrayIconType.AUTO) {
 			forceType = detectTypeFromOS();
 		}
 
-		if (forceTheme == null) {
+		if (forceTheme == null || forceTheme == TrayIconTheme.AUTO) {
 			forceTheme = detectThemeFromOS();
 		}
 
@@ -67,12 +67,13 @@ public class TrayIconFactory {
 			case OSX_NOTIFICATION_CENTER:
 				return new OSXTrayIcon(shell, forceTheme);
 
+			case DEFAULT:
 			default:
 				return new DefaultTrayIcon(shell, forceTheme);
 		}
 	}
 
-	private static TrayIconType detectTypeFromOS() {
+	public static TrayIconType detectTypeFromOS() {
 		if (EnvironmentUtil.isUnixLikeOperatingSystem() && isUnity()) {
 			return TrayIconType.APPINDICATOR;
 		}
@@ -84,7 +85,7 @@ public class TrayIconFactory {
 		}
 	}
 
-	private static TrayIconTheme detectThemeFromOS() {
+	public static TrayIconTheme detectThemeFromOS() {
 		if (EnvironmentUtil.isMacOSX()) {
 			return TrayIconTheme.MONOCHROME;
 		}

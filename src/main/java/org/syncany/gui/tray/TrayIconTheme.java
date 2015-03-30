@@ -24,5 +24,5 @@ package org.syncany.gui.tray;
  * @author Christian Roth <christian.roth@port17.de>
  */
 public enum TrayIconTheme {
-	DEFAULT, MONOCHROME
+	AUTO, DEFAULT, MONOCHROME
 }

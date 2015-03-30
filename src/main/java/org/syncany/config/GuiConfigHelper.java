@@ -46,8 +46,8 @@ public class GuiConfigHelper {
 			else {
 				// Write example config to daemon-example.xml, and default config to daemon.xml
 				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
-				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
-				exampleGuiConfig.setTheme(TrayIconTheme.DEFAULT);				
+				exampleGuiConfig.setTray(TrayIconType.AUTO);
+				exampleGuiConfig.setTheme(TrayIconTheme.AUTO);				
 				exampleGuiConfig.setNotifications(true);
 				
 				GuiConfigTO.save(exampleGuiConfig, configFileExample);
