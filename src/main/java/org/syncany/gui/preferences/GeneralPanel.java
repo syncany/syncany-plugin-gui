@@ -17,7 +17,6 @@
  */
 package org.syncany.gui.preferences;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
@@ -35,11 +34,9 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.config.ConfigException;
-import org.syncany.config.DaemonConfigHelper;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
 import org.syncany.config.UserConfig;
-import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.config.to.UserConfigTO;
 import org.syncany.gui.Panel;
@@ -61,9 +58,7 @@ public class GeneralPanel extends Panel {
 	private Combo themeCombo;
 	private Combo trayTypeCombo;
 	
-	private GuiConfigTO guiConfig;	
-	private DaemonConfigTO daemonConfig;
-	
+	private GuiConfigTO guiConfig;		
 	private GuiEventBus eventBus;
 	
 	public GeneralPanel(PreferencesDialog parentDialog, Composite composite, int style) {
@@ -87,17 +82,17 @@ public class GeneralPanel extends Panel {
 
 	private void createContents() {
 		// Main composite
-		GridLayout mainCompositeGridLayout = new GridLayout(3, false);
+		GridLayout mainCompositeGridLayout = new GridLayout(4, false);
 		mainCompositeGridLayout.marginTop = 15;
 		mainCompositeGridLayout.marginLeft = 10;
 		mainCompositeGridLayout.marginRight = 20;
 
-		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
+		setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 4, 1));
 		setLayout(mainCompositeGridLayout);
 
 		// Title and welcome text
 		Label titleLabel = new Label(this, SWT.WRAP);
-		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+		titleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
 		titleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.title"));
 
 		WidgetDecorator.title(titleLabel);
@@ -112,7 +107,7 @@ public class GeneralPanel extends Panel {
 		
 		// Startup
 	    launchAtStartupButton = new Button(this, SWT.CHECK);
-	    launchAtStartupButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+	    launchAtStartupButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
 	    
 	    if (EnvironmentUtil.isUnixLikeOperatingSystem() || EnvironmentUtil.isWindows()) {
 		    launchAtStartupButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.launchAtStartup"));
@@ -124,7 +119,25 @@ public class GeneralPanel extends Panel {
 		    launchAtStartupButton.setSelection(false);
 		    launchAtStartupButton.setEnabled(false);
 	    }
+	    
+	    // Notifications
+	    displayNotificationsButton = new Button(this, SWT.CHECK);
+	    displayNotificationsButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
+		displayNotificationsButton.setSelection(guiConfig.isNotifications());
+		displayNotificationsButton.addSelectionListener(commonSelectionListener);
 
+		// Prevent standby
+		preventStandbyButton = new Button(this, SWT.CHECK);
+		preventStandbyButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.preventStandby"));
+		preventStandbyButton.setSelection(UserConfig.preventStandbyEnabled());
+		preventStandbyButton.addSelectionListener(commonSelectionListener);	
+
+	 	// Spacing
+	    Label spacingLabel1 = new Label(this, SWT.NONE);
+	    spacingLabel1.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+	    
 		// Theme
 		Label themeLabel = new Label(this, SWT.NONE);
 		themeLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme.title"));
@@ -134,20 +147,10 @@ public class GeneralPanel extends Panel {
 		themeCombo.addSelectionListener(commonSelectionListener);
 
 		fillTrayThemeCombo();
-	    
-	    // Notifications
-	    displayNotificationsButton = new Button(this, SWT.CHECK);
-	    displayNotificationsButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
-		displayNotificationsButton.setSelection(guiConfig.isNotifications());
-		displayNotificationsButton.addSelectionListener(commonSelectionListener);
-
-		// Prevent standby
-		preventStandbyButton = new Button(this, SWT.CHECK);
-		preventStandbyButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.preventStandby"));
-		preventStandbyButton.setSelection(UserConfig.preventStandbyEnabled());
-		preventStandbyButton.addSelectionListener(commonSelectionListener);	
+		
+	 	// Spacing
+	    Label spacingLabel2 = new Label(this, SWT.NONE);
+	    spacingLabel2.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
 	    
 	    // Tray type
 	    Label trayTypeLabel = new Label(this, SWT.NONE);
@@ -160,19 +163,19 @@ public class GeneralPanel extends Panel {
 	    fillTrayTypeCombo();
 	
 	 	// Spacing
-	    Label spacingLabel = new Label(this, SWT.NONE);
-	    spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+	    Label spacingLabel3 = new Label(this, SWT.NONE);
+	    spacingLabel3.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
 	    
 	    // Updates title
  		Label updatesTitleLabel = new Label(this, SWT.WRAP);
- 		updatesTitleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+ 		updatesTitleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
  		updatesTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.title"));
 
 	 	WidgetDecorator.bold(updatesTitleLabel);
 	 	
 	 	// Updates text
 		Label updatesLabel = new Label(this, SWT.WRAP);
-		updatesLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+		updatesLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
 		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.upToDate"));	 	
 	}
 
@@ -246,24 +249,9 @@ public class GeneralPanel extends Panel {
 		guiConfig.setTray(selectedTrayType);
 		
 		writeOrDeleteStartupScriptFile();
+		
 		saveGuiConfigFile();
 		saveUserConfigFile();
-	}
-
-	private void saveUserConfigFile() {
-		boolean userConfigChanged = UserConfig.preventStandbyEnabled() != preventStandbyButton.getSelection();
-		
-		if (userConfigChanged) {
-			try {
-				UserConfigTO userConfigTO = UserConfigTO.load(UserConfig.getUserConfigFile());
-				userConfigTO.
-				
-				if (userConfigFile.)
-			}
-			catch (ConfigException e) {
-				
-			}
-		}
 	}
 
 	private void writeOrDeleteStartupScriptFile() {
@@ -277,6 +265,22 @@ public class GeneralPanel extends Panel {
 		}
 		catch (ConfigException e) {
 			logger.log(Level.WARNING, "Unable to save GUI config.", e);
+		}
+	}
+	
+	private void saveUserConfigFile() {
+		boolean userConfigChanged = UserConfig.preventStandbyEnabled() != preventStandbyButton.getSelection();
+		
+		if (userConfigChanged) {
+			try {
+				UserConfigTO userConfigTO = UserConfigTO.load(UserConfig.getUserConfigFile());
+				
+				userConfigTO.setPreventStandby(preventStandbyButton.getSelection());			
+				userConfigTO.save(UserConfig.getUserConfigFile());
+			}
+			catch (ConfigException e) {
+				logger.log(Level.WARNING, "Unable to save user config.", e);
+			}
 		}
 	}
 
