@@ -34,8 +34,10 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.syncany.config.ConfigException;
+import org.syncany.config.DaemonConfigHelper;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
+import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.Panel;
 import org.syncany.gui.tray.TrayIconFactory;
@@ -52,10 +54,13 @@ public class GeneralPanel extends Panel {
 	
 	private Button launchAtStartupButton;
 	private Button displayNotificationsButton;
+	private Button preventStandbyButton;
 	private Combo themeCombo;
 	private Combo trayTypeCombo;
 	
 	private GuiConfigTO guiConfig;	
+	private DaemonConfigTO daemonConfig;
+	
 	private GuiEventBus eventBus;
 	
 	public GeneralPanel(PreferencesDialog parentDialog, Composite composite, int style) {
@@ -131,8 +136,16 @@ public class GeneralPanel extends Panel {
 	    displayNotificationsButton = new Button(this, SWT.CHECK);
 	    displayNotificationsButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
 	    displayNotificationsButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
-	    displayNotificationsButton.setSelection(guiConfig.isNotifications());	  	    
-	    displayNotificationsButton.addSelectionListener(commonSelectionListener);	
+		displayNotificationsButton.setSelection(guiConfig.isNotifications());
+		displayNotificationsButton.addSelectionListener(commonSelectionListener);
+
+		// Prevent standby
+		preventStandbyButton = new Button(this, SWT.CHECK);
+		preventStandbyButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
+		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
+		preventStandbyButton.setSelection(guiConfig.isNotifications());
+		preventStandbyButton.addSelectionListener(commonSelectionListener);	
+	    
 	    
 	    // Tray type
 	    Label trayTypeLabel = new Label(this, SWT.NONE);
@@ -146,7 +159,19 @@ public class GeneralPanel extends Panel {
 	
 	 	// Spacing
 	    Label spacingLabel = new Label(this, SWT.NONE);
-	    spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));	    
+	    spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+	    
+	    // Updates title
+ 		Label updatesTitleLabel = new Label(this, SWT.WRAP);
+ 		updatesTitleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+ 		updatesTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.title"));
+
+	 	WidgetDecorator.bold(updatesTitleLabel);
+	 	
+	 	// Updates text
+		Label updatesLabel = new Label(this, SWT.WRAP);
+		updatesLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 3, 1));
+		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.upToDate"));	 	
 	}
 
 	private void fillTrayThemeCombo() {
@@ -206,7 +231,8 @@ public class GeneralPanel extends Panel {
 	}
 
 	private void loadConfig() {
-		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();		
+		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();	
+		daemonConfig = DaemonConfigHelper.loadOrCreateConfig();
 	}
 
 	private void saveConfig() {
