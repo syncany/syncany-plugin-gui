@@ -165,6 +165,18 @@ public class GeneralPanel extends Panel {
 		// Spacing
 		Label spacingLabel3 = new Label(this, SWT.NONE);
 		spacingLabel3.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+
+		// Updates title
+		Label updatesTitleLabel = new Label(this, SWT.WRAP);
+		updatesTitleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		updatesTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.title"));
+
+		WidgetDecorator.bold(updatesTitleLabel);
+
+		// Updates text
+		Label updatesLabel = new Label(this, SWT.WRAP);
+		updatesLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.upToDate"));
 	}
 
 	private void fillTrayThemeCombo() {
