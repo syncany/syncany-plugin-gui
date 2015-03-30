@@ -17,6 +17,7 @@
  */
 package org.syncany.gui.preferences;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
@@ -37,8 +38,10 @@ import org.syncany.config.ConfigException;
 import org.syncany.config.DaemonConfigHelper;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
+import org.syncany.config.UserConfig;
 import org.syncany.config.to.DaemonConfigTO;
 import org.syncany.config.to.GuiConfigTO;
+import org.syncany.config.to.UserConfigTO;
 import org.syncany.gui.Panel;
 import org.syncany.gui.tray.TrayIconFactory;
 import org.syncany.gui.tray.TrayIconTheme;
@@ -142,10 +145,9 @@ public class GeneralPanel extends Panel {
 		// Prevent standby
 		preventStandbyButton = new Button(this, SWT.CHECK);
 		preventStandbyButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 1, 1));
-		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.displayNotifications"));
-		preventStandbyButton.setSelection(guiConfig.isNotifications());
+		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.preventStandby"));
+		preventStandbyButton.setSelection(UserConfig.preventStandbyEnabled());
 		preventStandbyButton.addSelectionListener(commonSelectionListener);	
-	    
 	    
 	    // Tray type
 	    Label trayTypeLabel = new Label(this, SWT.NONE);
@@ -232,7 +234,6 @@ public class GeneralPanel extends Panel {
 
 	private void loadConfig() {
 		guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();	
-		daemonConfig = DaemonConfigHelper.loadOrCreateConfig();
 	}
 
 	private void saveConfig() {
@@ -245,7 +246,24 @@ public class GeneralPanel extends Panel {
 		guiConfig.setTray(selectedTrayType);
 		
 		writeOrDeleteStartupScriptFile();
-		saveGuiConfigFile();		
+		saveGuiConfigFile();
+		saveUserConfigFile();
+	}
+
+	private void saveUserConfigFile() {
+		boolean userConfigChanged = UserConfig.preventStandbyEnabled() != preventStandbyButton.getSelection();
+		
+		if (userConfigChanged) {
+			try {
+				UserConfigTO userConfigTO = UserConfigTO.load(UserConfig.getUserConfigFile());
+				userConfigTO.
+				
+				if (userConfigFile.)
+			}
+			catch (ConfigException e) {
+				
+			}
+		}
 	}
 
 	private void writeOrDeleteStartupScriptFile() {

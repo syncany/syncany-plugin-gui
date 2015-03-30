@@ -25,7 +25,7 @@ project.ext {
 	pluginVersion = "0.4.5-alpha"
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
-	pluginAppMinVersion = "0.4.2-alpha"
+	pluginAppMinVersion = "0.4.5-alpha"
 	pluginRelease = rootProject.ext.applicationRelease
 	pluginConflictsWith = ""
 
