@@ -17,10 +17,7 @@
  */
 package org.syncany.gui.preferences;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
@@ -99,7 +96,6 @@ public class AboutPanel extends Panel {
 	 	WidgetDecorator.bold(aboutTitleLabel);
 	 	
 	 	// About text
-	 	final AtomicBoolean fullDescriptionVisible = new AtomicBoolean(false);
 	 	final String appVersion = Client.getApplicationVersionFull();	 	
 	 	final String guiPluginVersion = Plugins.get(GuiPlugin.ID).getVersion();	 	
 	 		 	
@@ -107,24 +103,16 @@ public class AboutPanel extends Panel {
 		aboutDescriptionText.setEditable(false);	
 		aboutDescriptionText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, true, 1, 1));
 		aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.AboutPanel.version.description.short", appVersion, guiPluginVersion));
-		aboutDescriptionText.addFocusListener(new FocusAdapter() {
-			public void focusGained(org.eclipse.swt.events.FocusEvent e) {
-				if (!fullDescriptionVisible.get()) {
-					String pluginVersions = "";
-				 	
-				 	for (Plugin plugin : Plugins.list()) {
-				 		if (!LocalTransferPlugin.ID.equals(plugin.getId())) {
-				 			pluginVersions += I18n.getText("org.syncany.gui.preferences.AboutPanel.version.description.plugin", plugin.getName(), plugin.getVersion()) + "\n";
-				 		}
-				 	}
-				 	
-				 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.AboutPanel.version.description.full", appVersion, pluginVersions));
-				 	
-				 	fullDescriptionVisible.set(true);
-				 	layout();
-				}				
-			}
-		});
+		
+		String pluginVersions = "";
+	 	
+	 	for (Plugin plugin : Plugins.list()) {
+	 		if (!LocalTransferPlugin.ID.equals(plugin.getId())) {
+	 			pluginVersions += I18n.getText("org.syncany.gui.preferences.AboutPanel.version.description.plugin", plugin.getName(), plugin.getVersion()) + "\n";
+	 		}
+	 	}
+	 	
+	 	aboutDescriptionText.setText(I18n.getText("org.syncany.gui.preferences.AboutPanel.version.description.full", appVersion, pluginVersions));
 	}
 
 	@Override

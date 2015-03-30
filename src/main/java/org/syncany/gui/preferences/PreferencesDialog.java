@@ -323,6 +323,10 @@ public class PreferencesDialog extends Dialog {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
+				if (!generalPanel.isDisposed()) {
+					generalPanel.dispose();
+				}
+				
 				if (!pluginsPanel.isDisposed()) {
 					pluginsPanel.dispose();
 				}

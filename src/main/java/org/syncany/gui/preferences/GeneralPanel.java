@@ -17,8 +17,10 @@
  */
 package org.syncany.gui.preferences;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,7 +34,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.syncany.Client;
 import org.syncany.config.ConfigException;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
@@ -47,16 +52,36 @@ import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
+import org.syncany.operations.daemon.messages.PluginManagementResponse;
+import org.syncany.operations.daemon.messages.UpdateManagementRequest;
+import org.syncany.operations.daemon.messages.UpdateManagementResponse;
+import org.syncany.operations.plugin.ExtendedPluginInfo;
+import org.syncany.operations.plugin.PluginInfo;
+import org.syncany.operations.plugin.PluginOperationAction;
+import org.syncany.operations.plugin.PluginOperationResult;
+import org.syncany.operations.update.AppInfo;
+import org.syncany.operations.update.UpdateOperationAction;
+import org.syncany.operations.update.UpdateOperationOptions;
+import org.syncany.operations.update.UpdateOperationResult;
 import org.syncany.util.EnvironmentUtil;
+import org.syncany.util.StringUtil;
+
+import com.google.common.eventbus.Subscribe;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
+	
+	private SelectionListener commonSelectionListener;
 	
 	private Button launchAtStartupButton;
 	private Button displayNotificationsButton;
 	private Button preventStandbyButton;
 	private Combo themeCombo;
 	private Combo trayTypeCombo;
+	
+	private Link updatesLabel;	
+	private PluginManagementResponse pluginResponse;
+	private UpdateManagementResponse appResponse;
 	
 	private GuiConfigTO guiConfig;		
 	private GuiEventBus eventBus;
@@ -77,10 +102,20 @@ public class GeneralPanel extends Panel {
 	}
 
 	private void initEventBus() {
-		this.eventBus = GuiEventBus.getInstance();
+		this.eventBus = GuiEventBus.getAndRegister(this);
 	}
 
 	private void createContents() {
+		createMainComponents();
+		
+		createCheckboxes();
+		createTrayCombos();
+		
+		createUpdateLabel();
+		refreshUpdateLabel();
+	}
+
+	private void createMainComponents() {
 		// Main composite
 		GridLayout mainCompositeGridLayout = new GridLayout(4, false);
 		mainCompositeGridLayout.marginTop = 15;
@@ -98,13 +133,15 @@ public class GeneralPanel extends Panel {
 		WidgetDecorator.title(titleLabel);
 
 		// Common selection listener
-		SelectionListener commonSelectionListener = new SelectionAdapter() {
+		commonSelectionListener = new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				saveConfig();
 			}
 		};
+	}
 
+	private void createCheckboxes() {
 		// Startup
 		launchAtStartupButton = new Button(this, SWT.CHECK);
 		launchAtStartupButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
@@ -133,11 +170,24 @@ public class GeneralPanel extends Panel {
 		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.preventStandby"));
 		preventStandbyButton.setSelection(UserConfig.isPreventStandby());
 		preventStandbyButton.addSelectionListener(commonSelectionListener);
-
+		
+		// Spacing
+		Label spacingLabel = new Label(this, SWT.NONE);
+		spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+	}
+	
+	private void createTrayCombos() {
 		// Spacing
 		Label spacingLabel1 = new Label(this, SWT.NONE);
-		spacingLabel1.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		spacingLabel1.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
 
+		// Look and feel title
+		Label lookAndFeelTitleLabel = new Label(this, SWT.WRAP);
+		lookAndFeelTitleLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		lookAndFeelTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.lookAndFeel.title"));
+
+		WidgetDecorator.bold(lookAndFeelTitleLabel);
+		
 		// Theme
 		Label themeLabel = new Label(this, SWT.NONE);
 		themeLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme.title"));
@@ -151,7 +201,7 @@ public class GeneralPanel extends Panel {
 		// Spacing
 		Label spacingLabel2 = new Label(this, SWT.NONE);
 		spacingLabel2.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
-
+		
 		// Tray type
 		Label trayTypeLabel = new Label(this, SWT.NONE);
 		trayTypeLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.trayType.title"));
@@ -161,10 +211,12 @@ public class GeneralPanel extends Panel {
 		trayTypeCombo.addSelectionListener(commonSelectionListener);
 
 		fillTrayTypeCombo();
-
+	}
+	
+	private void createUpdateLabel() {
 		// Spacing
-		Label spacingLabel3 = new Label(this, SWT.NONE);
-		spacingLabel3.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
+		Label spacingLabel = new Label(this, SWT.NONE);
+		spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
 
 		// Updates title
 		Label updatesTitleLabel = new Label(this, SWT.WRAP);
@@ -172,11 +224,26 @@ public class GeneralPanel extends Panel {
 		updatesTitleLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.title"));
 
 		WidgetDecorator.bold(updatesTitleLabel);
-
+		
 		// Updates text
-		Label updatesLabel = new Label(this, SWT.WRAP);
-		updatesLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 4, 1));
-		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.upToDate"));
+		updatesLabel = new Link(this, SWT.WRAP);
+		updatesLabel.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 4, 1));
+		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.checkingForUpdates"));
+		updatesLabel.addSelectionListener(new SelectionAdapter() {
+	 		@Override
+	 		public void widgetSelected(SelectionEvent e) {
+	 			if (appResponse != null && appResponse.getResult() != null && appResponse.getResult().getAppInfo() != null) {	 				
+	 				DesktopUtil.launch(appResponse.getResult().getAppInfo().getDownloadUrl());
+	 			}
+	 		}
+		});	 
+	}
+
+	private void refreshUpdateLabel() {
+	    UpdateOperationOptions updateOperationOptions = new UpdateOperationOptions();
+		updateOperationOptions.setAction(UpdateOperationAction.CHECK);
+		
+	    eventBus.post(new UpdateManagementRequest(updateOperationOptions));	   
 	}
 
 	private void fillTrayThemeCombo() {
@@ -185,7 +252,7 @@ public class GeneralPanel extends Panel {
 		
 		TrayIconTheme autoTheme = TrayIconFactory.detectThemeFromOS();		
 		String autoThemeDescription = I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme." + autoTheme.toString());
-		String autoThemeFullDescription = String.format(I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme.autoFormat"), autoThemeDescription);
+		String autoThemeFullDescription = I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme.autoFormat", autoThemeDescription);
 		
 		themeTexts.put(TrayIconTheme.AUTO, autoThemeFullDescription);
 		themeTexts.put(TrayIconTheme.DEFAULT, I18n.getText("org.syncany.gui.preferences.GeneralPanel.theme." + TrayIconTheme.DEFAULT.toString()));
@@ -210,7 +277,7 @@ public class GeneralPanel extends Panel {
 		
 		TrayIconType autoTrayType = TrayIconFactory.detectTypeFromOS();		
 		String autoTrayTypeDescription = I18n.getText("org.syncany.gui.preferences.GeneralPanel.trayType." + autoTrayType.toString());
-		String autoTrayTypeFullDescription = String.format(I18n.getText("org.syncany.gui.preferences.GeneralPanel.trayType.autoFormat"), autoTrayTypeDescription);
+		String autoTrayTypeFullDescription = I18n.getText("org.syncany.gui.preferences.GeneralPanel.trayType.autoFormat", autoTrayTypeDescription);
 		
 		trayTypeTexts.put(TrayIconType.AUTO, autoTrayTypeFullDescription);
 		trayTypeTexts.put(TrayIconType.DEFAULT, I18n.getText("org.syncany.gui.preferences.GeneralPanel.trayType." + TrayIconType.DEFAULT.toString()));
@@ -288,8 +355,77 @@ public class GeneralPanel extends Panel {
 		}
 	}
 
+	@Subscribe
+	public void onUpdateResultReceived(UpdateManagementResponse updateResponse) {
+		this.appResponse = updateResponse;		
+		updateUpdateLabel();
+	}
+
+	@Subscribe
+	public void onPluginResultReceived(PluginManagementResponse pluginResponse) {
+		if (pluginResponse.getResult().getAction() == PluginOperationAction.LIST) {
+			this.pluginResponse = pluginResponse;
+			updateUpdateLabel();
+		}
+	}
+
+	private void updateUpdateLabel() {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (appResponse != null && pluginResponse != null) {
+					String updateLabelText = "";
+					
+					// Application updates
+					UpdateOperationResult updateResult = appResponse.getResult();
+					AppInfo appInfo = updateResult.getAppInfo();
+					
+					if (updateResult.isNewVersionAvailable()) {
+						updateLabelText = I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.app.newVersionAvailable", appInfo.getAppVersion());									
+					}
+					else {
+						updateLabelText = I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.app.upToDate", Client.getApplicationVersion());
+					}
+					
+					// Plugin updates
+					PluginOperationResult pluginResult = pluginResponse.getResult();
+					List<String> outdatedPluginNames = new ArrayList<>();
+					
+					for (ExtendedPluginInfo extPluginInfo : pluginResult.getPluginList()) {	
+						PluginInfo pluginInfo = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo() : extPluginInfo.getRemotePluginInfo();
+
+						if (extPluginInfo.isOutdated()) {
+							outdatedPluginNames.add(pluginInfo.getPluginName());
+						}						
+				    }	
+					
+					if (outdatedPluginNames.size() == 0) {
+						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.upToDate");
+					}
+					else if (outdatedPluginNames.size() == 1) {
+						String pluginNameText = outdatedPluginNames.get(0);
+						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.oneOutdated", pluginNameText);
+					}
+					else {
+						String pluginsNamesText = StringUtil.join(outdatedPluginNames, ", "); 
+						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.manyOutdated", pluginsNamesText);						
+					}
+					
+					// Set text
+					updatesLabel.setText(updateLabelText);
+				}				
+			}
+		});
+	}
+
 	@Override
 	public boolean validatePanel() {
 		return true;
+	}	
+
+	@Override
+	public void dispose() {
+		eventBus.unregister(this);
+		super.dispose();
 	}
 }
