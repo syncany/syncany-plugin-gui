@@ -32,7 +32,6 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
-import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.history.HistoryDialog;
 import org.syncany.gui.preferences.PreferencesDialog;
@@ -72,7 +71,6 @@ import org.syncany.operations.gui.UpdateChecker;
 import org.syncany.operations.gui.UpdateChecker.UpdateCheckListener;
 import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.log.LogOperationOptions;
-import org.syncany.plugins.gui.GuiPlugin;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -92,9 +90,7 @@ import com.google.common.eventbus.Subscribe;
 public abstract class TrayIcon {
 	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
-	private static int REFRESH_TIME = 800;
-	private static int UPDATE_CHECK_INTERVAL = 86400000; // 24 hours
-	
+	private static int ANIMATION_REFRESH_TIME = 800;	
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/r/donate";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
@@ -492,7 +488,7 @@ public abstract class TrayIcon {
 							logger.log(Level.FINE, "Syncing image: Setting image to " + syncImage);
 
 							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
-							Thread.sleep(REFRESH_TIME);
+							Thread.sleep(ANIMATION_REFRESH_TIME);
 						}
 						catch (InterruptedException e) {
 							// Don't care
@@ -515,40 +511,27 @@ public abstract class TrayIcon {
 		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
 	}
 
-	private void initUpdateChecker() {
-		try {			
-			File userUpdateFile = new File(UserConfig.getUserPluginsUserdataDir(GuiPlugin.ID), "update");
-
-			if (!userUpdateFile.exists()) {
-				logger.log(Level.INFO, "Update check: No update file, i.e. first run, so no update check necessary.");
-				
-				userUpdateFile.createNewFile();
-				userUpdateFile.setLastModified(System.currentTimeMillis() - UPDATE_CHECK_INTERVAL);
-			}
-			else if (System.currentTimeMillis() - userUpdateFile.lastModified() > UPDATE_CHECK_INTERVAL) {
-				logger.log(Level.INFO, "Update check: Update check necessary, because last check is longer than " + (UPDATE_CHECK_INTERVAL/1000/60/60) + "h ago.");
-
-				userUpdateFile.setLastModified(System.currentTimeMillis());
-				checkUpdates();
-			}
-			else {
-				logger.log(Level.INFO, "Update check: No update check necessary, because last check was less than " + (UPDATE_CHECK_INTERVAL/1000/60/60) + "h ago.");
-			}
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}		
-	}
 	
-	private void checkUpdates() {
-		UpdateChecker updateChecker = new UpdateChecker(new UpdateCheckListener() {				
-			@Override
-			public void updatesResponseReceived(UpdateManagementResponse updateResponse, PluginManagementResponse pluginResponse, String updateText) {
-				displayNotification("Update available", updateText);
-			}
-		});
-		
-		updateChecker.checkUpdates();
+	private void initUpdateChecker() {
+		if (guiConfig.isUpdateCheck()) {
+			logger.log(Level.INFO, "Regular update check ENABLED. Starting update checker thread ...");			
+			
+			UpdateChecker updateChecker = new UpdateChecker(new UpdateCheckListener() {				
+				@Override
+				public void updateResponseReceived(UpdateManagementResponse appResponse, PluginManagementResponse pluginResponse,
+						String updateResponseText, boolean updatesAvailable) {
+					
+					if (updatesAvailable) {
+						displayNotification(I18n.getText("org.syncany.gui.tray.TrayIcon.updatesAvailable"), updateResponseText);
+					}
+				}
+			});
+			
+			updateChecker.start();			
+		}
+		else {
+			logger.log(Level.INFO, "Regular update check not enabled.");			
+		}
 	}
 
 	private void cleanSyncStatus() {

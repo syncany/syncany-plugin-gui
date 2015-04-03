@@ -53,21 +53,25 @@ import org.syncany.operations.daemon.messages.PluginManagementResponse;
 import org.syncany.operations.daemon.messages.UpdateManagementResponse;
 import org.syncany.operations.gui.UpdateChecker;
 import org.syncany.operations.gui.UpdateChecker.UpdateCheckListener;
+import org.syncany.operations.update.AppInfo;
 import org.syncany.util.EnvironmentUtil;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
+	private static final String DOWNLOAD_LINK_MAGIC_STR = "get.syncany.org"; 	
 	
 	private SelectionListener commonSelectionListener;
 	
 	private Button launchAtStartupButton;
 	private Button displayNotificationsButton;
 	private Button preventStandbyButton;
+	private Button updateCheckButton;
 	private Combo themeCombo;
 	private Combo trayTypeCombo;
 	
 	private Link updatesLabel;	
 	private UpdateChecker updateChecker;
+	private AppInfo appInfo;
 	
 	private GuiConfigTO guiConfig;		
 	private GuiEventBus eventBus;
@@ -93,16 +97,25 @@ public class GeneralPanel extends Panel {
 	}
 
 	private void initUpdateChecker() {
+		this.appInfo = null;
 		this.updateChecker = new UpdateChecker(new UpdateCheckListener() {
 			@Override
-			public void updatesResponseReceived(UpdateManagementResponse updateResponse, PluginManagementResponse pluginResponse, final String updateText) {
-				Display.getDefault().asyncExec(new Runnable() {
-					@Override
-					public void run() {					
-						updatesLabel.setText(updateText);
-					}
-				});
+			public void updateResponseReceived(UpdateManagementResponse appResponse, PluginManagementResponse pluginResponse,
+					final String updateResponseText, boolean updatesAvailable) {
+				
+				appInfo = appResponse.getResult().getAppInfo();
+				updateUpdateLabel(updateResponseText);
 			}			
+		});
+	}
+
+	protected void updateUpdateLabel(final String updateResponseText) {
+		Display.getDefault().asyncExec(new Runnable() {
+			@Override
+			public void run() {		
+				String updateTextWithLink = updateResponseText.replace(DOWNLOAD_LINK_MAGIC_STR, "<a>" + DOWNLOAD_LINK_MAGIC_STR + "</a>");				
+				updatesLabel.setText(updateTextWithLink);
+			}
 		});
 	}
 
@@ -171,10 +184,13 @@ public class GeneralPanel extends Panel {
 		preventStandbyButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.preventStandby"));
 		preventStandbyButton.setSelection(UserConfig.isPreventStandby());
 		preventStandbyButton.addSelectionListener(commonSelectionListener);
-		
-		// Spacing
-		Label spacingLabel = new Label(this, SWT.NONE);
-		spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+
+		// Update check
+		updateCheckButton = new Button(this, SWT.CHECK);
+		updateCheckButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		updateCheckButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updateCheck"));
+		updateCheckButton.setSelection(guiConfig.isUpdateCheck());
+		updateCheckButton.addSelectionListener(commonSelectionListener);				
 	}
 	
 	private void createTrayCombos() {
@@ -232,15 +248,11 @@ public class GeneralPanel extends Panel {
 		updatesLabel.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.checkingForUpdates"));
 		updatesLabel.addSelectionListener(new SelectionAdapter() {
 	 		@Override
-	 		public void widgetSelected(SelectionEvent e) {
-	 			UpdateManagementResponse appResponse = updateChecker.getAppResponse();
-	 			
-	 			boolean appInfoAvailable = appResponse != null && appResponse.getResult() != null 
-	 					&& appResponse.getResult().getAppInfo() != null;
-			
-	 			if (appInfoAvailable) { 	 				
-	 				DesktopUtil.launch(appResponse.getResult().getAppInfo().getDownloadUrl());
-	 			}
+	 		public void widgetSelected(SelectionEvent e) {	 			 	
+ 				String downloadUrl = appInfo.getDownloadUrl();
+ 				logger.log(Level.INFO, "Opening download URL " + downloadUrl + " ...");
+ 				
+ 				DesktopUtil.launch(downloadUrl);
 	 		}
 		});	 
 	}
@@ -315,6 +327,8 @@ public class GeneralPanel extends Panel {
 		
 		guiConfig.setStartup(launchAtStartupButton.getSelection());
 		guiConfig.setNotifications(displayNotificationsButton.getSelection());
+		guiConfig.setUpdateCheck(updateCheckButton.getSelection());
+	
 		guiConfig.setTheme(selectedTheme);
 		guiConfig.setTray(selectedTrayType);
 		
@@ -365,7 +379,9 @@ public class GeneralPanel extends Panel {
 
 	@Override
 	public void dispose() {
+		updateChecker.dispose();
 		eventBus.unregister(this);
+		
 		super.dispose();
 	}
 }

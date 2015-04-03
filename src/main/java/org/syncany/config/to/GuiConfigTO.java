@@ -100,4 +100,12 @@ public class GuiConfigTO {
 	public void setStartup(boolean startup) {
 		this.startup = startup;
 	}
+
+	public boolean isUpdateCheck() {
+		return updateCheck;
+	}
+
+	public void setUpdateCheck(boolean updateCheck) {
+		this.updateCheck = updateCheck;
+	}	
 }
