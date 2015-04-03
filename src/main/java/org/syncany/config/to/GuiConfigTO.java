@@ -40,10 +40,15 @@ public class GuiConfigTO {
 	@Element(name = "notifications", required = false)
 	private boolean notifications;
 
+	@Element(name = "updateCheck", required = false)
+	private boolean updateCheck;
+	
 	public GuiConfigTO() {
 		this.tray = null;
+		this.theme = null;
 		this.startup = true;
 		this.notifications = true;
+		this.updateCheck = true;
 	}
 
 	public static GuiConfigTO load(File file) throws ConfigException {
@@ -95,4 +100,12 @@ public class GuiConfigTO {
 	public void setStartup(boolean startup) {
 		this.startup = startup;
 	}
+
+	public boolean isUpdateCheck() {
+		return updateCheck;
+	}
+
+	public void setUpdateCheck(boolean updateCheck) {
+		this.updateCheck = updateCheck;
+	}	
 }

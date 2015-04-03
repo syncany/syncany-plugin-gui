@@ -123,8 +123,8 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 			BufferedReader scriptStdOutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
 			BufferedReader scriptStdErrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
 
-			launchLoggerThread(scriptStdOutReader, "Python Input Stream : ");
-			launchLoggerThread(scriptStdErrReader, "Python Error Stream : ");
+			launchLoggerThread(scriptStdOutReader, "Python Input Stream: ", "PySTDIN");
+			launchLoggerThread(scriptStdErrReader, "Python Error Stream: ", "PySTDERR");
 		}
 		catch (Exception e) {
 			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);
@@ -137,23 +137,24 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 		super.exitApplication();
 	}
 
-	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix) {
-		Thread t = new Thread(new Runnable() {
+	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix, String threadName) {
+		Thread loggerThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
 					String line;
 
 					while ((line = stdinReader.readLine()) != null) {
-						logger.info(prefix + line);
+						logger.log(Level.INFO, prefix + line);
 					}
 				}
 				catch (Exception e) {
-					logger.warning("Exception " + e);
+					logger.log(Level.SEVERE, "Unable to read from Python STDIN/STDERR.", e);
 				}
 			}
-		});
-		t.start();
+		}, threadName);
+		
+		loggerThread.start();
 	}
 
 	@Override
