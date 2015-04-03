@@ -32,6 +32,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
+import org.syncany.config.UserConfig;
 import org.syncany.config.to.GuiConfigTO;
 import org.syncany.gui.history.HistoryDialog;
 import org.syncany.gui.preferences.PreferencesDialog;
@@ -57,6 +58,7 @@ import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
+import org.syncany.operations.daemon.messages.PluginManagementResponse;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
@@ -64,9 +66,13 @@ import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternal
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
+import org.syncany.operations.daemon.messages.UpdateManagementResponse;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
+import org.syncany.operations.gui.UpdateChecker;
+import org.syncany.operations.gui.UpdateChecker.UpdateCheckListener;
 import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.log.LogOperationOptions;
+import org.syncany.plugins.gui.GuiPlugin;
 import org.syncany.util.FileUtil;
 import org.syncany.util.StringUtil;
 
@@ -87,6 +93,8 @@ public abstract class TrayIcon {
 	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
 	private static int REFRESH_TIME = 800;
+	private static int UPDATE_CHECK_INTERVAL = 86400000; // 24 hours
+	
 	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
 	private static String URL_DONATE = "https://www.syncany.org/r/donate";
 	private static String URL_HOMEPAGE = "https://www.syncany.org";
@@ -99,13 +107,14 @@ public abstract class TrayIcon {
 
 	protected GuiConfigTO guiConfig;
 	protected GuiEventBus eventBus;
+	
+	protected UpdateChecker updateChecker;
 
 	private Thread animationThread;
 	private AtomicBoolean syncing;
 	private Map<String, Boolean> clientSyncStatus;
 	private Map<String, Long> clientUploadFileSize;
 	protected RecentFileChanges recentFileChanges;
-
 
 	public TrayIcon(Shell shell, TrayIconTheme theme) {
 		this.trayShell = shell;
@@ -119,9 +128,9 @@ public abstract class TrayIcon {
 		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
-
 		this.recentFileChanges = new RecentFileChanges(this);
-
+		
+		initUpdateChecker();
 		initAnimationThread();
 		initTrayImage();
 	}
@@ -506,6 +515,42 @@ public abstract class TrayIcon {
 		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
 	}
 
+	private void initUpdateChecker() {
+		try {			
+			File userUpdateFile = new File(UserConfig.getUserPluginsUserdataDir(GuiPlugin.ID), "update");
+
+			if (!userUpdateFile.exists()) {
+				logger.log(Level.INFO, "Update check: No update file, i.e. first run, so no update check necessary.");
+				
+				userUpdateFile.createNewFile();
+				userUpdateFile.setLastModified(System.currentTimeMillis() - UPDATE_CHECK_INTERVAL);
+			}
+			else if (System.currentTimeMillis() - userUpdateFile.lastModified() > UPDATE_CHECK_INTERVAL) {
+				logger.log(Level.INFO, "Update check: Update check necessary, because last check is longer than " + (UPDATE_CHECK_INTERVAL/1000/60/60) + "h ago.");
+
+				userUpdateFile.setLastModified(System.currentTimeMillis());
+				checkUpdates();
+			}
+			else {
+				logger.log(Level.INFO, "Update check: No update check necessary, because last check was less than " + (UPDATE_CHECK_INTERVAL/1000/60/60) + "h ago.");
+			}
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}		
+	}
+	
+	private void checkUpdates() {
+		UpdateChecker updateChecker = new UpdateChecker(new UpdateCheckListener() {				
+			@Override
+			public void updatesResponseReceived(UpdateManagementResponse updateResponse, PluginManagementResponse pluginResponse, String updateText) {
+				displayNotification("Update available", updateText);
+			}
+		});
+		
+		updateChecker.checkUpdates();
+	}
+
 	private void cleanSyncStatus() {
 		logger.log(Level.FINE, "Resetting sync status for clients.");
 		clientSyncStatus.clear();
@@ -525,7 +570,6 @@ public abstract class TrayIcon {
 
 		syncing.set(syncingFolders.size() > 0);
 	}
-
 
 	// Abstract methods
 

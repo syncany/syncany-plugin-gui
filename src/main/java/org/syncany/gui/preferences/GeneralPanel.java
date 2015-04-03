@@ -17,10 +17,8 @@
  */
 package org.syncany.gui.preferences;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +35,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
-import org.syncany.Client;
 import org.syncany.config.ConfigException;
 import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.GuiEventBus;
@@ -53,20 +50,10 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.operations.daemon.messages.GuiConfigChangedGuiInternalEvent;
 import org.syncany.operations.daemon.messages.PluginManagementResponse;
-import org.syncany.operations.daemon.messages.UpdateManagementRequest;
 import org.syncany.operations.daemon.messages.UpdateManagementResponse;
-import org.syncany.operations.plugin.ExtendedPluginInfo;
-import org.syncany.operations.plugin.PluginInfo;
-import org.syncany.operations.plugin.PluginOperationAction;
-import org.syncany.operations.plugin.PluginOperationResult;
-import org.syncany.operations.update.AppInfo;
-import org.syncany.operations.update.UpdateOperationAction;
-import org.syncany.operations.update.UpdateOperationOptions;
-import org.syncany.operations.update.UpdateOperationResult;
+import org.syncany.operations.gui.UpdateChecker;
+import org.syncany.operations.gui.UpdateChecker.UpdateCheckListener;
 import org.syncany.util.EnvironmentUtil;
-import org.syncany.util.StringUtil;
-
-import com.google.common.eventbus.Subscribe;
 
 public class GeneralPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(GeneralPanel.class.getSimpleName());		
@@ -80,8 +67,7 @@ public class GeneralPanel extends Panel {
 	private Combo trayTypeCombo;
 	
 	private Link updatesLabel;	
-	private PluginManagementResponse pluginResponse;
-	private UpdateManagementResponse appResponse;
+	private UpdateChecker updateChecker;
 	
 	private GuiConfigTO guiConfig;		
 	private GuiEventBus eventBus;
@@ -90,6 +76,7 @@ public class GeneralPanel extends Panel {
 		super(parentDialog, composite, style);
 		
 		initEventBus();
+		initUpdateChecker();
 		loadConfig();
 		
 		createContents();			
@@ -103,6 +90,20 @@ public class GeneralPanel extends Panel {
 
 	private void initEventBus() {
 		this.eventBus = GuiEventBus.getAndRegister(this);
+	}
+
+	private void initUpdateChecker() {
+		this.updateChecker = new UpdateChecker(new UpdateCheckListener() {
+			@Override
+			public void updatesResponseReceived(UpdateManagementResponse updateResponse, PluginManagementResponse pluginResponse, final String updateText) {
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {					
+						updatesLabel.setText(updateText);
+					}
+				});
+			}			
+		});
 	}
 
 	private void createContents() {
@@ -232,7 +233,12 @@ public class GeneralPanel extends Panel {
 		updatesLabel.addSelectionListener(new SelectionAdapter() {
 	 		@Override
 	 		public void widgetSelected(SelectionEvent e) {
-	 			if (appResponse != null && appResponse.getResult() != null && appResponse.getResult().getAppInfo() != null) {	 				
+	 			UpdateManagementResponse appResponse = updateChecker.getAppResponse();
+	 			
+	 			boolean appInfoAvailable = appResponse != null && appResponse.getResult() != null 
+	 					&& appResponse.getResult().getAppInfo() != null;
+			
+	 			if (appInfoAvailable) { 	 				
 	 				DesktopUtil.launch(appResponse.getResult().getAppInfo().getDownloadUrl());
 	 			}
 	 		}
@@ -240,10 +246,7 @@ public class GeneralPanel extends Panel {
 	}
 
 	private void refreshUpdateLabel() {
-	    UpdateOperationOptions updateOperationOptions = new UpdateOperationOptions();
-		updateOperationOptions.setAction(UpdateOperationAction.CHECK);
-		
-	    eventBus.post(new UpdateManagementRequest(updateOperationOptions));	   
+		updateChecker.checkUpdates();	    	   
 	}
 
 	private void fillTrayThemeCombo() {
@@ -353,69 +356,6 @@ public class GeneralPanel extends Panel {
 				logger.log(Level.WARNING, "Unable to save user config.", e);
 			}
 		}
-	}
-
-	@Subscribe
-	public void onUpdateResultReceived(UpdateManagementResponse updateResponse) {
-		this.appResponse = updateResponse;		
-		updateUpdateLabel();
-	}
-
-	@Subscribe
-	public void onPluginResultReceived(PluginManagementResponse pluginResponse) {
-		if (pluginResponse.getResult().getAction() == PluginOperationAction.LIST) {
-			this.pluginResponse = pluginResponse;
-			updateUpdateLabel();
-		}
-	}
-
-	private void updateUpdateLabel() {
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (appResponse != null && pluginResponse != null) {
-					String updateLabelText = "";
-					
-					// Application updates
-					UpdateOperationResult updateResult = appResponse.getResult();
-					AppInfo appInfo = updateResult.getAppInfo();
-					
-					if (updateResult.isNewVersionAvailable()) {
-						updateLabelText = I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.app.newVersionAvailable", appInfo.getAppVersion());									
-					}
-					else {
-						updateLabelText = I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.app.upToDate", Client.getApplicationVersion());
-					}
-					
-					// Plugin updates
-					PluginOperationResult pluginResult = pluginResponse.getResult();
-					List<String> outdatedPluginNames = new ArrayList<>();
-					
-					for (ExtendedPluginInfo extPluginInfo : pluginResult.getPluginList()) {	
-						PluginInfo pluginInfo = (extPluginInfo.isInstalled()) ? extPluginInfo.getLocalPluginInfo() : extPluginInfo.getRemotePluginInfo();
-
-						if (extPluginInfo.isOutdated()) {
-							outdatedPluginNames.add(pluginInfo.getPluginName());
-						}						
-				    }	
-					
-					if (outdatedPluginNames.size() == 0) {
-						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.upToDate");
-					}
-					else if (outdatedPluginNames.size() == 1) {
-						String pluginNameText = outdatedPluginNames.get(0);
-						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.oneOutdated", pluginNameText);
-					}
-					else {
-						String pluginsNamesText = StringUtil.join(outdatedPluginNames, ", "); 
-						updateLabelText += " " + I18n.getText("org.syncany.gui.preferences.GeneralPanel.updates.plugins.manyOutdated", pluginsNamesText);						
-					}
-					
-					// Set text
-					updatesLabel.setText(updateLabelText);
-				}				
-			}
-		});
 	}
 
 	@Override

@@ -56,6 +56,7 @@ public class GuiOperation extends Operation {
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());
 	private static final String GUI_CONFIG_FILE = "gui.xml";
 	private static final String GUI_CONFIG_EXAMPLE_FILE = "gui-example.xml";
+		
 	private GuiConfigTO guiConfig;
 
 	private GuiEventBus eventBus;
