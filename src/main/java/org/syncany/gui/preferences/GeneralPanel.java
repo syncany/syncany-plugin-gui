@@ -258,7 +258,7 @@ public class GeneralPanel extends Panel {
 	}
 
 	private void refreshUpdateLabel() {
-		updateChecker.checkUpdates();	    	   
+		updateChecker.check();	    	   
 	}
 
 	private void fillTrayThemeCombo() {

@@ -90,13 +90,13 @@ import com.google.common.eventbus.Subscribe;
 public abstract class TrayIcon {
 	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
-	private static int ANIMATION_REFRESH_TIME = 800;	
-	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
-	private static String URL_DONATE = "https://www.syncany.org/r/donate";
-	private static String URL_HOMEPAGE = "https://www.syncany.org";
+	protected static int ANIMATION_REFRESH_TIME = 800;	
+	protected static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
+	protected static String URL_DONATE = "https://www.syncany.org/r/donate";
+	protected static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	protected Shell trayShell;
-	private final TrayIconTheme theme;
+	protected TrayIconTheme theme;
 	protected WizardDialog wizard;
 	protected HistoryDialog history;
 	protected PreferencesDialog preferences;
@@ -106,10 +106,10 @@ public abstract class TrayIcon {
 	
 	protected UpdateChecker updateChecker;
 
-	private Thread animationThread;
-	private AtomicBoolean syncing;
-	private Map<String, Boolean> clientSyncStatus;
-	private Map<String, Long> clientUploadFileSize;
+	protected Thread animationThread;
+	protected AtomicBoolean syncing;
+	protected Map<String, Boolean> clientSyncStatus;
+	protected Map<String, Long> clientUploadFileSize;
 	protected RecentFileChanges recentFileChanges;
 
 	public TrayIcon(Shell shell, TrayIconTheme theme) {

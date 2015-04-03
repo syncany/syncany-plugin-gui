@@ -49,6 +49,14 @@ import org.syncany.util.StringUtil;
 import com.google.common.eventbus.Subscribe;
 
 /**
+ * The update checker can contact the Syncany server to check for available
+ * application and plugin updates. It can either trigger a check immediately 
+ * ({@link #check()}) or regularly in an update check ({@link #start()}). Instead
+ * of contacting the server directly, this class communicates only with the daemon.
+ * 
+ * <p>Responses from the update check are delivered via the {@link UpdateCheckListener}
+ * interface.
+ * 
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class UpdateChecker {
@@ -82,6 +90,10 @@ public class UpdateChecker {
 		this.pluginResponse = null;
 	}	
 
+	/**
+	 * Start update timer to regularly check for updates. A background
+	 * thread will check for updates every 24h. 
+	 */
 	public void start() {
 		logger.log(Level.INFO, "Update check: Starting update timer ...");
 
@@ -93,7 +105,10 @@ public class UpdateChecker {
 		}, UPDATE_CHECK_DELAY, UPDATE_CHECK_TIMER_INTERVAL);
 	}
 	
-	public void checkUpdates() {
+	/**
+	 * Checks for updates immediately.
+	 */
+	public void check() {
 		logger.log(Level.INFO, "Update check: Checking for updates NOW ...");
 
 		checkAppUpdates();
@@ -103,16 +118,12 @@ public class UpdateChecker {
 	}
 	
 	private void touchUpdateFile() {
-		touchUpdateFile(System.currentTimeMillis());
-	}
-	
-	private void touchUpdateFile(long timestamp) {
 		try {
 			if (!userUpdateFile.exists()) {
 				userUpdateFile.createNewFile();
 			}
 			
-			userUpdateFile.setLastModified(timestamp);	
+			userUpdateFile.setLastModified(System.currentTimeMillis());	
 		}
 		catch (Exception e) {
 			logger.log(Level.WARNING, "Update check: Cannot create update file.", e);
@@ -180,11 +191,11 @@ public class UpdateChecker {
 	private void checkUpdatesIfNecessary() {		
 		if (!userUpdateFile.exists()) {
 			logger.log(Level.INFO, "Update check: No update file (first run), so no update check necessary. Next file check in " + (UPDATE_CHECK_TIMER_INTERVAL/1000/60) + "min.");
-			touchUpdateFile(System.currentTimeMillis() - UPDATE_CHECK_API_INTERVAL);
+			touchUpdateFile();
 		}
 		else if (System.currentTimeMillis() - userUpdateFile.lastModified() > UPDATE_CHECK_API_INTERVAL) {
 			logger.log(Level.INFO, "Update check: Necessary, because last check is longer than " + (UPDATE_CHECK_API_INTERVAL/1000/60/60) + "h ago. Next file check in " + (UPDATE_CHECK_TIMER_INTERVAL/1000/60) + "min.");
-			checkUpdates();
+			check();
 		}
 		else {
 			logger.log(Level.INFO, "Update check: Not necessary, last check less than " + (UPDATE_CHECK_API_INTERVAL/1000/60/60) + "h ago. Next file check in " + (UPDATE_CHECK_TIMER_INTERVAL/1000/60) + "min.");
