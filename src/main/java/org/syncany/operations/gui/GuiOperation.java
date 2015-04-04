@@ -66,6 +66,8 @@ public class GuiOperation extends Operation {
 	private TrayIcon trayIcon;
 	private boolean daemonStarted;
 	private Thread daemonThread;
+	
+	private GuiEventBridge eventBridge;
 	private GuiWebSocketClient webSocketClient;
 
 	static {
@@ -95,7 +97,7 @@ public class GuiOperation extends Operation {
 		initTray();
 
 		startDaemon();
-		startWebSocketClient();
+		startDaemonClient();
 
 		startEventDispatchLoop();
 
@@ -195,9 +197,15 @@ public class GuiOperation extends Operation {
 		}
 	}
 
-	private void startWebSocketClient() {
-		webSocketClient = new GuiWebSocketClient();
-		webSocketClient.start();
+	private void startDaemonClient() {
+		if (daemonStarted) {
+			eventBridge = new GuiEventBridge();
+			eventBridge.start();
+		}
+		else {
+			webSocketClient = new GuiWebSocketClient();
+			webSocketClient.start();
+		}
 	}
 
 	public void startEventDispatchLoop() {
