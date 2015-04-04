@@ -30,7 +30,7 @@ import com.google.common.eventbus.Subscribe;
 
 /**
  * This class bridges events from the {@link GuiEventBus} to the {@link LocalEventBus}
- * and back. It replaces the web socket connection if the daemon is running in a separate JVM.
+ * and back. It replaces the web socket connection if the daemon is running in the same JVM.
  * 
  * The event flow is as follows:
  * 
