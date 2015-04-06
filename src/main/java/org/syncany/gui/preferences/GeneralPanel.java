@@ -283,7 +283,12 @@ public class GeneralPanel extends Panel {
 			if (currentTheme == themeComboEntry.getKey()) {
 				themeCombo.select(themeCombo.getItemCount() - 1);
 			}
-		}		
+		}					
+
+		// Select first item if no value in config file
+		if (currentTheme == null) {
+			themeCombo.select(0);
+		}
 	}
 
 	private void fillTrayTypeCombo() {
@@ -314,6 +319,11 @@ public class GeneralPanel extends Panel {
 			if (currentTrayType == trayTypeComboEntry.getKey()) {
 				trayTypeCombo.select(trayTypeCombo.getItemCount() - 1);
 			}
+		}
+		
+		// Select first item if no value in config file
+		if (currentTrayType == null) {
+			trayTypeCombo.select(0);
 		}
 	}
 
