@@ -9,8 +9,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -70,6 +72,7 @@ public class PluginSettingsPanel extends Panel {
 	private Button oAuthAuthorizeButton;
 	private Text oAuthTokenText;
 	private URI oAuthUrl;
+	Future<OAuthTokenFinish> futureTokenFinish;
 	private boolean tokenReceived;
 	private boolean tokenValid;
 
@@ -244,39 +247,16 @@ public class PluginSettingsPanel extends Panel {
 
 					OAuthTokenWebListener tokenListener = tokenListerBuilder.build();
 
-					URI oAuthRedirectURL = oAuthGenerator.generateAuthUrl(tokenListener.start());
-					oAuthUrl = oAuthGenerator.generateAuthUrl(oAuthRedirectURL);
+					oAuthUrl = oAuthGenerator.generateAuthUrl(tokenListener.start());
 					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
-					final Future<OAuthTokenFinish> futureTokenResponse = tokenListener.getToken();
+					futureTokenFinish = tokenListener.getToken();
 
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
 						public void run() {
 							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
 							oAuthAuthorizeButton.setEnabled(true);
-
-							try {
-								OAuthTokenFinish tokenResponse = futureTokenResponse.get(OAUTH_TOKEN_WAIT_TIMEOUT, TimeUnit.SECONDS);
-
-								if (tokenResponse != null) {
-									oAuthGenerator.checkToken(tokenResponse.getToken(), tokenResponse.getCsrfState());
-									logger.log(Level.INFO, "Token " + tokenResponse.getToken() + " received and field set");
-
-									oAuthTokenText.setText(tokenResponse.getToken());
-									WidgetDecorator.markAsValid(oAuthTokenText);
-									tokenValid = true;
-								}
-								else {
-									showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
-									WidgetDecorator.markAsInvalid(oAuthTokenText);
-								}
-							}
-							catch (Exception e) {
-								logger.log(Level.SEVERE, "Unable to receive token", e);
-							}
-							finally {
-								tokenReceived = true;
-							}
+							waitForTokenResponse();
 						}
 					});
 				}
@@ -294,6 +274,73 @@ public class PluginSettingsPanel extends Panel {
 			}
 
 		}, "GetOAuthUrl").start();
+	}
+
+	private void waitForTokenResponse() {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					final OAuthTokenFinish tokenResponse = futureTokenFinish.get(OAUTH_TOKEN_WAIT_TIMEOUT, TimeUnit.SECONDS);
+
+					if (tokenResponse != null) {
+						oAuthGenerator.checkToken(tokenResponse.getToken(), tokenResponse.getCsrfState());
+						logger.log(Level.INFO, "Token " + tokenResponse.getToken() + " received and field set");
+
+						Display.getDefault().asyncExec(new Runnable() {
+							@Override
+							public void run() {
+								oAuthTokenText.setText(tokenResponse.getToken());
+								WidgetDecorator.markAsValid(oAuthTokenText);
+							}
+						});
+
+						tokenValid = true;
+					}
+					else {
+						Display.getDefault().asyncExec(new Runnable() {
+							@Override
+							public void run() {
+								showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
+								WidgetDecorator.markAsInvalid(oAuthTokenText);
+							}
+						});
+					}
+				}
+				catch (TimeoutException e) {
+					logger.log(Level.WARNING, "Unable to receive token in the given timeout", e);
+
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorTimeoutOAuthToken"));
+							WidgetDecorator.markAsInvalid(oAuthTokenText);
+						}
+					});
+				}
+				catch (InterruptedException | ExecutionException | StorageException e) {
+					logger.log(Level.SEVERE, "Unable to receive token", e);
+
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
+							WidgetDecorator.markAsInvalid(oAuthTokenText);
+						}
+					});
+				}
+				finally {
+					tokenReceived = true;
+
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							oAuthAuthorizeButton.setEnabled(false);
+						}
+					});
+				}
+			}
+		}).start();
 	}
 
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
@@ -526,20 +573,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private boolean validateOAuthToken() {
-		if (oAuthGenerator == null) {
-			return true;
-		}
-
-		try {
-			while (!tokenReceived) {
-				TimeUnit.SECONDS.sleep(1);
-			}
-		}
-		catch (InterruptedException e) {
-			throw new RuntimeException("Unable to to wait until token is validated", e);
-		}
-
-		return tokenValid;
+		return oAuthGenerator == null || tokenReceived && tokenValid;
 	}
 
 	private void showWarning(String warningStr) {
