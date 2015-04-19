@@ -211,6 +211,7 @@ public class PluginSettingsPanel extends Panel {
 			oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
 				@Override
 				public void widgetSelected(SelectionEvent e) {
+					waitForTokenResponse();
 					DesktopUtil.launch(oAuthUrl.toString());
 				}
 			});
@@ -256,9 +257,7 @@ public class PluginSettingsPanel extends Panel {
 						@Override
 						public void run() {
 							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));							
-							oAuthAuthorizeButton.setEnabled(true);
-							
-							waitForTokenResponse();
+							oAuthAuthorizeButton.setEnabled(true);													
 						}
 					});
 				}
@@ -319,6 +318,8 @@ public class PluginSettingsPanel extends Panel {
 							WidgetDecorator.markAsInvalid(oAuthTokenText);
 						}
 					});
+					
+					asyncRetrieveOAuthUrlAndEnableAuthButton();
 				}
 				catch (InterruptedException | ExecutionException | StorageException e) {
 					logger.log(Level.SEVERE, "Unable to receive token", e);
