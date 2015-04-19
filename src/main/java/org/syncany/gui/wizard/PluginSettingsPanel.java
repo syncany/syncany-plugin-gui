@@ -72,6 +72,7 @@ public class PluginSettingsPanel extends Panel {
 	private Button oAuthAuthorizeButton;
 	private Text oAuthTokenText;
 	private URI oAuthUrl;
+	private OAuthTokenWebListener oAuthTokenWebListener;
 	private Future<OAuthTokenFinish> oAuthTokenFinish;
 	private boolean oAuthTokenReceived;
 	private boolean oAuthTokenValid;
@@ -246,18 +247,18 @@ public class PluginSettingsPanel extends Panel {
 						tokenListerBuilder.setTokenExtractor(((WithExtractor) oAuthGenerator).getExtractor());
 					}
 
-					OAuthTokenWebListener tokenListener = tokenListerBuilder.build();
+					oAuthTokenWebListener = tokenListerBuilder.build();
 
-					oAuthUrl = oAuthGenerator.generateAuthUrl(tokenListener.start());
+					oAuthUrl = oAuthGenerator.generateAuthUrl(oAuthTokenWebListener.start());
 					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
-					
-					oAuthTokenFinish = tokenListener.getToken();
+
+					oAuthTokenFinish = oAuthTokenWebListener.getToken();
 
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
 						public void run() {
-							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));							
-							oAuthAuthorizeButton.setEnabled(true);													
+							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
+							oAuthAuthorizeButton.setEnabled(true);
 						}
 					});
 				}
@@ -318,7 +319,7 @@ public class PluginSettingsPanel extends Panel {
 							WidgetDecorator.markAsInvalid(oAuthTokenText);
 						}
 					});
-					
+
 					asyncRetrieveOAuthUrlAndEnableAuthButton();
 				}
 				catch (InterruptedException | ExecutionException | StorageException e) {
@@ -334,6 +335,7 @@ public class PluginSettingsPanel extends Panel {
 				}
 				finally {
 					oAuthTokenReceived = true;
+					oAuthTokenWebListener.stop();
 
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
