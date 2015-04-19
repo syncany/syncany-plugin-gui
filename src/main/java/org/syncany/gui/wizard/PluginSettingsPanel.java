@@ -72,9 +72,9 @@ public class PluginSettingsPanel extends Panel {
 	private Button oAuthAuthorizeButton;
 	private Text oAuthTokenText;
 	private URI oAuthUrl;
-	Future<OAuthTokenFinish> futureTokenFinish;
-	private boolean tokenReceived;
-	private boolean tokenValid;
+	private Future<OAuthTokenFinish> oAuthTokenFinish;
+	private boolean oAuthTokenReceived;
+	private boolean oAuthTokenValid;
 
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -97,8 +97,8 @@ public class PluginSettingsPanel extends Panel {
 
 			this.oAuthSettings = null;
 			this.oAuthGenerator = null;
-			this.tokenReceived = false;
-			this.tokenValid = false;
+			this.oAuthTokenReceived = false;
+			this.oAuthTokenValid = false;
 
 			this.pluginOptionControlMap = new HashMap<>();
 			this.invalidPluginOptions = new HashSet<>();
@@ -133,7 +133,7 @@ public class PluginSettingsPanel extends Panel {
 
 		WidgetDecorator.title(titleLabel);
 
-		// Create OAuth controls
+		// Create OAuth controls (if any)
 		createOAuthControls();
 
 		// Create fields
@@ -225,7 +225,7 @@ public class PluginSettingsPanel extends Panel {
 			@Override
 			public void run() {
 				try {
-					// start the token listener
+					// Start the token listener
 					Builder tokenListerBuilder = OAuthTokenWebListener.forMode(oAuthSettings.mode());
 
 					if (oAuthSettings.callbackPort() != OAuth.RANDOM_PORT) {
@@ -236,7 +236,7 @@ public class PluginSettingsPanel extends Panel {
 						tokenListerBuilder.setId(oAuthSettings.callbackId());
 					}
 
-					// non standard plugin?
+					// Non standard plugin?
 					if (oAuthGenerator instanceof WithInterceptor) {
 						tokenListerBuilder.setTokenInterceptor(((WithInterceptor) oAuthGenerator).getInterceptor());
 					}
@@ -249,13 +249,15 @@ public class PluginSettingsPanel extends Panel {
 
 					oAuthUrl = oAuthGenerator.generateAuthUrl(tokenListener.start());
 					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
-					futureTokenFinish = tokenListener.getToken();
+					
+					oAuthTokenFinish = tokenListener.getToken();
 
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
 						public void run() {
-							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
+							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));							
 							oAuthAuthorizeButton.setEnabled(true);
+							
 							waitForTokenResponse();
 						}
 					});
@@ -281,7 +283,7 @@ public class PluginSettingsPanel extends Panel {
 			@Override
 			public void run() {
 				try {
-					final OAuthTokenFinish tokenResponse = futureTokenFinish.get(OAUTH_TOKEN_WAIT_TIMEOUT, TimeUnit.SECONDS);
+					final OAuthTokenFinish tokenResponse = oAuthTokenFinish.get(OAUTH_TOKEN_WAIT_TIMEOUT, TimeUnit.SECONDS);
 
 					if (tokenResponse != null) {
 						oAuthGenerator.checkToken(tokenResponse.getToken(), tokenResponse.getCsrfState());
@@ -295,7 +297,7 @@ public class PluginSettingsPanel extends Panel {
 							}
 						});
 
-						tokenValid = true;
+						oAuthTokenValid = true;
 					}
 					else {
 						Display.getDefault().asyncExec(new Runnable() {
@@ -330,7 +332,7 @@ public class PluginSettingsPanel extends Panel {
 					});
 				}
 				finally {
-					tokenReceived = true;
+					oAuthTokenReceived = true;
 
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
@@ -340,7 +342,7 @@ public class PluginSettingsPanel extends Panel {
 					});
 				}
 			}
-		}).start();
+		}, "WaitOAuthToken").start();
 	}
 
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
@@ -573,7 +575,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private boolean validateOAuthToken() {
-		return oAuthGenerator == null || tokenReceived && tokenValid;
+		return oAuthGenerator == null || oAuthTokenReceived && oAuthTokenValid;
 	}
 
 	private void showWarning(String warningStr) {
