@@ -36,7 +36,6 @@ import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
 import org.syncany.plugins.transfer.FileType;
-import org.syncany.plugins.transfer.OAuthGenerator;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
 import org.syncany.plugins.transfer.TransferPluginOption;
@@ -44,6 +43,7 @@ import org.syncany.plugins.transfer.TransferPluginOption.ValidationResult;
 import org.syncany.plugins.transfer.TransferPluginOptions;
 import org.syncany.plugins.transfer.TransferPluginUtil;
 import org.syncany.plugins.transfer.TransferSettings;
+import org.syncany.plugins.transfer.oauth.OAuthGenerator;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
@@ -145,7 +145,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 	
 	private void createOAuthControls() {
-		Class<? extends OAuthGenerator> oAuthGeneratorClass = TransferPluginUtil.getOAuthGeneratorClass(pluginSettings.getClass());
+		Class<? extends OAuthGenerator> oAuthGeneratorClass = null; //FIXMETransferPluginUtil.getOAuthGeneratorClass(pluginSettings.getClass());
 
 		if (oAuthGeneratorClass != null) {
 			try {
@@ -207,7 +207,7 @@ public class PluginSettingsPanel extends Panel {
 			@Override
 			public void run() {
 				try {
-					oAuthUrl = oAuthGenerator.generateAuthUrl();					
+					oAuthUrl = null; //FIXME oAuthGenerator.generateAuthUrl();					
 					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
 					
 					Display.getDefault().asyncExec(new Runnable() {			
@@ -476,7 +476,7 @@ public class PluginSettingsPanel extends Panel {
 				try {				
 					logger.log(Level.INFO, "OAuth: Checking token " + oAuthTokenText.getText() + " ...");
 					
-					oAuthGenerator.checkToken(oAuthTokenText.getText()); // Sets pluginSettings.accessToken, or similar!				
+					// FIXME oAuthGenerator.checkToken(oAuthTokenText.getText()); // Sets pluginSettings.accessToken, or similar!				
 					WidgetDecorator.markAsValid(oAuthTokenText);
 					
 					logger.log(Level.INFO, "OAuth token check succeeded.");
