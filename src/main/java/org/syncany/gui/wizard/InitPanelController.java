@@ -160,7 +160,7 @@ public class InitPanelController extends AbstractInitPanelController {
 			configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 
 			GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
-			genlinkOptions.setShortUrl(true);
+			genlinkOptions.setShortUrl(false);
 			
 			InitOperationOptions initOptions = new InitOperationOptions();
 
