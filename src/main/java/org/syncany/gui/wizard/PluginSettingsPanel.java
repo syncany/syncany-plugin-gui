@@ -1,18 +1,12 @@
 package org.syncany.gui.wizard;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,10 +29,10 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.syncany.gui.Panel;
-import org.syncany.gui.util.DesktopUtil;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
+import org.syncany.gui.wizard.OAuthPluginSettingsPanelHelper.Consumer;
 import org.syncany.plugins.transfer.FileType;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -46,36 +40,19 @@ import org.syncany.plugins.transfer.TransferPluginOption;
 import org.syncany.plugins.transfer.TransferPluginOption.ValidationResult;
 import org.syncany.plugins.transfer.TransferPluginOptions;
 import org.syncany.plugins.transfer.TransferSettings;
-import org.syncany.plugins.transfer.oauth.OAuth;
-import org.syncany.plugins.transfer.oauth.OAuthGenerator;
-import org.syncany.plugins.transfer.oauth.OAuthGenerator.WithExtractor;
-import org.syncany.plugins.transfer.oauth.OAuthGenerator.WithInterceptor;
-import org.syncany.plugins.transfer.oauth.OAuthTokenFinish;
-import org.syncany.plugins.transfer.oauth.OAuthTokenWebListener;
-import org.syncany.plugins.transfer.oauth.OAuthTokenWebListener.Builder;
 
 /**
  * @author Philipp C. Heckel <philipp.heckel@gmail.com>
  */
 public class PluginSettingsPanel extends Panel {
 	private static final Logger logger = Logger.getLogger(PluginSettingsPanel.class.getSimpleName());
-	private static final int OAUTH_TOKEN_WAIT_TIMEOUT = 60;
 
 	private Label warningImageLabel;
 	private Label warningMessageLabel;
 
 	private TransferPlugin plugin;
 	private TransferSettings pluginSettings;
-
-	private OAuth oAuthSettings;
-	private OAuthGenerator oAuthGenerator;
-	private Button oAuthAuthorizeButton;
-	private Text oAuthTokenText;
-	private URI oAuthUrl;
-	private OAuthTokenWebListener oAuthTokenWebListener;
-	private Future<OAuthTokenFinish> oAuthTokenFinish;
-	private boolean oAuthTokenReceived;
-	private boolean oAuthTokenValid;
+	private OAuthPluginSettingsPanelHelper oAuthPluginSettingsPanelHelper;
 
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -96,11 +73,6 @@ public class PluginSettingsPanel extends Panel {
 			this.plugin = plugin;
 			this.pluginSettings = plugin.createEmptySettings();
 
-			this.oAuthSettings = null;
-			this.oAuthGenerator = null;
-			this.oAuthTokenReceived = false;
-			this.oAuthTokenValid = false;
-
 			this.pluginOptionControlMap = new HashMap<>();
 			this.invalidPluginOptions = new HashSet<>();
 		}
@@ -112,6 +84,10 @@ public class PluginSettingsPanel extends Panel {
 	private void clearControls() {
 		for (Control childComponent : getChildren()) {
 			childComponent.dispose();
+		}
+
+		if (oAuthPluginSettingsPanelHelper != null) {
+			oAuthPluginSettingsPanelHelper.reset();
 		}
 	}
 
@@ -163,189 +139,50 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createOAuthControls() {
-		oAuthSettings = pluginSettings.getClass().getAnnotation(OAuth.class);
+		// OAuth help text
+		Label descriptionLabel = new Label(this, SWT.WRAP);
+		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
+		descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.description"));
 
-		if (oAuthSettings != null) {
-			try {
-				Constructor<? extends OAuthGenerator> optionCallbackClassConstructor = oAuthSettings.value().getDeclaredConstructor(pluginSettings.getClass());
-				oAuthGenerator = optionCallbackClassConstructor.newInstance(pluginSettings);
-			}
-			catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+		WidgetDecorator.normal(descriptionLabel);
 
-			// OAuth help text
-			Label descriptionLabel = new Label(this, SWT.WRAP);
-			descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
-			descriptionLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.description"));
+		// Label "Token:"
+		GridData oAuthTokenLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
+		oAuthTokenLabelGridData.verticalIndent = 2;
+		oAuthTokenLabelGridData.horizontalSpan = 3;
 
-			WidgetDecorator.normal(descriptionLabel);
+		Label oAuthTokenLabel = new Label(this, SWT.WRAP);
+		oAuthTokenLabel.setLayoutData(oAuthTokenLabelGridData);
+		oAuthTokenLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.token"));
 
-			// Label "Token:"
-			GridData oAuthTokenLabelGridData = new GridData(SWT.LEFT, SWT.CENTER, false, false);
-			oAuthTokenLabelGridData.verticalIndent = 2;
-			oAuthTokenLabelGridData.horizontalSpan = 3;
+		// Textfield "Token"
+		GridData oAuthTokenTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+		oAuthTokenTextGridData.verticalIndent = 0;
+		oAuthTokenTextGridData.horizontalSpan = 2;
+		oAuthTokenTextGridData.minimumWidth = 200;
+		oAuthTokenTextGridData.grabExcessHorizontalSpace = true;
 
-			Label oAuthTokenLabel = new Label(this, SWT.WRAP);
-			oAuthTokenLabel.setLayoutData(oAuthTokenLabelGridData);
-			oAuthTokenLabel.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.token"));
+		// Do not manage contents of the following GUI items, done by OAuthInformationManager
+		Text oAuthTokenText = new Text(this, SWT.BORDER);
+		oAuthTokenText.setLayoutData(oAuthTokenTextGridData);
+		oAuthTokenText.setBackground(WidgetDecorator.WHITE);
 
-			// Textfield "Token"
-			GridData oAuthTokenTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
-			oAuthTokenTextGridData.verticalIndent = 0;
-			oAuthTokenTextGridData.horizontalSpan = 2;
-			oAuthTokenTextGridData.minimumWidth = 200;
-			oAuthTokenTextGridData.grabExcessHorizontalSpace = true;
+		// Add 'Authorize ..' button for 'File' fields
+		Button oAuthAuthorizeButton = new Button(this, SWT.NONE);
+		oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting")); // needs text for size
 
-			oAuthTokenText = new Text(this, SWT.BORDER);
-			oAuthTokenText.setLayoutData(oAuthTokenTextGridData);
-			oAuthTokenText.setBackground(WidgetDecorator.WHITE);
-			oAuthTokenText.setEditable(false);
-
-			WidgetDecorator.normal(oAuthTokenText);
-
-			// Add 'Authorize ..' button for 'File' fields
-			oAuthAuthorizeButton = new Button(this, SWT.NONE);
-			oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting"));
-			oAuthAuthorizeButton.setEnabled(false);
-
-			oAuthAuthorizeButton.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					waitForTokenResponse();
-					DesktopUtil.launch(oAuthUrl.toString());
-				}
-			});
-
-			// Asynchronously get OAuth URL
-			asyncRetrieveOAuthUrlAndEnableAuthButton();
+		try {
+			oAuthPluginSettingsPanelHelper = OAuthPluginSettingsPanelHelper.forSettings(pluginSettings)
+							.withWarningHandler(new WarningHandler())
+							.withButton(oAuthAuthorizeButton)
+							.withText(oAuthTokenText)
+							.build();
 		}
-	}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
-	private void asyncRetrieveOAuthUrlAndEnableAuthButton() {
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					// Start the token listener
-					Builder tokenListerBuilder = OAuthTokenWebListener.forMode(oAuthSettings.mode());
-
-					if (oAuthSettings.callbackPort() != OAuth.RANDOM_PORT) {
-						tokenListerBuilder.setPort(oAuthSettings.callbackPort());
-					}
-
-					if (!oAuthSettings.callbackId().equals(OAuth.PLUGIN_ID)) {
-						tokenListerBuilder.setId(oAuthSettings.callbackId());
-					}
-
-					// Non standard plugin?
-					if (oAuthGenerator instanceof WithInterceptor) {
-						tokenListerBuilder.setTokenInterceptor(((WithInterceptor) oAuthGenerator).getInterceptor());
-					}
-
-					if (oAuthGenerator instanceof WithExtractor) {
-						tokenListerBuilder.setTokenExtractor(((WithExtractor) oAuthGenerator).getExtractor());
-					}
-
-					oAuthTokenWebListener = tokenListerBuilder.build();
-
-					oAuthUrl = oAuthGenerator.generateAuthUrl(oAuthTokenWebListener.start());
-					logger.log(Level.INFO, "OAuth URL generated: " + oAuthUrl);
-
-					oAuthTokenFinish = oAuthTokenWebListener.getToken();
-
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize"));
-							oAuthAuthorizeButton.setEnabled(true);
-						}
-					});
-				}
-				catch (final Exception e) {
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.errorCannotRetrieveOAuthURL", e.getMessage()));
-							logger.log(Level.WARNING, "Cannot retrieve OAuth URL.", e);
-
-							oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.error"));
-						}
-					});
-				}
-			}
-
-		}, "GetOAuthUrl").start();
-	}
-
-	private void waitForTokenResponse() {
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					final OAuthTokenFinish tokenResponse = oAuthTokenFinish.get(OAUTH_TOKEN_WAIT_TIMEOUT, TimeUnit.SECONDS);
-
-					if (tokenResponse != null) {
-						oAuthGenerator.checkToken(tokenResponse.getToken(), tokenResponse.getCsrfState());
-						logger.log(Level.INFO, "Token " + tokenResponse.getToken() + " received and field set");
-
-						Display.getDefault().asyncExec(new Runnable() {
-							@Override
-							public void run() {
-								oAuthTokenText.setText(tokenResponse.getToken());
-								WidgetDecorator.markAsValid(oAuthTokenText);
-							}
-						});
-
-						oAuthTokenValid = true;
-					}
-					else {
-						Display.getDefault().asyncExec(new Runnable() {
-							@Override
-							public void run() {
-								showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
-								WidgetDecorator.markAsInvalid(oAuthTokenText);
-							}
-						});
-					}
-				}
-				catch (TimeoutException e) {
-					logger.log(Level.WARNING, "Unable to receive token in the given timeout", e);
-
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorTimeoutOAuthToken"));
-							WidgetDecorator.markAsInvalid(oAuthTokenText);
-						}
-					});
-
-					asyncRetrieveOAuthUrlAndEnableAuthButton();
-				}
-				catch (InterruptedException | ExecutionException | StorageException e) {
-					logger.log(Level.SEVERE, "Unable to receive token", e);
-
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							showWarning(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
-							WidgetDecorator.markAsInvalid(oAuthTokenText);
-						}
-					});
-				}
-				finally {
-					oAuthTokenReceived = true;
-					oAuthTokenWebListener.stop();
-
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							oAuthAuthorizeButton.setEnabled(false);
-						}
-					});
-				}
-			}
-		}, "WaitOAuthToken").start();
+		oAuthPluginSettingsPanelHelper.start();
 	}
 
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
@@ -578,7 +415,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private boolean validateOAuthToken() {
-		return oAuthGenerator == null || oAuthTokenReceived && oAuthTokenValid;
+		return oAuthPluginSettingsPanelHelper == null || oAuthPluginSettingsPanelHelper.isSuccess();
 	}
 
 	private void showWarning(String warningStr) {
@@ -594,5 +431,17 @@ public class PluginSettingsPanel extends Panel {
 
 	public TransferSettings getPluginSettings() {
 		return pluginSettings;
+	}
+
+	private class WarningHandler implements Consumer<String> {
+		@Override
+		public void accept(final String warning) {
+			Display.getDefault().asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					PluginSettingsPanel.this.showWarning(warning);
+				}
+			});
+		}
 	}
 }
