@@ -29,12 +29,12 @@ import org.syncany.plugins.transfer.oauth.OAuthTokenWebListener;
  * @author Christian Roth <christian.roth@port17.de>
  */
 
-class OAuthPluginSettingsPanelHelper {
+class PluginSettingsPanelOAuthHelper {
 	private enum StatusCode {
 		IDLE, RUNNING, FINISHED, SUCCESS
 	}
 
-	private static final Logger logger = Logger.getLogger(OAuthPluginSettingsPanelHelper.class.getName());
+	private static final Logger logger = Logger.getLogger(PluginSettingsPanelOAuthHelper.class.getName());
 	private static final String STRING_BUTTON_CONNECTING = I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting");
 	private static final String STRING_BUTTON_AUTHORIZE = I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.authorize");
 	private static final String STRING_BUTTON_WAITING = I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.waiting");
@@ -95,7 +95,7 @@ class OAuthPluginSettingsPanelHelper {
 			return this;
 		}
 
-		public OAuthPluginSettingsPanelHelper build() {
+		public PluginSettingsPanelOAuthHelper build() {
 			OAuthTokenWebListener.Builder tokenListerBuilder = OAuthTokenWebListener.forMode(settings.mode());
 
 			if (settings.callbackPort() != OAuth.RANDOM_PORT) {
@@ -115,11 +115,11 @@ class OAuthPluginSettingsPanelHelper {
 				tokenListerBuilder.setTokenExtractor(((WithExtractor) generator).getExtractor());
 			}
 
-			return new OAuthPluginSettingsPanelHelper(tokenListerBuilder.build(), generator, warningHandler, button, text);
+			return new PluginSettingsPanelOAuthHelper(tokenListerBuilder.build(), generator, warningHandler, button, text);
 		}
 	}
 
-	private OAuthPluginSettingsPanelHelper(OAuthTokenWebListener webListener, OAuthGenerator generator, Consumer<String> warningHandler, Button button, Text text) {
+	private PluginSettingsPanelOAuthHelper(OAuthTokenWebListener webListener, OAuthGenerator generator, Consumer<String> warningHandler, Button button, Text text) {
 		this.webListener = webListener;
 		this.generator = generator;
 		this.warningHandler = warningHandler;

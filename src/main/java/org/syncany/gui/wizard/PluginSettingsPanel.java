@@ -32,7 +32,7 @@ import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.util.SWTResourceManager;
 import org.syncany.gui.util.WidgetDecorator;
-import org.syncany.gui.wizard.OAuthPluginSettingsPanelHelper.Consumer;
+import org.syncany.gui.wizard.PluginSettingsPanelOAuthHelper.Consumer;
 import org.syncany.plugins.transfer.FileType;
 import org.syncany.plugins.transfer.StorageException;
 import org.syncany.plugins.transfer.TransferPlugin;
@@ -52,7 +52,7 @@ public class PluginSettingsPanel extends Panel {
 
 	private TransferPlugin plugin;
 	private TransferSettings pluginSettings;
-	private OAuthPluginSettingsPanelHelper oAuthPluginSettingsPanelHelper;
+	private PluginSettingsPanelOAuthHelper pluginSettingsPanelOAuthHelper;
 
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -86,8 +86,8 @@ public class PluginSettingsPanel extends Panel {
 			childComponent.dispose();
 		}
 
-		if (oAuthPluginSettingsPanelHelper != null) {
-			oAuthPluginSettingsPanelHelper.reset();
+		if (pluginSettingsPanelOAuthHelper != null) {
+			pluginSettingsPanelOAuthHelper.reset();
 		}
 	}
 
@@ -139,10 +139,10 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createOAuthControls() {
-		OAuthPluginSettingsPanelHelper.Builder builder;
+		PluginSettingsPanelOAuthHelper.Builder builder;
 
 		try {
-			builder = OAuthPluginSettingsPanelHelper.forSettings(pluginSettings);
+			builder = PluginSettingsPanelOAuthHelper.forSettings(pluginSettings);
 		}
 		catch (UnsupportedOperationException e) {
 			// ok plugin does not support oauth
@@ -182,7 +182,7 @@ public class PluginSettingsPanel extends Panel {
 		oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting")); // needs text for size
 
 		try {
-			builder
+			pluginSettingsPanelOAuthHelper = builder
 							.withWarningHandler(new WarningHandler())
 							.withButton(oAuthAuthorizeButton)
 							.withText(oAuthTokenText)
@@ -192,7 +192,7 @@ public class PluginSettingsPanel extends Panel {
 			throw new RuntimeException(e);
 		}
 
-		oAuthPluginSettingsPanelHelper.start();
+		pluginSettingsPanelOAuthHelper.start();
 	}
 
 	private void createPluginOptionControl(final TransferPluginOption pluginOption) {
@@ -425,7 +425,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private boolean validateOAuthToken() {
-		return oAuthPluginSettingsPanelHelper == null || oAuthPluginSettingsPanelHelper.isSuccess();
+		return pluginSettingsPanelOAuthHelper == null || pluginSettingsPanelOAuthHelper.isSuccess();
 	}
 
 	private void showWarning(String warningStr) {
