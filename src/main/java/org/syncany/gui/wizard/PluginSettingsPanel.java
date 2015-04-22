@@ -139,6 +139,16 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createOAuthControls() {
+		OAuthPluginSettingsPanelHelper.Builder builder;
+
+		try {
+			builder = OAuthPluginSettingsPanelHelper.forSettings(pluginSettings);
+		}
+		catch (UnsupportedOperationException e) {
+			// ok plugin does not support oauth
+			return;
+		}
+
 		// OAuth help text
 		Label descriptionLabel = new Label(this, SWT.WRAP);
 		descriptionLabel.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, false, 3, 1));
@@ -172,7 +182,7 @@ public class PluginSettingsPanel extends Panel {
 		oAuthAuthorizeButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.oauth.button.connecting")); // needs text for size
 
 		try {
-			oAuthPluginSettingsPanelHelper = OAuthPluginSettingsPanelHelper.forSettings(pluginSettings)
+			builder
 							.withWarningHandler(new WarningHandler())
 							.withButton(oAuthAuthorizeButton)
 							.withText(oAuthTokenText)

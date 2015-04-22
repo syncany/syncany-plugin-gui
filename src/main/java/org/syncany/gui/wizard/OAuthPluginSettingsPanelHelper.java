@@ -64,11 +64,11 @@ class OAuthPluginSettingsPanelHelper {
 		private Text text;
 		private Consumer<String> warningHandler;
 
-		private <T extends TransferSettings> Builder(T transferSettings) {
+		private <T extends TransferSettings> Builder(T transferSettings) throws UnsupportedOperationException {
 			settings = transferSettings.getClass().getAnnotation(OAuth.class);
 
 			if (settings == null) {
-				throw new RuntimeException("Tried to create OAuth helper for non-OAuth class");
+				throw new UnsupportedOperationException("Tried to create OAuth helper for non-OAuth class");
 			}
 
 			try {
@@ -132,7 +132,13 @@ class OAuthPluginSettingsPanelHelper {
 		tokenText.setEditable(false);
 	}
 
-	static <T extends TransferSettings> Builder forSettings(T transferSettings) {
+	/**
+	 * Create a helper for a specific OAuth plugin. The helper manages buttons and token collection including validation.
+	 *
+	 * @param transferSettings The OAuth enabled plugin
+	 * @throws UnsupportedOperationException If the plugin is no OAuth plugin (not annotated with {@link OAuth}.
+	 */
+	static <T extends TransferSettings> Builder forSettings(T transferSettings) throws UnsupportedOperationException {
 		return new Builder(transferSettings);
 	}
 
