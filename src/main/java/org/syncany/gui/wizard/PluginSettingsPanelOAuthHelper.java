@@ -43,12 +43,12 @@ class PluginSettingsPanelOAuthHelper {
 
 	private final OAuthTokenWebListener webListener;
 	private final ButtonSelectionAdapter buttonSelectionAdapter;
-	private Future<OAuthTokenFinish> futureTokenFinish;
 	private final OAuthGenerator generator;
 	private final Consumer<String> warningHandler;
 	private final Button authorizeButton;
 	private final Text tokenText;
 
+	private Future<OAuthTokenFinish> futureTokenFinish;
 	private StatusCode statusCode = StatusCode.IDLE;
 	private URI redirectUri;
 	private URI authUri;
@@ -235,8 +235,8 @@ class PluginSettingsPanelOAuthHelper {
 						statusCode = StatusCode.SUCCESS;
 					}
 					else {
-						logger.log(Level.WARNING, "Invalid token received");
-						triggerError(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorInvalidOAuthToken"));
+						logger.log(Level.WARNING, "Invalid token received, maybe user cancled process. Reenabling...");
+						triggerError(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
 					}
 				}
 				catch (InterruptedException e) {
