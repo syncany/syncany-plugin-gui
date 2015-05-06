@@ -144,8 +144,11 @@ class PluginSettingsPanelOAuthHelper {
 
 	/**
 	 * Stop all running listeners and reset the button to initial state.
+	 *
+	 * @param clearGui Define if the GUI elements should be reset to their initial state (will cause an Exception if
+	 *                  the elements are already disposed)
 	 */
-	public void reset() {
+	public void reset(boolean clearGui) {
 		if (statusCode == StatusCode.IDLE) {
 			return;
 		}
@@ -156,26 +159,30 @@ class PluginSettingsPanelOAuthHelper {
 			tokenArrivalThread.interrupt();
 			tokenArrivalThread = null;
 		}
+		else {
+			webListener.stop();
+		}
 
-		webListener.stop();
 		redirectUri = null;
 		authUri = null;
 
-		disableButton();
-		setButtonText(STRING_BUTTON_CONNECTING);
+		if (clearGui) {
+			disableButton();
+			setButtonText(STRING_BUTTON_CONNECTING);
 
-		setTokenText("");
-		markTextAsSuccess(false);
+			setTokenText("");
+			markTextAsSuccess(false);
+		}
 
 		statusCode = StatusCode.IDLE;
 	}
 
 	/**
 	 * This method makes the GUI ready to perfom the OAuth process. It starts the webserver, adds the button event and
-	 * changes button texts. Implicitly calls {@link #reset()}.
+	 * changes button texts. Implicitly calls {@link #reset(boolean clearGui)} in GUI clearance mode.
 	 */
 	public void start() {
-		reset();
+		reset(true);
 
 		redirectUri = webListener.start();
 		statusCode = StatusCode.RUNNING;
@@ -246,6 +253,10 @@ class PluginSettingsPanelOAuthHelper {
 				catch (ExecutionException | StorageException e) {
 					logger.log(Level.SEVERE, "Exception while waiting for OAuth token", e);
 					triggerError(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
+				}
+				finally {
+					logger.log(Level.INFO, "Finally stopping weblistener.");
+					webListener.stop();
 				}
 			}
 		}, "WaitTokenArrival");

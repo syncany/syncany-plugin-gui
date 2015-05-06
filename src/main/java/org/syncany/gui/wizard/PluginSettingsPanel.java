@@ -52,7 +52,7 @@ public class PluginSettingsPanel extends Panel {
 
 	private TransferPlugin plugin;
 	private TransferSettings pluginSettings;
-	private PluginSettingsPanelOAuthHelper pluginSettingsPanelOAuthHelper;
+	private static PluginSettingsPanelOAuthHelper pluginSettingsPanelOAuthHelper;
 
 	private Map<TransferPluginOption, Text> pluginOptionControlMap;
 	private Set<TransferPluginOption> invalidPluginOptions;
@@ -61,10 +61,18 @@ public class PluginSettingsPanel extends Panel {
 		super(wizardParentDialog, parent, style);
 	}
 
+	@Override
+	public void dispose() {
+		logger.log(Level.INFO, "PluginSettingsPanel is about to get disposed, resetting OAuthhelper");
+		resetOAuthelper();
+	}
+
 	public void init(TransferPlugin plugin) {
 		setPlugin(plugin);
 
+		resetOAuthelper();
 		clearControls();
+
 		createControls();
 	}
 
@@ -85,9 +93,12 @@ public class PluginSettingsPanel extends Panel {
 		for (Control childComponent : getChildren()) {
 			childComponent.dispose();
 		}
+	}
 
+	private void resetOAuthelper() {
 		if (pluginSettingsPanelOAuthHelper != null) {
-			pluginSettingsPanelOAuthHelper.reset();
+			pluginSettingsPanelOAuthHelper.reset(false);
+			pluginSettingsPanelOAuthHelper = null;
 		}
 	}
 
@@ -139,6 +150,8 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createOAuthControls() {
+		resetOAuthelper();
+
 		PluginSettingsPanelOAuthHelper.Builder builder;
 
 		try {
