@@ -228,6 +228,8 @@ class PluginSettingsPanelOAuthHelper {
 		tokenArrivalThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				boolean startOver = false;
+
 				try {
 					OAuthTokenFinish tokenResponse = futureTokenFinish.get(); // we dont need a timeout here
 					statusCode = StatusCode.FINISHED;
@@ -242,8 +244,9 @@ class PluginSettingsPanelOAuthHelper {
 						statusCode = StatusCode.SUCCESS;
 					}
 					else {
-						logger.log(Level.WARNING, "Invalid token received, maybe user cancled process. Reenabling...");
+						logger.log(Level.WARNING, "Invalid token received, maybe user cancled process.");
 						triggerError(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
+						startOver = true;
 					}
 				}
 				catch (InterruptedException e) {
@@ -255,8 +258,13 @@ class PluginSettingsPanelOAuthHelper {
 					triggerError(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.errorExceptionOAuthToken"));
 				}
 				finally {
-					logger.log(Level.INFO, "Finally stopping weblistener.");
+					logger.log(Level.INFO, "Finally stopping weblistener");
 					webListener.stop();
+
+					if (startOver) {
+						logger.log(Level.INFO, "Reenabling OAuth process");
+						start();
+					}
 				}
 			}
 		}, "WaitTokenArrival");
