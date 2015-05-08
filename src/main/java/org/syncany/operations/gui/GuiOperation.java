@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com>
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +56,7 @@ public class GuiOperation extends Operation {
 	private static final Logger logger = Logger.getLogger(GuiOperation.class.getSimpleName());
 	private static final String GUI_CONFIG_FILE = "gui.xml";
 	private static final String GUI_CONFIG_EXAMPLE_FILE = "gui-example.xml";
+		
 	private GuiConfigTO guiConfig;
 
 	private GuiEventBus eventBus;
@@ -65,6 +66,8 @@ public class GuiOperation extends Operation {
 	private TrayIcon trayIcon;
 	private boolean daemonStarted;
 	private Thread daemonThread;
+	
+	private GuiEventBridge eventBridge;
 	private GuiWebSocketClient webSocketClient;
 
 	static {
@@ -94,7 +97,7 @@ public class GuiOperation extends Operation {
 		initTray();
 
 		startDaemon();
-		startWebSocketClient();
+		startDaemonClient();
 
 		startEventDispatchLoop();
 
@@ -194,9 +197,15 @@ public class GuiOperation extends Operation {
 		}
 	}
 
-	private void startWebSocketClient() {
-		webSocketClient = new GuiWebSocketClient();
-		webSocketClient.start();
+	private void startDaemonClient() {
+		if (daemonStarted) {
+			eventBridge = new GuiEventBridge();
+			eventBridge.start();
+		}
+		else {
+			webSocketClient = new GuiWebSocketClient();
+			webSocketClient.start();
+		}
 	}
 
 	public void startEventDispatchLoop() {

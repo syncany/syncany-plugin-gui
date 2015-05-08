@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import org.syncany.config.to.RepoTOFactory;
 import org.syncany.crypto.CipherSpec;
 import org.syncany.crypto.CipherSpecs;
 import org.syncany.crypto.CipherUtil;
+import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
@@ -38,7 +39,6 @@ import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.init.InitOperationOptions;
 import org.syncany.operations.init.InitOperationResult;
 import org.syncany.plugins.transfer.TransferPlugin;
-
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -54,7 +54,7 @@ public class InitPanelController extends AbstractInitPanelController {
 	private ChoosePasswordPanel choosePasswordPanel;
 	private ProgressPanel progressPanel;
 	private InitSuccessPanel initSuccessPanel;
-	
+
 	private File localDir;
 	private TransferPlugin selectedPlugin;
 	private InitOperationResult initResult;
@@ -76,6 +76,15 @@ public class InitPanelController extends AbstractInitPanelController {
 		this.localDir = null;
 		this.selectedPlugin = null;
 		this.initResult = null;
+	}
+
+	@Override
+	public void dispose() {
+		Panel[] panels = new Panel[]{ startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel, initSuccessPanel};
+
+		for (Panel panel : panels) {
+			panel.dispose();
+		}
 	}
 
 	@Override
@@ -160,8 +169,8 @@ public class InitPanelController extends AbstractInitPanelController {
 			configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 
 			GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
-			genlinkOptions.setShortUrl(true);
-			
+			genlinkOptions.setShortUrl(false);
+
 			InitOperationOptions initOptions = new InitOperationOptions();
 
 			initOptions.setGenlinkOptions(genlinkOptions);
@@ -194,12 +203,12 @@ public class InitPanelController extends AbstractInitPanelController {
 			if (response.getResult() != null) {
 				initResult = response.getResult();
 			}
-			
-			sendReloadDaemonAndMenusCommand();			
+
+			sendReloadDaemonAndMenusCommand();
 		}
 		else {
-			String errorMessage = formatErrorMessage(response); 			
-			
+			String errorMessage = formatErrorMessage(response);
+
 			progressPanel.finish();
 			progressPanel.setShowDetails(true);
 			progressPanel.appendLog(errorMessage);
@@ -207,44 +216,44 @@ public class InitPanelController extends AbstractInitPanelController {
 			wizardDialog.setAllowedActions(Action.PREVIOUS);
 		}
 	}
-	
+
 	@Subscribe
 	public void onListWatchesManagementResponse(ListWatchesManagementResponse response) {
 		if (initResult != null && initResult.getGenLinkResult() != null) {
 			String applicationLink = initResult.getGenLinkResult().getShareLink();
-			
+
 			initSuccessPanel.setApplicationLinkText(applicationLink);
 			initSuccessPanel.setLocalDir(localDir);
-	
+
 			wizardDialog.setCurrentPanel(initSuccessPanel, Action.FINISH);
 		}
 	}
 
-	private String formatErrorMessage(InitManagementResponse response) {		
+	private String formatErrorMessage(InitManagementResponse response) {
 		String errorMessage = I18n.getText("org.syncany.gui.wizard.ProgressPanel.error") + "\n\n"
 				+ I18n.getText("org.syncany.gui.wizard.ProgressPanel.init.unableToInit", response.getCode()) + "\n";
-		
+
 		switch (response.getCode()) {
 		case InitManagementResponse.NOK_FAILED_TEST:
-			errorMessage += formatTestResultMessage(response.getResult().getTestResult());				 
+			errorMessage += formatTestResultMessage(response.getResult().getTestResult());
 			break;
-		
+
 		case InitManagementResponse.NOK_FAILED_UNKNOWN:
-			errorMessage += I18n.getText("org.syncany.gui.wizard.ProgressPanel.init.failedWithUnknownError");				
+			errorMessage += I18n.getText("org.syncany.gui.wizard.ProgressPanel.init.failedWithUnknownError");
 			break;
-			
+
 		case InitManagementResponse.NOK_OPERATION_FAILED:
 			errorMessage += I18n.getText("org.syncany.gui.wizard.ProgressPanel.init.failedWithException");
 			break;
 
-		default: 
+		default:
 			break;
-		}	
-		
+		}
+
 		if (response.getMessage() != null) {
 			errorMessage += "\n\n" + response.getMessage();
 		}
-		
+
 		return errorMessage;
 	}
 }

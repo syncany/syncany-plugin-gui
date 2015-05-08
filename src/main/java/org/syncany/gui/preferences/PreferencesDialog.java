@@ -52,7 +52,7 @@ public class PreferencesDialog extends Dialog {
 	private static final String NAV_ICON_RESOURCE_FORMAT = "/" + PreferencesDialog.class.getPackage().getName().replace('.', '/') + "/nav-%s.png";
 
 	private enum NavSelection {
-		GENERAL, PLUGINS, NETWORK
+		GENERAL, PLUGINS, NETWORK, ABOUT
 	}
 	
 	private Shell trayShell;
@@ -64,6 +64,7 @@ public class PreferencesDialog extends Dialog {
 	private GeneralPanel generalPanel;
 	private PluginsPanel pluginsPanel;
 	private NetworkPanel networkPanel;
+	private AboutPanel aboutPanel;
 	
 	private Panel currentPanel;
 
@@ -170,6 +171,10 @@ public class PreferencesDialog extends Dialog {
 					case NETWORK:
 						setCurrentPanel(networkPanel);
 						break;
+						
+					case ABOUT:
+						setCurrentPanel(aboutPanel);
+						break;
 					}
 				}
 			}
@@ -216,6 +221,15 @@ public class PreferencesDialog extends Dialog {
 	    navNetworkTableItem.setImage(1, navNetworkImage);
 	    navNetworkTableItem.setText(2, I18n.getText("org.syncany.gui.preferences.PreferencesDialog.nav.network"));		    
 	    navNetworkTableItem.setData(NavSelection.NETWORK);	
+	    
+	    // Entry 'About'
+    	String navAboutImageResource = String.format(NAV_ICON_RESOURCE_FORMAT, "about");
+	    Image navAboutImage = SWTResourceManager.getImage(navAboutImageResource);
+
+	    TableItem navAboutTableItem = new TableItem(navTable, SWT.NONE);		    
+	    navAboutTableItem.setImage(1, navAboutImage);
+	    navAboutTableItem.setText(2, I18n.getText("org.syncany.gui.preferences.PreferencesDialog.nav.about"));		    
+	    navAboutTableItem.setData(NavSelection.ABOUT);	
 
 	    // Select 'General'
 	    navTable.select(0);	    
@@ -276,6 +290,7 @@ public class PreferencesDialog extends Dialog {
 		generalPanel = new GeneralPanel(this, stackComposite, SWT.NONE);
 		pluginsPanel = new PluginsPanel(this, stackComposite, SWT.NONE);
 		networkPanel = new NetworkPanel(this, stackComposite, SWT.NONE);
+		aboutPanel = new AboutPanel(this, stackComposite, SWT.NONE);
 	}
 
 	public Panel getCurrentPanel() {
@@ -308,6 +323,10 @@ public class PreferencesDialog extends Dialog {
 		Display.getDefault().syncExec(new Runnable() {
 			@Override
 			public void run() {	
+				if (!generalPanel.isDisposed()) {
+					generalPanel.dispose();
+				}
+				
 				if (!pluginsPanel.isDisposed()) {
 					pluginsPanel.dispose();
 				}

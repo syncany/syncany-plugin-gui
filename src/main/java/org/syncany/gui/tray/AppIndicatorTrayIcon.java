@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,6 +46,7 @@ import org.syncany.operations.daemon.messages.ClickRecentChangesGuiInternalEvent
 import org.syncany.operations.daemon.messages.ClickTrayMenuFolderGuiInternalEvent;
 import org.syncany.operations.daemon.messages.ClickTrayMenuGuiInternalEvent;
 import org.syncany.operations.daemon.messages.DisplayNotificationGuiInternalEvent;
+import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.UpdateRecentChangesGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateStatusTextGuiInternalEvent;
 import org.syncany.operations.daemon.messages.UpdateTrayIconGuiInternalEvent;
@@ -80,7 +82,9 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	private static String PYTHON_LAUNCH_SCRIPT = "import urllib2; base_url = '%s'; ws_url = '%s'; exec urllib2.urlopen('%s').read()";
 
 	private Undertow webServer;
+	
 	private Process pythonProcess;
+	private AtomicBoolean pythonProcessRestart;
 	private WebSocketChannel pythonClientChannel;
 
 	public AppIndicatorTrayIcon(Shell shell, TrayIconTheme theme) {
@@ -107,53 +111,115 @@ public class AppIndicatorTrayIcon extends TrayIcon {
 	}
 
 	private void startTray() {
-		try {
-			String webServerEndpointHttpWithTheme = String.format(WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT, getTheme().toString().toLowerCase());		
+		new Thread(new Runnable() {			
+			@Override
+			public void run() {
+				startPythonProcessWithRestartLoop();				
+			}
+		}, "PyAppInd").start();		
+	}
 
-			String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
-					webServerEndpointHttpWithTheme, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
+	private void startPythonProcessWithRestartLoop() {
+		pythonProcessRestart = new AtomicBoolean(true);
+		int restartCount = 0;
+		
+		while (pythonProcessRestart.get()) {
+			try {
+				startPythonProcess();
+				startPythonLoggerThreads();
 
-			String[] command = new String[] { "/usr/bin/python", "-c", startScript };
-			ProcessBuilder processBuilder = new ProcessBuilder(command);
-
-			logger.log(Level.INFO, "Starting external app indicator command: " + StringUtil.join(command, " "));
-			
-			pythonProcess = processBuilder.start();
-
-			BufferedReader scriptStdOutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
-			BufferedReader scriptStdErrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
-
-			launchLoggerThread(scriptStdOutReader, "Python Input Stream : ");
-			launchLoggerThread(scriptStdErrReader, "Python Error Stream : ");
+				if (restartCount > 0) {
+					waitAndSendListWatchesRequest();
+				}
+				
+				waitForPythonProcess(); // Wait indefinitely (or until it crashes!)				
+				waitBeforeRestart();
+				
+				restartCount++;				
+			}
+			catch (IOException e) {
+				logger.log(Level.SEVERE, "ERROR starting AppIndicator Python process.", e);
+			}
+			catch (InterruptedException e) {
+				logger.log(Level.SEVERE, "Python process or sleep interrupted. NOT RESTARTING. Assuming we want this process to die.", e);
+				pythonProcessRestart.set(false);
+			}
 		}
-		catch (Exception e) {
-			throw new RuntimeException("Cannot start Python process for Unity Tray Icon.", e);
+	}
+
+	private void startPythonProcess() throws IOException {
+		String webServerEndpointHttpWithTheme = String.format(WEBSERVER_ENDPOINT_HTTP_THEME_FORMAT, getTheme().toString().toLowerCase());		
+
+		String startScript = String.format(PYTHON_LAUNCH_SCRIPT, new Object[] {
+				webServerEndpointHttpWithTheme, WEBSERVER_ENDPOINT_WEBSOCKET, WEBSERVER_URL_SCRIPT });
+
+		String[] command = new String[] { "/usr/bin/python", "-c", startScript };
+		ProcessBuilder processBuilder = new ProcessBuilder(command);
+
+		logger.log(Level.INFO, "Starting external app indicator command: " + StringUtil.join(command, " "));						
+		pythonProcess = processBuilder.start();
+	}
+	
+	private void startPythonLoggerThreads() {
+		BufferedReader scriptStdOutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+		BufferedReader scriptStdErrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
+
+		launchLoggerThread(scriptStdOutReader, "Python Input Stream: ", "PySTDIN");
+		launchLoggerThread(scriptStdErrReader, "Python Error Stream: ", "PySTDERR");
+	}
+	
+	private void waitAndSendListWatchesRequest() throws InterruptedException {
+		logger.log(Level.INFO, "Python process started after crash (!): Waiting a bit, then sending list watches request ...");						
+
+		Thread.sleep(5000);
+		eventBus.post(new ListWatchesManagementRequest());
+	}
+
+	private void waitForPythonProcess() throws InterruptedException {
+		logger.log(Level.INFO, "Python process started. Waiting indefinitely (or until it crashes :-/) ...");						
+		pythonProcess.waitFor();
+	}
+	
+	private void waitBeforeRestart() throws InterruptedException {
+		if (pythonProcessRestart.get()) {
+			logger.log(Level.INFO, "Python process crashed. Waiting a bit before restart.");						
+			Thread.sleep(3000);				
+		}
+		else {
+			logger.log(Level.INFO, "Python process crashed or terminated. NO RESTART requested.");
 		}
 	}
 
 	@Override
 	protected void exitApplication() {
+		pythonProcessRestart.set(false);
+		pythonProcess.destroy();
+		
 		webServer.stop();
+		
 		super.exitApplication();
 	}
 
-	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix) {
-		Thread t = new Thread(new Runnable() {
+	private void launchLoggerThread(final BufferedReader stdinReader, final String prefix, String threadName) {
+		logger.log(Level.INFO, "Starting Python logger thread for '" + threadName + "' ...");
+
+		Thread loggerThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
 					String line;
 
 					while ((line = stdinReader.readLine()) != null) {
-						logger.info(prefix + line);
+						logger.log(Level.INFO, prefix + line);
 					}
 				}
 				catch (Exception e) {
-					logger.warning("Exception " + e);
+					logger.log(Level.SEVERE, "Unable to read from Python STDIN/STDERR.", e);
 				}
 			}
-		});
-		t.start();
+		}, threadName);
+		
+		loggerThread.start();
 	}
 
 	@Override

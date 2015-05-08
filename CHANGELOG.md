@@ -1,5 +1,9 @@
 Change Log
 ==========
+### Syncany GUI plugin 0.4.5-alpha (Date: 8 May 2015)
+- Update checker
+- Dutch language support
+- OAuth panels
 
 ### Syncany GUI Plugin 0.4.4-alpha (Date: 22 Mar 2015)
 - Enabled history browser on Mac OSX

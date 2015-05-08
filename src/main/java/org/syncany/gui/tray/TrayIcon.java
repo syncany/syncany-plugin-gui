@@ -57,6 +57,7 @@ import org.syncany.operations.daemon.messages.ListWatchesManagementRequest;
 import org.syncany.operations.daemon.messages.ListWatchesManagementResponse;
 import org.syncany.operations.daemon.messages.LogFolderRequest;
 import org.syncany.operations.daemon.messages.LogFolderResponse;
+import org.syncany.operations.daemon.messages.PluginManagementResponse;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementRequest;
 import org.syncany.operations.daemon.messages.RemoveWatchManagementResponse;
 import org.syncany.operations.daemon.messages.UpEndSyncExternalEvent;
@@ -64,7 +65,10 @@ import org.syncany.operations.daemon.messages.UpIndexChangesDetectedSyncExternal
 import org.syncany.operations.daemon.messages.UpIndexStartSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileInTransactionSyncExternalEvent;
 import org.syncany.operations.daemon.messages.UpUploadFileSyncExternalEvent;
+import org.syncany.operations.daemon.messages.UpdateManagementResponse;
 import org.syncany.operations.daemon.messages.WatchEndSyncExternalEvent;
+import org.syncany.operations.gui.UpdateChecker;
+import org.syncany.operations.gui.UpdateChecker.UpdateCheckListener;
 import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.log.LogOperationOptions;
 import org.syncany.util.FileUtil;
@@ -86,26 +90,27 @@ import com.google.common.eventbus.Subscribe;
 public abstract class TrayIcon {
 	protected static final Logger logger = Logger.getLogger(TrayIcon.class.getSimpleName());
 
-	private static int REFRESH_TIME = 800;
-	private static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
-	private static String URL_DONATE = "https://www.syncany.org/r/donate";
-	private static String URL_HOMEPAGE = "https://www.syncany.org";
+	protected static int ANIMATION_REFRESH_TIME = 800;	
+	protected static String URL_REPORT_ISSUE = "https://www.syncany.org/r/issue";
+	protected static String URL_DONATE = "https://www.syncany.org/r/donate";
+	protected static String URL_HOMEPAGE = "https://www.syncany.org";
 
 	protected Shell trayShell;
-	private final TrayIconTheme theme;
+	protected TrayIconTheme theme;
 	protected WizardDialog wizard;
 	protected HistoryDialog history;
 	protected PreferencesDialog preferences;
 
 	protected GuiConfigTO guiConfig;
 	protected GuiEventBus eventBus;
+	
+	protected UpdateChecker updateChecker;
 
-	private Thread animationThread;
-	private AtomicBoolean syncing;
-	private Map<String, Boolean> clientSyncStatus;
-	private Map<String, Long> clientUploadFileSize;
+	protected Thread animationThread;
+	protected AtomicBoolean syncing;
+	protected Map<String, Boolean> clientSyncStatus;
+	protected Map<String, Long> clientUploadFileSize;
 	protected RecentFileChanges recentFileChanges;
-
 
 	public TrayIcon(Shell shell, TrayIconTheme theme) {
 		this.trayShell = shell;
@@ -119,9 +124,9 @@ public abstract class TrayIcon {
 		this.syncing = new AtomicBoolean(false);
 		this.clientSyncStatus = Maps.newConcurrentMap();
 		this.clientUploadFileSize = Maps.newConcurrentMap();
-
 		this.recentFileChanges = new RecentFileChanges(this);
-
+		
+		initUpdateChecker();
 		initAnimationThread();
 		initTrayImage();
 	}
@@ -212,7 +217,7 @@ public abstract class TrayIcon {
 
 	protected void copyLink(File folder) {
 		GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
-		genlinkOptions.setShortUrl(true);
+		genlinkOptions.setShortUrl(false);
 
 		GenlinkFolderRequest genlinkRequest = new GenlinkFolderRequest();
 		genlinkRequest.setRoot(folder.getAbsolutePath());
@@ -483,7 +488,7 @@ public abstract class TrayIcon {
 							logger.log(Level.FINE, "Syncing image: Setting image to " + syncImage);
 
 							trayImageIndex = (trayImageIndex + 1) % TrayIconImage.MAX_SYNC_IMAGES;
-							Thread.sleep(REFRESH_TIME);
+							Thread.sleep(ANIMATION_REFRESH_TIME);
 						}
 						catch (InterruptedException e) {
 							// Don't care
@@ -506,6 +511,29 @@ public abstract class TrayIcon {
 		logger.log(Level.FINE, "Syncing image: Setting image to " + TrayIconImage.TRAY_NO_OVERLAY);
 	}
 
+	
+	private void initUpdateChecker() {
+		if (guiConfig.isUpdateCheck()) {
+			logger.log(Level.INFO, "Regular update check ENABLED. Starting update checker thread ...");			
+			
+			UpdateChecker updateChecker = new UpdateChecker(new UpdateCheckListener() {				
+				@Override
+				public void updateResponseReceived(UpdateManagementResponse appResponse, PluginManagementResponse pluginResponse,
+						String updateResponseText, boolean updatesAvailable) {
+					
+					if (updatesAvailable) {
+						displayNotification(I18n.getText("org.syncany.gui.tray.TrayIcon.updatesAvailable"), updateResponseText);
+					}
+				}
+			});
+			
+			updateChecker.start();			
+		}
+		else {
+			logger.log(Level.INFO, "Regular update check not enabled.");			
+		}
+	}
+
 	private void cleanSyncStatus() {
 		logger.log(Level.FINE, "Resetting sync status for clients.");
 		clientSyncStatus.clear();
@@ -525,7 +553,6 @@ public abstract class TrayIcon {
 
 		syncing.set(syncingFolders.size() > 0);
 	}
-
 
 	// Abstract methods
 

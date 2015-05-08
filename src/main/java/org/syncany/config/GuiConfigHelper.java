@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2014 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,8 +46,8 @@ public class GuiConfigHelper {
 			else {
 				// Write example config to daemon-example.xml, and default config to daemon.xml
 				GuiConfigTO exampleGuiConfig = new GuiConfigTO();
-				exampleGuiConfig.setTray(TrayIconType.DEFAULT);
-				exampleGuiConfig.setTheme(TrayIconTheme.DEFAULT);				
+				exampleGuiConfig.setTray(TrayIconType.AUTO);
+				exampleGuiConfig.setTheme(TrayIconTheme.AUTO);				
 				exampleGuiConfig.setNotifications(true);
 				
 				GuiConfigTO.save(exampleGuiConfig, configFileExample);
