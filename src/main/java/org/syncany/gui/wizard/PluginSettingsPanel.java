@@ -284,7 +284,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private Control createPluginOptionTextControl(TransferPluginOption pluginOption, Field pluginField) {
-		return createPluginOptionTextField(pluginOption, pluginField, 2);
+		return createPluginOptionTextField(pluginOption, pluginField, 3);
 	}
 
 	private Text createPluginOptionTextField(TransferPluginOption pluginOption, Field pluginField, int horizontalSpan) {
