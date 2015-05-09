@@ -66,6 +66,7 @@ public class GeneralPanel extends Panel {
 	private Button displayNotificationsButton;
 	private Button preventStandbyButton;
 	private Button updateCheckButton;
+	private Button useShortLinksButton;
 	private Combo themeCombo;
 	private Combo trayTypeCombo;
 	
@@ -191,6 +192,16 @@ public class GeneralPanel extends Panel {
 		updateCheckButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.updateCheck"));
 		updateCheckButton.setSelection(guiConfig.isUpdateCheck());
 		updateCheckButton.addSelectionListener(commonSelectionListener);				
+		
+		// Use short links
+		useShortLinksButton = new Button(this, SWT.CHECK);
+		useShortLinksButton.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
+		useShortLinksButton.setText(I18n.getText("org.syncany.gui.preferences.GeneralPanel.shortLinks"));
+		useShortLinksButton.setSelection(guiConfig.isShortLinks());
+		useShortLinksButton.addSelectionListener(commonSelectionListener);		
+		
+		Label spacingLabel = new Label(this, SWT.NONE);
+		spacingLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false, 2, 1));
 	}
 	
 	private void createTrayCombos() {
@@ -338,6 +349,7 @@ public class GeneralPanel extends Panel {
 		guiConfig.setStartup(launchAtStartupButton.getSelection());
 		guiConfig.setNotifications(displayNotificationsButton.getSelection());
 		guiConfig.setUpdateCheck(updateCheckButton.getSelection());
+		guiConfig.setShortLinks(useShortLinksButton.getSelection());
 	
 		guiConfig.setTheme(selectedTheme);
 		guiConfig.setTray(selectedTrayType);

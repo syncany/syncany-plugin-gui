@@ -22,8 +22,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.syncany.config.GuiConfigHelper;
 import org.syncany.config.to.ConfigTO;
 import org.syncany.config.to.DefaultRepoTOFactory;
+import org.syncany.config.to.GuiConfigTO;
 import org.syncany.config.to.RepoTOFactory;
 import org.syncany.crypto.CipherSpec;
 import org.syncany.crypto.CipherSpecs;
@@ -39,6 +41,7 @@ import org.syncany.operations.init.GenlinkOperationOptions;
 import org.syncany.operations.init.InitOperationOptions;
 import org.syncany.operations.init.InitOperationResult;
 import org.syncany.plugins.transfer.TransferPlugin;
+
 import com.google.common.eventbus.Subscribe;
 
 /**
@@ -157,6 +160,9 @@ public class InitPanelController extends AbstractInitPanelController {
 
 	private void sendInitRequest() {
 		try {
+			// GUI config
+			GuiConfigTO guiConfig = GuiConfigHelper.loadOrCreateGuiConfig();
+			
 			// Cipher specs: --no-encryption, --advanced
 			List<CipherSpec> cipherSpecs = CipherSpecs.getDefaultCipherSpecs();
 
@@ -169,7 +175,7 @@ public class InitPanelController extends AbstractInitPanelController {
 			configTO.setTransferSettings(pluginSettingsPanel.getPluginSettings());
 
 			GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
-			genlinkOptions.setShortUrl(false);
+			genlinkOptions.setShortUrl(guiConfig.isShortLinks());
 
 			InitOperationOptions initOptions = new InitOperationOptions();
 
