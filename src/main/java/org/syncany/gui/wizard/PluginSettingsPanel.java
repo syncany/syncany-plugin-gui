@@ -21,6 +21,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.DirectoryDialog;
@@ -54,7 +55,7 @@ public class PluginSettingsPanel extends Panel {
 	private TransferSettings pluginSettings;
 	private static PluginSettingsPanelOAuthHelper pluginSettingsPanelOAuthHelper;
 
-	private Map<TransferPluginOption, Text> pluginOptionControlMap;
+	private Map<TransferPluginOption, Control> pluginOptionControlMap;
 	private Set<TransferPluginOption> invalidPluginOptions;
 
 	public PluginSettingsPanel(WizardDialog wizardParentDialog, Composite parent, int style) {
@@ -64,13 +65,13 @@ public class PluginSettingsPanel extends Panel {
 	@Override
 	public void dispose() {
 		logger.log(Level.INFO, "PluginSettingsPanel is about to get disposed, resetting OAuthhelper");
-		resetOAuthelper();
+		resetOAuthHelper();
 	}
 
 	public void init(TransferPlugin plugin) {
 		setPlugin(plugin);
 
-		resetOAuthelper();
+		resetOAuthHelper();
 		clearControls();
 
 		createControls();
@@ -95,7 +96,7 @@ public class PluginSettingsPanel extends Panel {
 		}
 	}
 
-	private void resetOAuthelper() {
+	private void resetOAuthHelper() {
 		if (pluginSettingsPanelOAuthHelper != null) {
 			pluginSettingsPanelOAuthHelper.reset(false);
 			pluginSettingsPanelOAuthHelper = null;
@@ -150,7 +151,7 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void createOAuthControls() {
-		resetOAuthelper();
+		resetOAuthHelper();
 
 		PluginSettingsPanelOAuthHelper.Builder builder;
 
@@ -231,35 +232,91 @@ public class PluginSettingsPanel extends Panel {
 		pluginOptionLabel.setLayoutData(pluginOptionLabelGridData);
 		pluginOptionLabel.setText(pluginOptionLabelText);
 
+		Control pluginOptionControl;
+		
+		if (pluginField.getType() == File.class) {
+			pluginOptionControl = createPluginOptionFileControl(pluginOption, pluginField);						
+		}
+		else if (pluginField.getType() instanceof Class && ((Class<?>) pluginField.getType()).isEnum()) {
+			pluginOptionControl = createPluginOptionEnumControl(pluginOption, pluginField);			
+		}
+		else {
+			pluginOptionControl = createPluginOptionTextControl(pluginOption, pluginField);					
+		}
+		
+		// Set cache
+		pluginOptionControlMap.put(pluginOption, pluginOptionControl);
+	}
+
+	private Control createPluginOptionFileControl(TransferPluginOption pluginOption, Field pluginField) {
+		// Create controls
+		Text pluginOptionValueText = createPluginOptionTextField(pluginOption, pluginField, 2);
+		createPluginOptionFileSelectButton(pluginOption, pluginOptionValueText);
+		
+		return pluginOptionValueText;
+	}
+	
+	private Control createPluginOptionEnumControl(TransferPluginOption pluginOption, Field pluginField) {
+		Combo pluginOptionCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
+		pluginOptionCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+
+		for (Object enumValue : pluginField.getType().getEnumConstants()) {
+			pluginOptionCombo.add(enumValue.toString());				
+		}					
+		
+		// Listeners
+		setPluginOptionEnumModifyListener(pluginOption, pluginOptionCombo);
+
+		// Set value
+		pluginOptionCombo.select(0);
+		modifyPluginOptionEnum(pluginOption, pluginOptionCombo);		
+		
+		return pluginOptionCombo;
+	}
+
+	private void setPluginOptionEnumModifyListener(final TransferPluginOption pluginOption, final Combo pluginOptionCombo) {
+		pluginOptionCombo.addModifyListener(new ModifyListener() {
+			@Override
+			public void modifyText(ModifyEvent e) {
+				modifyPluginOptionEnum(pluginOption, pluginOptionCombo);
+			}
+		});
+	}
+
+	private Control createPluginOptionTextControl(TransferPluginOption pluginOption, Field pluginField) {
+		return createPluginOptionTextField(pluginOption, pluginField, 2);
+	}
+
+	private Text createPluginOptionTextField(TransferPluginOption pluginOption, Field pluginField, int horizontalSpan) {
 		// Textfield "Option X"
 		GridData optionValueTextGridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
 		optionValueTextGridData.verticalIndent = 0;
-		optionValueTextGridData.horizontalSpan = (pluginField.getType() == File.class) ? 2 : 3;
+		optionValueTextGridData.horizontalSpan = horizontalSpan;
 		optionValueTextGridData.minimumWidth = 200;
 		optionValueTextGridData.grabExcessHorizontalSpace = true;
 
 		int optionValueTextStyle = (pluginOption.isSensitive()) ? SWT.BORDER | SWT.PASSWORD : SWT.BORDER;
 
-		final Text pluginOptionValueText = new Text(this, optionValueTextStyle);
+		Text pluginOptionValueText = new Text(this, optionValueTextStyle);
 		pluginOptionValueText.setLayoutData(optionValueTextGridData);
 		pluginOptionValueText.setBackground(WidgetDecorator.WHITE);
 
-		setPluginOptionDefaultValue(pluginOptionValueText, pluginField);
-		setPluginOptionModifyListener(pluginOption, pluginOptionValueText);
-		setPluginOptionVerifyListener(pluginOption, pluginOptionValueText);
+		setPluginOptionTextFieldDefaultValue(pluginOptionValueText, pluginField);
+		setPluginOptionTextFieldModifyListener(pluginOption, pluginOptionValueText);
+		setPluginOptionTextFieldVerifyListener(pluginOption, pluginOptionValueText);
 
 		WidgetDecorator.normal(pluginOptionValueText);
+		
+		return pluginOptionValueText;
+	}
 
-		// Add 'Select ..' button for 'File' fields
-		if (pluginField.getType() == File.class) {
-			Button pluginOptionFileSelectButton = new Button(this, SWT.NONE);
-			pluginOptionFileSelectButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.selectFile"));
+	private Button createPluginOptionFileSelectButton(TransferPluginOption pluginOption, Text pluginOptionValueText) {
+		Button pluginOptionFileSelectButton = new Button(this, SWT.NONE);
+		pluginOptionFileSelectButton.setText(I18n.getText("org.syncany.gui.wizard.PluginSettingsPanel.selectFile"));
 
-			setPluginOptionFileSelectListener(pluginOption, pluginOptionValueText, pluginOptionFileSelectButton);
-		}
-
-		// Set cache
-		pluginOptionControlMap.put(pluginOption, pluginOptionValueText);
+		setPluginOptionFileSelectListener(pluginOption, pluginOptionValueText, pluginOptionFileSelectButton);
+		
+		return pluginOptionFileSelectButton;
 	}
 
 	private void setPluginOptionFileSelectListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText,
@@ -273,7 +330,7 @@ public class PluginSettingsPanel extends Panel {
 		});
 	}
 
-	private void setPluginOptionDefaultValue(Text pluginOptionValueText, Field pluginField) {
+	private void setPluginOptionTextFieldDefaultValue(Text pluginOptionValueText, Field pluginField) {
 		try {
 			String defaultValue = pluginSettings.getField(pluginField.getName());
 
@@ -286,7 +343,7 @@ public class PluginSettingsPanel extends Panel {
 		}
 	}
 
-	private void setPluginOptionModifyListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText) {
+	private void setPluginOptionTextFieldModifyListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText) {
 		pluginOptionValueText.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
@@ -339,8 +396,19 @@ public class PluginSettingsPanel extends Panel {
 			WidgetDecorator.markAsInvalid(pluginOptionValueText);
 		}
 	}
+	
+	private void modifyPluginOptionEnum(TransferPluginOption pluginOption, Combo pluginOptionCombo) {
+		try {
+			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionCombo.getText() + "'");
+			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionCombo.getText());
+		}
+		catch (StorageException e) {
+			throw new RuntimeException("Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionCombo.getText()
+					+ "'. This is an ENUM, so this should not happen.", e);
+		}
+	}
 
-	private void setPluginOptionVerifyListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText) {
+	private void setPluginOptionTextFieldVerifyListener(final TransferPluginOption pluginOption, final Text pluginOptionValueText) {
 		pluginOptionValueText.addVerifyListener(new VerifyListener() {
 			@Override
 			public void verifyText(VerifyEvent e) {
@@ -402,11 +470,13 @@ public class PluginSettingsPanel extends Panel {
 	private boolean validateIndividualFields() {
 		logger.log(Level.INFO, " - Validating individual fields ...");
 
-		for (Map.Entry<TransferPluginOption, Text> optionControlEntry : pluginOptionControlMap.entrySet()) {
-			TransferPluginOption pluginOption = optionControlEntry.getKey();
-			Text pluginOptionText = optionControlEntry.getValue();
+		for (Map.Entry<TransferPluginOption, Control> optionControlEntry : pluginOptionControlMap.entrySet()) {
+			TransferPluginOption pluginOption = optionControlEntry.getKey();					
+			Control pluginOptionControl = optionControlEntry.getValue();
 
-			modifyPluginOptionText(pluginOption, pluginOptionText);
+			if (pluginOptionControl instanceof Text) {
+				modifyPluginOptionText(pluginOption, (Text) pluginOptionControl);	
+			}			
 		}
 
 		boolean validFields = invalidPluginOptions.size() == 0;
