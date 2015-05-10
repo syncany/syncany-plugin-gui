@@ -264,14 +264,42 @@ public class PluginSettingsPanel extends Panel {
 			pluginOptionCombo.add(enumValue.toString());				
 		}					
 		
-		// Listeners
 		setPluginOptionEnumModifyListener(pluginOption, pluginOptionCombo);
-
-		// Set value
-		pluginOptionCombo.select(0);
+		selectPluginOptionEnumDefault(pluginOption, pluginField, pluginOptionCombo);		
 		modifyPluginOptionEnum(pluginOption, pluginOptionCombo);		
 		
 		return pluginOptionCombo;
+	}
+
+	private void selectPluginOptionEnumDefault(TransferPluginOption pluginOption, Field pluginField, Combo pluginOptionCombo) {
+		try {
+			pluginField.setAccessible(true);
+			Object pluginFieldValue = pluginField.get(pluginSettings);
+			
+			int pluginOptionComboIndex = getPluginOptionComboIndex(pluginOptionCombo, pluginFieldValue);
+			pluginOptionCombo.select(pluginOptionComboIndex);			
+		}
+		catch (IllegalArgumentException | IllegalAccessException e) {
+			logger.log(Level.WARNING, "Could not extract the default value for the Enum. Selecting first value.");
+			pluginOptionCombo.select(0);
+		}
+	}
+
+	private int getPluginOptionComboIndex(Combo pluginOptionCombo, Object pluginFieldValue) {
+		if (pluginFieldValue != null) {
+			for (int i = 0; i < pluginOptionCombo.getItemCount(); i++) {
+				String comboEnumValue = pluginOptionCombo.getItem(i);
+
+				if (comboEnumValue.equals(pluginFieldValue.toString())) {
+					return i;
+				}
+			}
+			
+			return 0;
+		}
+		else {
+			return 0;
+		}
 	}
 
 	private void setPluginOptionEnumModifyListener(final TransferPluginOption pluginOption, final Combo pluginOptionCombo) {
