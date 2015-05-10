@@ -258,7 +258,7 @@ public class PluginSettingsPanel extends Panel {
 	
 	private Control createPluginOptionEnumControl(TransferPluginOption pluginOption, Field pluginField) {
 		Combo pluginOptionCombo = new Combo(this, SWT.DROP_DOWN | SWT.BORDER | SWT.READ_ONLY);
-		pluginOptionCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		pluginOptionCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
 
 		for (Object enumValue : pluginField.getType().getEnumConstants()) {
 			pluginOptionCombo.add(enumValue.toString());				
@@ -381,13 +381,20 @@ public class PluginSettingsPanel extends Panel {
 	}
 
 	private void modifyPluginOptionText(TransferPluginOption pluginOption, Text pluginOptionValueText) {
-		try {
-			// Set field (at least try to; fails if type mismatches)
-			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'");
-			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionValueText.getText());
+		// Get value (empty is null)
+		String pluginOptionValue = pluginOptionValueText.getText();
+		
+		if ("".equals(pluginOptionValue)) {
+			pluginOptionValue = null;
+		}
 
+		try {			
+			// Set field (at least try to; fails if type mismatches)
+			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'");
+			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionValue);
+			
 			// Validate value (fails if content mismatches)
-			ValidationResult validationResult = pluginOption.isValid(pluginOptionValueText.getText());
+			ValidationResult validationResult = pluginOption.isValid(pluginOptionValue);
 
 			switch (validationResult) {
 				case INVALID_NOT_SET:
@@ -418,7 +425,7 @@ public class PluginSettingsPanel extends Panel {
 			}
 		}
 		catch (StorageException e) {
-			logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValueText.getText() + "'", e);
+			logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'", e);
 
 			invalidPluginOptions.add(pluginOption);
 			WidgetDecorator.markAsInvalid(pluginOptionValueText);
