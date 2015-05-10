@@ -1,6 +1,7 @@
 package org.syncany.gui.wizard;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -138,9 +139,11 @@ public class PluginSelectComposite extends Composite {
 			
 			for (TransferPluginOption pluginOption : pluginOptions) {
 				if (pluginOption.isVisible()) {
-					boolean optionSupported = pluginOption.getType() == String.class
-							|| pluginOption.getType() == int.class
-							|| pluginOption.getType() == File.class;
+					Type optionType = pluginOption.getType();
+					boolean optionSupported = optionType == String.class
+							|| optionType == int.class
+							|| optionType == File.class
+							|| (optionType instanceof Class && ((Class<?>) optionType).isEnum());
 					
 					if (!optionSupported) {					
 						logger.log(Level.FINE, "- Plugin '" + plugin.getId() + "' is NOT supported by the GUI; reason is option '" + pluginOption.getName() + "' of type '" + pluginOption.getType() + "'.");
