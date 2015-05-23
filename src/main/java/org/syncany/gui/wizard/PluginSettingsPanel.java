@@ -390,7 +390,9 @@ public class PluginSettingsPanel extends Panel {
 
 		try {			
 			// Set field (at least try to; fails if type mismatches)
-			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'");
+			if (!pluginOption.isSensitive()) {
+				logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'");
+			}
 			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionValue);
 			
 			// Validate value (fails if content mismatches)
@@ -425,8 +427,12 @@ public class PluginSettingsPanel extends Panel {
 			}
 		}
 		catch (StorageException e) {
-			logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'", e);
-
+			if (!pluginOption.isSensitive()) {
+				logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with value '" + pluginOptionValue + "'", e);
+			}
+			else {
+				logger.log(Level.WARNING, "Cannot set field '" + pluginOption.getName() + "' with sensitive value.");
+			}
 			invalidPluginOptions.add(pluginOption);
 			WidgetDecorator.markAsInvalid(pluginOptionValueText);
 		}
@@ -434,7 +440,9 @@ public class PluginSettingsPanel extends Panel {
 	
 	private void modifyPluginOptionEnum(TransferPluginOption pluginOption, Combo pluginOptionCombo) {
 		try {
-			logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionCombo.getText() + "'");
+			if (!pluginOption.isSensitive()) {
+				logger.log(Level.INFO, "Setting field '" + pluginOption.getName() + "' with value '" + pluginOptionCombo.getText() + "'");
+			}
 			pluginSettings.setField(pluginOption.getField().getName(), pluginOptionCombo.getText());
 		}
 		catch (StorageException e) {
