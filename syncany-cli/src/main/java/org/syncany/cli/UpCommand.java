@@ -39,7 +39,7 @@ import com.google.common.eventbus.Subscribe;
 
 public class UpCommand extends Command {
 	private int totalFileCount = -1;
-	private int uploadedFileCount = 0;
+	
 	@Override
 	public CommandScope getRequiredCommandScope() {
 		return CommandScope.INITIALIZED_LOCALDIR;
@@ -143,6 +143,6 @@ public class UpCommand extends Command {
 
 	@Subscribe
 	public void onIndexMidEventReceived(UpIndexMidSyncExternalEvent syncEvent) {
-		out.printr("Indexed and uploaded " + syncEvent.getCurrentIndex() + "/" + syncEvent.getFileCount() + " file(s)...");
+		out.printr("Indexed " + syncEvent.getCurrentIndex() + "/" + syncEvent.getFileCount() + " file(s)...");
 	}
 }
