@@ -217,7 +217,7 @@ public abstract class TrayIcon {
 
 	protected void copyLink(File folder) {
 		GenlinkOperationOptions genlinkOptions = new GenlinkOperationOptions();
-		genlinkOptions.setShortUrl(false);
+		genlinkOptions.setShortUrl(guiConfig.isShortLinks());
 
 		GenlinkFolderRequest genlinkRequest = new GenlinkFolderRequest();
 		genlinkRequest.setRoot(folder.getAbsolutePath());

@@ -1,5 +1,10 @@
 Change Log
 ==========
+
+### Syncany GUI plugin 0.4.5-alpha (Date: 11 Jul 2015)
+- Support ENUMs in GUI
+- Use short links in GUI by default
+
 ### Syncany GUI plugin 0.4.5-alpha (Date: 8 May 2015)
 - Update checker
 - Dutch language support
