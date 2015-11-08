@@ -1,6 +1,9 @@
 Change Log
 ==========
 
+### Syncany GUI plugin 0.4.7-alpha (Date: 7 Nov 2015)
+- Fix GUI crashes in 'Add folder' wizard #497
+
 ### Syncany GUI plugin 0.4.5-alpha (Date: 11 Jul 2015)
 - Support ENUMs in GUI
 - Use short links in GUI by default

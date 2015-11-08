@@ -37,8 +37,8 @@ public class AddExistingPanelController extends ReloadDaemonPanelController {
 	
 	public AddExistingPanelController(WizardDialog wizardDialog, StartPanel startPanel, FolderSelectPanel selectFolderPanel, ProgressPanel progressPanel) {
 		super(wizardDialog, progressPanel);
-		
 		this.startPanel = startPanel;
+		
 		this.selectFolderPanel = selectFolderPanel;
 		this.progressPanel = progressPanel;
 	}
