@@ -238,11 +238,11 @@ public class WizardDialog extends Dialog {
 
 	private void handleFlow(Action clickAction) {
 		if (stackLayout.topControl == startPanel) {
-			if (panelController != null) {
+			if (panelController != null) {				
 				panelController.dispose();
 			}
 			
-			panelController = createPanelStrategy(startPanel.getSelection());
+			panelController = createPanelController(startPanel.getSelection());
 		}
 		
 		if (panelController != null) {
@@ -250,7 +250,7 @@ public class WizardDialog extends Dialog {
 		}
 	}
 	
-	private PanelController createPanelStrategy(StartPanelSelection startPanelSelection) {
+	private PanelController createPanelController(StartPanelSelection startPanelSelection) {
 		switch (startPanelSelection) {
 		case ADD_EXISTING:
 			return new AddExistingPanelController(this, startPanel, folderSelectPanel, progressPanel);
@@ -350,6 +350,15 @@ public class WizardDialog extends Dialog {
 				
 				if (!windowShell.isDisposed()) {
 					windowShell.dispose();
+				}
+				
+				Panel[] panels = new Panel[] { startPanel, folderSelectPanel, pluginSelectPanel, connectTypeSelectPanel, pluginSettingsPanel, choosePasswordPanel,
+						enterPasswordPanel, progressPanel, initSuccessPanel };
+
+				for (Panel panel : panels) {
+					if (!panel.isDisposed()) {						
+						panel.dispose();
+					}
 				}
 			}
 		});

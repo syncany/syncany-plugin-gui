@@ -30,7 +30,6 @@ import org.syncany.config.to.RepoTOFactory;
 import org.syncany.crypto.CipherSpec;
 import org.syncany.crypto.CipherSpecs;
 import org.syncany.crypto.CipherUtil;
-import org.syncany.gui.Panel;
 import org.syncany.gui.util.I18n;
 import org.syncany.gui.wizard.FolderSelectPanel.SelectFolderValidationMethod;
 import org.syncany.gui.wizard.WizardDialog.Action;
@@ -79,15 +78,6 @@ public class InitPanelController extends AbstractInitPanelController {
 		this.localDir = null;
 		this.selectedPlugin = null;
 		this.initResult = null;
-	}
-
-	@Override
-	public void dispose() {
-		Panel[] panels = new Panel[]{ startPanel, folderSelectPanel, pluginSelectPanel, pluginSettingsPanel, choosePasswordPanel, progressPanel, initSuccessPanel};
-
-		for (Panel panel : panels) {
-			panel.dispose();
-		}
 	}
 
 	@Override

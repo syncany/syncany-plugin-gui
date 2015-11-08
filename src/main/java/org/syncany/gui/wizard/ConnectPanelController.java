@@ -71,7 +71,7 @@ public class ConnectPanelController extends AbstractInitPanelController {
 		this.connectTypeSelection = null;
 		this.selectedPlugin = null;
 	}
-
+	
 	@Override
 	public void handleFlow(Action clickAction) {
 		if (wizardDialog.getCurrentPanel() == startPanel) {
