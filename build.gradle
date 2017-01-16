@@ -15,7 +15,7 @@ repositories {
 	mavenCentral()
 
 	maven {
-		url "https://swt-repo.googlecode.com/svn/repo/"
+		url "http://maven-eclipse.github.io/maven"
 	}
 }
 
