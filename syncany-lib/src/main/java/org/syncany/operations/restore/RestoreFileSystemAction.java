@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com> 
+ * Copyright (C) 2011-2016 Philipp C. Heckel <philipp.heckel@gmail.com> 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,10 +46,6 @@ public class RestoreFileSystemAction extends FileCreatingFileSystemAction {
 			throw new Exception("Not yet implemented.");
 		}
 		else {
-			if (fileVersion2.getStatus() == FileStatus.DELETED) {
-				throw new Exception("Cannot restore version marked DELETED. Try previous version.");
-			}
-			
 			// Assemble file to cache
 			File cacheFile = assembleFileToCache(fileVersion2);
 			
