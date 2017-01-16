@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+### Syncany 0.4.8-alpha (Date: 16 Jan 2017)
+- Developer/alpha/maintanance release 
+- Bugfixes and other things:
+  + Fixed bug with `sy restore` #534/#535
+  + Fix .syignore recursive behavior #555/#544
+  + Fixed crictical bug preventing functioning with newer JVM #595/#596/#597
+ 
 ### Syncany 0.4.7-alpha (Date: 7 Nov 2015)
 - Developer/alpha release (**We are now nearing the beta phase. Stay tuned!**)
 - Bugfixes and other things:

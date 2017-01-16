@@ -1,8 +1,14 @@
 Syncany
 =======
-[![Build Status](https://travis-ci.org/syncany/syncany.svg?branch=master)](https://travis-ci.org/syncany/syncany) [![Coverage Status](https://coveralls.io/repos/syncany/syncany/badge.svg?branch=develop)](https://reports.syncany.org/coverage/) [![Test Status](https://api.syncany.org/v3/badges/tests)](https://reports.syncany.org/tests/) [![Lines of Code](https://api.syncany.org/v3/badges/lines)](https://syncany.org/reports/cloc.xml) [![Contribute and get some Bitcoins for every commit](https://api.syncany.org/v3/badges/tips)](http://tip4commit.com/github/syncany/syncany) [![User guide](https://readthedocs.org/projects/syncany/badge/?version=latest)](https://readthedocs.org/projects/syncany/?badge=latest) [![JavaDoc](https://api.syncany.org/v3/badges/javadoc)](https://docs.syncany.org/javadoc/) [![Issues needing your help](https://api.syncany.org/v3/badges/waffle)](http://waffle.io/syncany/syncany) [![Flattr](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/290043/Syncany)
+[![Build Status](https://travis-ci.org/syncany/syncany.svg?branch=master)](https://travis-ci.org/syncany/syncany) [![Coverage Status](https://api.syncany.org/v3/badges/coverage)](https://reports.syncany.org/coverage/) [![Test Status](https://api.syncany.org/v3/badges/tests)](https://reports.syncany.org/tests/) [![Lines of Code](https://api.syncany.org/v3/badges/lines)](https://syncany.org/reports/cloc.xml) [![Contribute and get some Bitcoins for every commit](https://api.syncany.org/v3/badges/tips)](http://tip4commit.com/github/syncany/syncany) [![User guide](https://readthedocs.org/projects/syncany/badge/?version=latest)](https://readthedocs.org/projects/syncany/?badge=latest) [![JavaDoc](https://api.syncany.org/v3/badges/javadoc)](https://docs.syncany.org/javadoc/) [![Issues needing your help](https://api.syncany.org/v3/badges/waffle)](http://waffle.io/syncany/syncany) [![Flattr](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/290043/Syncany)
 
 <img src="gradle/resources/syncany-logo.png" align="right" />
+
+
+The core team of Syncany is on hiatus for an indefinite amount of time. Feel 
+free to do with the code what the license allows and encourages, but please 
+don't expect any maintenance. The team thanks everyone who has contributed 
+to Syncany in one way or another.
 
 Syncany is an open-source cloud storage and filesharing application. It allows
 users to backup and share certain folders of their workstations using any kind
