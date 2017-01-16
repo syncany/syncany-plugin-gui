@@ -1,6 +1,6 @@
 /*
  * Syncany, www.syncany.org
- * Copyright (C) 2011-2015 Philipp C. Heckel <philipp.heckel@gmail.com>
+ * Copyright (C) 2011-2016 Philipp C. Heckel <philipp.heckel@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -152,11 +153,17 @@ public class CipherUtil {
 		if (!unlimitedStrengthEnabled.get()) {
 			logger.log(Level.FINE, "- Enabling unlimited strength/crypto ...");
 
+			/*
+			 * We want to turn off the isRestricted field.  However it is a
+			 * private final field.  We therefore use reflection.
+			 */
 			try {
-				Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
-
-				field.setAccessible(true);
-				field.set(null, false);
+				Field isRestrictedField = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
+				isRestrictedField.setAccessible(true);
+				Field modifiersField = Field.class.getDeclaredField("modifiers");
+				modifiersField.setAccessible(true);
+				modifiersField.setInt(isRestrictedField, isRestrictedField.getModifiers() & ~Modifier.FINAL);
+				isRestrictedField.set(null, false);
 			}
 			catch (Exception e) {
 				throw new CipherException(e);

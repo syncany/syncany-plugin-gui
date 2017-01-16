@@ -15,14 +15,14 @@ repositories {
 	mavenCentral()
 
 	maven {
-		url "https://swt-repo.googlecode.com/svn/repo/"
+		url "http://maven-eclipse.github.io/maven"
 	}
 }
 
 project.ext {
 	pluginId = "gui"
 	pluginName = "GUI"
-	pluginVersion = "0.4.7-alpha"
+	pluginVersion = "0.4.9-alpha"
 	pluginDebianVersion = "1"
 	pluginDate = new Date()
 	pluginAppMinVersion = "0.4.5-alpha"
